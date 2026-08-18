@@ -8,6 +8,8 @@ export const CodeEditor: React.FC = () => {
   const {
     scriptCode,
     setScriptCode,
+    powerPlantScriptCode,
+    setPowerPlantScriptCode,
     robots,
     selectedRobotId,
     setSelectedRobotId,
@@ -16,6 +18,11 @@ export const CodeEditor: React.FC = () => {
     toggleRunning,
     compileAndRunScript,
   } = useGameStore();
+
+  const [activeEditorTab, setActiveEditorTab] = useState<'ROBOT' | 'POWER_PLANT'>('ROBOT');
+
+  const currentCode = activeEditorTab === 'ROBOT' ? scriptCode : powerPlantScriptCode;
+  const currentSetCode = activeEditorTab === 'ROBOT' ? setScriptCode : setPowerPlantScriptCode;
 
   const selectedRobot = robots.find((r) => r.id === selectedRobotId);
   const editorRef = useRef<any>(null);
@@ -45,14 +52,14 @@ export const CodeEditor: React.FC = () => {
 
   const handleEditorChange = (value: string | undefined) => {
     if (value !== undefined) {
-      setScriptCode(value);
+      currentSetCode(value);
     }
   };
 
   const handleCloudSave = async () => {
     setIsSavingCloud(true);
     try {
-      const saved = await saveScriptToFirebase(scriptName, scriptCode, selectedRobotId);
+      const saved = await saveScriptToFirebase(scriptName, currentCode, selectedRobotId);
       addLog('success', `C# Script '${saved.name}' bulut deposuna kaydedildi!`);
       await loadCloudScripts();
     } catch (err: any) {
@@ -63,7 +70,7 @@ export const CodeEditor: React.FC = () => {
   };
 
   const handleSelectCloudScript = (script: FirebaseScriptDoc) => {
-    setScriptCode(script.code);
+    currentSetCode(script.code);
     setScriptName(script.name);
     setShowScriptMenu(false);
     addLog('info', `C# Script '${script.name}' yüklendi.`);
@@ -75,9 +82,38 @@ export const CodeEditor: React.FC = () => {
       <div className="editor-header-bar">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Code2 className="w-4 h-4 text-cyan-400" />
-          <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: '0.85rem', letterSpacing: '0.5px', color: '#f1f5f9' }}>
-            C# AUTOMATION EDITOR
-          </span>
+          <div style={{ display: 'flex', gap: '4px', background: 'rgba(15,23,42,0.6)', padding: '2px', borderRadius: '6px', border: '1px solid rgba(51,65,85,0.6)' }}>
+            <button
+              onClick={() => setActiveEditorTab('ROBOT')}
+              style={{
+                background: activeEditorTab === 'ROBOT' ? '#0284c7' : 'transparent',
+                color: activeEditorTab === 'ROBOT' ? '#fff' : '#94a3b8',
+                border: 'none',
+                padding: '2px 8px',
+                borderRadius: '4px',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              🤖 ROBOT KODU
+            </button>
+            <button
+              onClick={() => setActiveEditorTab('POWER_PLANT')}
+              style={{
+                background: activeEditorTab === 'POWER_PLANT' ? '#10b981' : 'transparent',
+                color: activeEditorTab === 'POWER_PLANT' ? '#fff' : '#94a3b8',
+                border: 'none',
+                padding: '2px 8px',
+                borderRadius: '4px',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              ⚡ SANTRAL KODU
+            </button>
+          </div>
           <span style={{ background: 'rgba(168, 85, 247, 0.2)', color: '#c084fc', fontSize: '0.68rem', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(168, 85, 247, 0.4)', fontFamily: 'Fira Code, monospace' }}>
             Roslyn WASM
           </span>
@@ -147,7 +183,7 @@ export const CodeEditor: React.FC = () => {
           height="100%"
           defaultLanguage="csharp"
           theme="vs-dark"
-          value={scriptCode}
+          value={currentCode}
           onMount={handleEditorDidMount}
           onChange={handleEditorChange}
           options={{

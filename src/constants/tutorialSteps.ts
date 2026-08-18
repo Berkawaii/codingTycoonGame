@@ -222,4 +222,43 @@ public class RobotScript
     }
 }`,
   },
+  {
+    id: 7,
+    title: 'Bölüm 7: Kuantum Enerji Santrali & C# Yakıt Yönetimi',
+    subtitle: 'Depodaki cevherleri otomatik yakarak şebekeyi besleyin!',
+    description: 'Santraller SADECE Şarj İstasyonu bitişiğine kurulur. Deponuzdaki cevherleri (Kömür, Demir, Plazma) yakarak şebeke deposunu doldurur.',
+    taskText: 'Santral C# kodunda BurnFuel() ile yakıt türünü ("COAL_ORE" veya "FE_ORE") belirleyin ve SetOverclockRate() ile sıcaklığı kontrol edin.',
+    conceptsText: 'plant.BurnFuel("COAL_ORE"), plant.SetOverclockRate(1.6), plant.GetTemperature(), plant.GetGridEnergyRatio()',
+    targetObjectiveText: 'Canlı Hedef: Santral scripti ile deponuzdan yakıt yakarak şebekeye enerji pompalayın.',
+    starterCode: `using System;
+
+public class PowerPlantScript
+{
+    public void Execute(IPowerPlant plant)
+    {
+        double temp = plant.GetTemperature();
+        double gridRatio = plant.GetGridEnergyRatio();
+
+        // 1. Isınma Kontrolü (85°C Üstünde Soğutma Moduna Geç)
+        if (temp > 85.0)
+        {
+            plant.SetOverclockRate(0.5); // Soğutma Modu
+            return;
+        }
+
+        // 2. Yakıt Seçimi ve Enerji Üretimi
+        // Kullanılabilir Yakıt Kodları: "COAL_ORE" (+50 kWh), "FE_ORE" (+30 kWh), "RUBY_GEM" (+200 kWh), "PLASMA_CORE" (+1500 kWh)
+        if (gridRatio < 0.4 && temp < 65.0)
+        {
+            plant.SetOverclockRate(1.6); // %160 Hızlı Yakım
+            plant.BurnFuel("COAL_ORE");  // Kömür Cevheri Yak
+        }
+        else
+        {
+            plant.SetOverclockRate(1.0);
+            plant.BurnFuel("FE_ORE");    // Demir Cevheri Yak
+        }
+    }
+}`,
+  },
 ];

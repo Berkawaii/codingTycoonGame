@@ -26,6 +26,7 @@ export interface Robot {
   maxCargo: number;
   cargoLevel: number;
   cargoSku?: string;
+  biomeId?: BiomeType;
 }
 
 export interface ChargingStation {
@@ -41,6 +42,43 @@ export interface Depot {
   x: number;
   y: number;
   name: string;
+}
+
+export interface Smelter {
+  id: string;
+  x: number;
+  y: number;
+  name: string;
+  width: 2;
+  height: 2;
+  inputBuffer: Record<string, number>;
+  outputBuffer: Record<string, number>;
+}
+
+export interface Refinery {
+  id: string;
+  x: number;
+  y: number;
+  name: string;
+  width: 2;
+  height: 2;
+  inputBuffer: Record<string, number>;
+  outputBuffer: Record<string, number>;
+}
+
+export interface PowerPlant {
+  id: string;
+  x: number;
+  y: number;
+  name: string;
+  linkedStationId: string;
+  powerBuffer: number;
+  maxPowerBuffer: number;
+  temperature: number; // 20.0 to 100.0 °C
+  overclockRate: number; // 0.5 to 2.0
+  isOverheated: boolean;
+  overheatTicksRemaining: number;
+  scriptCode?: string;
 }
 
 export type ResourceType = 'IRON_ORE' | 'COPPER_ORE' | 'GOLD_ORE' | 'CRYSTAL';
@@ -88,6 +126,31 @@ export interface BuildingInfo {
 }
 
 export type InventoryMap = Record<string, number>; // SKU -> quantity
+
+export type BiomeType = 'MARS_BASIN' | 'VOLCANIC' | 'QUANTUM_CAVERN' | 'GLACIER';
+export type HazardType = 'NONE' | 'LAVA' | 'RADIATION' | 'ICE';
+
+export interface HazardTile {
+  x: number;
+  y: number;
+  type: HazardType;
+  damage: number; // energy damage per tick
+  name: string;
+}
+
+export interface BiomeMapState {
+  biome: BiomeType;
+  name: string;
+  seed: string;
+  gridSize: GridSize;
+  resources: ResourceNode[];
+  chargingStations: ChargingStation[];
+  depots: Depot[];
+  hazardTiles: HazardTile[];
+  smelters?: Smelter[];
+  refineries?: Refinery[];
+  powerPlants?: PowerPlant[];
+}
 
 export interface GameLog {
   id: string;

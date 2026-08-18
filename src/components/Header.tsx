@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { SKU_CATALOG } from '../constants/skus';
+import { BIOME_CATALOG } from '../constants/biomes';
+import { BiomeType } from '../types/game';
 import { soundService } from '../services/soundService';
 import { TutorialModal } from './TutorialModal';
-import { Play, Pause, RotateCcw, FastForward, Cpu, DollarSign, Volume2, VolumeX, Package, Activity, Terminal, GraduationCap } from 'lucide-react';
+import { Play, Pause, RotateCcw, FastForward, Cpu, DollarSign, Volume2, VolumeX, Package, Terminal, GraduationCap, Globe, RefreshCw, Bot, Zap } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const [isMuted, setMuted] = useState(soundService.isMuted);
   const [isTutorialOpen, setTutorialOpen] = useState(false);
   const {
     credits,
+    powerPlants = [],
     isRunning,
     toggleRunning,
     stepTick,
@@ -19,6 +22,10 @@ export const Header: React.FC = () => {
     tickCount,
     inventory,
     robots,
+    currentBiome,
+    unlockedBiomes,
+    switchBiome,
+    generateNewSeedMap,
   } = useGameStore();
 
   // Calculate total inventory value
@@ -27,7 +34,14 @@ export const Header: React.FC = () => {
     return acc + (skuDef ? skuDef.baseValue * amount : 0);
   }, 0);
 
-  const activeRobotsCount = robots.filter((r) => r.status !== 'ERROR').length;
+  const activeBiomeRobotsCount = robots.filter(
+    (r) => (r.biomeId || 'MARS_BASIN') === currentBiome && r.status !== 'ERROR'
+  ).length;
+  const totalGlobalRobotsCount = robots.length;
+
+  const activePowerPlants = powerPlants || [];
+  const totalGridEnergy = activePowerPlants.reduce((sum, p) => sum + p.powerBuffer, 0);
+  const maxGridEnergy = activePowerPlants.reduce((sum, p) => sum + p.maxPowerBuffer, 0);
 
   return (
     <>
@@ -56,17 +70,64 @@ export const Header: React.FC = () => {
               ${credits.toLocaleString()}
             </span>
           </div>
+
+          <div className="telemetry-item" style={{ background: 'rgba(56, 189, 248, 0.12)', padding: '0.25rem 0.6rem', borderRadius: '6px', border: '1px solid rgba(56, 189, 248, 0.35)' }}>
+            <Zap className="w-4 h-4 text-amber-400" />
+            <span className="telemetry-label" style={{ color: '#7dd3fc', fontWeight: 600 }}>Şebeke Gücü:</span>
+            <span className="telemetry-value" style={{ color: totalGridEnergy > 0 ? '#38bdf8' : '#f87171', fontSize: '0.9rem', fontFamily: 'Fira Code, monospace' }}>
+              {activePowerPlants.length > 0 ? `${totalGridEnergy.toLocaleString()} / ${maxGridEnergy.toLocaleString()} kWh` : 'Santral Yok'}
+            </span>
+          </div>
           
+          {/* Biome Travel Selector */}
+          <div className="telemetry-item" style={{ background: 'rgba(6, 182, 212, 0.12)', padding: '0.25rem 0.5rem', borderRadius: '6px', border: '1px solid rgba(6, 182, 212, 0.3)' }}>
+            <Globe className="w-4 h-4 text-cyan-400" />
+            <span className="telemetry-label">Harita:</span>
+            <select
+              value={currentBiome}
+              onChange={(e) => switchBiome(e.target.value as BiomeType)}
+              style={{
+                background: '#090e17',
+                color: '#38bdf8',
+                border: '1px solid #1e293b',
+                borderRadius: '4px',
+                padding: '2px 6px',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              {unlockedBiomes.map((bKey) => (
+                <option key={bKey} value={bKey}>
+                  {BIOME_CATALOG[bKey]?.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            onClick={() => {
+              const seed = prompt('Harita Seed (Tohum) kodu girin:', `SEED_${Math.floor(Math.random() * 90000 + 10000)}`);
+              if (seed) generateNewSeedMap(seed);
+            }}
+            className="ui-btn ui-btn-secondary"
+            style={{ padding: '0.25rem 0.5rem', fontSize: '0.72rem' }}
+            title="Yeni Seed ile Harita Üret"
+          >
+            <RefreshCw className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Yeni Seed</span>
+          </button>
+
           <div className="telemetry-item">
             <Package className="w-4 h-4 text-cyan-400" />
-            <span className="telemetry-label">Stok Değeri:</span>
+            <span className="telemetry-label">Stok:</span>
             <span className="telemetry-value" style={{ color: '#67e8f9' }}>${totalValue.toLocaleString()}</span>
           </div>
 
           <div className="telemetry-item">
-            <Activity className="w-4 h-4 text-purple-400" />
-            <span className="telemetry-label">Aktif Robot:</span>
-            <span className="telemetry-value" style={{ color: '#c084fc' }}>{activeRobotsCount} / {robots.length}</span>
+            <Bot className="w-4 h-4 text-purple-400" />
+            <span className="telemetry-label">Robot:</span>
+            <span className="telemetry-value" style={{ color: '#c084fc' }}>{activeBiomeRobotsCount}/{totalGlobalRobotsCount}</span>
           </div>
 
           <div className="telemetry-item">

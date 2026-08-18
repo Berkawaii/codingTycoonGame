@@ -1,7 +1,7 @@
-import { Direction, ResourceNode, ChargingStation, Depot } from '../types/game';
+import { Direction, ResourceNode, ChargingStation, Depot, Smelter, Refinery } from '../types/game';
 
 export interface CompilationLog {
-  action: 'MOVE' | 'MINE' | 'ROTATE' | 'IDLE' | 'ERROR';
+  action: 'MOVE' | 'MINE' | 'ROTATE' | 'IDLE' | 'ERROR' | 'DEPOSIT_RAW_MATERIAL' | 'PROCESS_MATERIAL' | 'COLLECT_PROCESSED';
   payload: string;
   message: string;
 }
@@ -26,7 +26,7 @@ interface RobotState {
 
 /**
  * Intelligent C# Script Evaluator & WASM Bridge
- * Dynamic radar pathfinding, charging station auto-recharge, depot cargo unloading, and GoTo(x, y) target navigation.
+ * Dynamic radar pathfinding, charging station auto-recharge, depot cargo unloading, smelter/refinery processing, and GoTo(x, y) target navigation.
  */
 export async function compileAndRunCSharp(
   code: string,
@@ -34,7 +34,9 @@ export async function compileAndRunCSharp(
   resources: ResourceNode[],
   gridSize: { width: number; height: number },
   chargingStations: ChargingStation[] = [{ id: 'cs1', name: 'Ana Şarj İstasyonu', x: 0, y: 0, chargeRate: 25 }],
-  depots: Depot[] = [{ id: 'depot1', name: 'Ana Lojistik Deposu', x: 0, y: 19 }]
+  depots: Depot[] = [{ id: 'depot1', name: 'Ana Lojistik Deposu', x: 0, y: 19 }],
+  _smelters: Smelter[] = [],
+  _refineries: Refinery[] = []
 ): Promise<ScriptExecutionResult> {
   const diagnostics: string[] = [];
   const logs: CompilationLog[] = [];
@@ -241,8 +243,30 @@ export async function compileAndRunCSharp(
     }
   }
 
+  const hasDepositRaw = /DepositRawMaterial/i.test(code);
+  const hasProcess = /ProcessMaterial/i.test(code);
+  const hasCollectProcessed = /CollectProcessedProduct/i.test(code);
+
   // 5. Generate Actions & Logs
-  if (shouldMine) {
+  if (hasDepositRaw) {
+    logs.push({
+      action: 'DEPOSIT_RAW_MATERIAL',
+      payload: 'DEPOSIT',
+      message: `${robotState.name} kargosundaki ham maddeleri tesise teslim ediyor ('DepositRawMaterial').`,
+    });
+  } else if (hasProcess) {
+    logs.push({
+      action: 'PROCESS_MATERIAL',
+      payload: 'PROCESS',
+      message: `${robotState.name} tesisteki ham maddeleri döküm/rafine ediyor ('ProcessMaterial').`,
+    });
+  } else if (hasCollectProcessed) {
+    logs.push({
+      action: 'COLLECT_PROCESSED',
+      payload: 'COLLECT',
+      message: `${robotState.name} tesisten işlenmiş 10x değerli ürünleri kargosuna yüklüyor ('CollectProcessedProduct').`,
+    });
+  } else if (shouldMine) {
     const targetTile = adjacentResourceTile || standingOnResource;
     const payload = targetTile
       ? JSON.stringify({ x: targetTile.x, y: targetTile.y })
@@ -272,4 +296,73 @@ export async function compileAndRunCSharp(
     diagnostics: [],
     logs,
   };
+}
+
+export interface PowerPlantLog {
+  action: 'BURN_FUEL' | 'SET_OVERCLOCK' | 'IDLE';
+  payload: string;
+  message: string;
+}
+
+export interface PowerPlantExecutionResult {
+  success: boolean;
+  diagnostics: string[];
+  logs: PowerPlantLog[];
+}
+
+export async function compileAndRunPowerPlantCSharp(
+  code: string,
+  plant: {
+    id: string;
+    name: string;
+    temperature: number;
+    powerBuffer: number;
+    maxPowerBuffer: number;
+    isOverheated: boolean;
+  }
+): Promise<PowerPlantExecutionResult> {
+  const logs: PowerPlantLog[] = [];
+
+  if (plant.isOverheated) {
+    logs.push({
+      action: 'IDLE',
+      payload: 'OVERHEATED',
+      message: `${plant.name} aşırı ısınma nedeniyle kilitli durumdadır (SHUTDOWN).`,
+    });
+    return { success: true, diagnostics: [], logs };
+  }
+
+  // Parse SetOverclockRate call e.g. plant.SetOverclockRate(1.6);
+  const overclockMatch = code.match(/SetOverclockRate\s*\(\s*([0-9.]+)\s*\)/i);
+  if (overclockMatch) {
+    const rate = parseFloat(overclockMatch[1]);
+    if (!isNaN(rate)) {
+      logs.push({
+        action: 'SET_OVERCLOCK',
+        payload: rate.toString(),
+        message: `${plant.name} verimlilik/hız oranı ${rate.toFixed(1)}x olarak ayarlandı.`,
+      });
+    }
+  }
+
+  // Parse BurnFuel call e.g. plant.BurnFuel("COAL_ORE");
+  const burnMatch = code.match(/BurnFuel\s*\(\s*"([^"]+)"\s*\)/i);
+  if (burnMatch) {
+    const sku = burnMatch[1];
+    logs.push({
+      action: 'BURN_FUEL',
+      payload: sku,
+      message: `${plant.name} deponuzdan '${sku}' çekip yakıt tankına alıyor.`,
+    });
+  }
+
+  if (logs.length === 0) {
+    logs.push({
+      action: 'IDLE',
+      payload: 'NORMAL',
+      message: `${plant.name} standart modda beklemede.`,
+    });
+  }
+
+  return { success: true, diagnostics: [], logs };
 }

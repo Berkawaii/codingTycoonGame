@@ -100,6 +100,38 @@ const ROBOT_API_METHODS: ApiMethod[] = [
     snippet: 'int energy = robot.GetEnergy();',
     category: 'telemetry',
   },
+  {
+    name: 'plant.BurnFuel(string fuelSku)',
+    signature: 'void BurnFuel(string fuelSku)',
+    description: 'Deponuzdaki cevheri santral yakıt tankına çeker. Yakıtlar: "COAL_ORE" (+50 kWh), "FE_ORE" (+30 kWh), "RUBY_GEM" (+200 kWh), "PLASMA_CORE" (+1,500 kWh).',
+    icon: <BatteryCharging className="w-4 h-4 text-emerald-400" />,
+    snippet: 'plant.BurnFuel("COAL_ORE");',
+    category: 'action',
+  },
+  {
+    name: 'plant.SetOverclockRate(double rate)',
+    signature: 'void SetOverclockRate(double rate)',
+    description: 'Santralin verimlilik / hız oranını (0.5x - 2.0x) ayarlar. 1.0x üzeri hızlar sıcaklığı artırır; 100°C seviyesinde TERMAL KİLİTLENME (Shutdown) oluşur.',
+    icon: <Radio className="w-4 h-4 text-orange-400" />,
+    snippet: 'plant.SetOverclockRate(1.6);',
+    category: 'action',
+  },
+  {
+    name: 'plant.GetTemperature()',
+    signature: 'double GetTemperature()',
+    description: 'Santralin anlık termal sıcaklığını (°C) döndürür (20°C - 100°C). 85°C üzerinde Soğutma Modu (0.5x) çağrılması tavsiye edilir.',
+    icon: <Radio className="w-4 h-4 text-red-400" />,
+    snippet: 'double temp = plant.GetTemperature();',
+    category: 'telemetry',
+  },
+  {
+    name: 'plant.GetGridEnergyRatio()',
+    signature: 'double GetGridEnergyRatio()',
+    description: 'Şebeke enerji deposunun doluluk oranını (0.0 - 1.0) döndürür (%0 = Boş, %1.0 = Dolu).',
+    icon: <Radio className="w-4 h-4 text-cyan-400" />,
+    snippet: 'double gridRatio = plant.GetGridEnergyRatio();',
+    category: 'telemetry',
+  },
 ];
 
 interface ApiReferenceModalProps {

@@ -1,8 +1,9 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { SKU_CATALOG } from '../constants/skus';
+import { BIOME_CATALOG } from '../constants/biomes';
 import { Direction } from '../types/game';
-import { BatteryCharging, Building2, X } from 'lucide-react';
+import { BatteryCharging, Building2, X, Pickaxe, Radio } from 'lucide-react';
 
 interface SmoothPos {
   x: number;
@@ -41,12 +42,24 @@ export const CanvasGrid: React.FC = () => {
     resources,
     chargingStations,
     depots,
+    smelters = [],
+    refineries = [],
+    powerPlants = [],
     credits,
     selectedRobotId,
     setSelectedRobotId,
     buyChargingStation,
     buyDepot,
+    buySmelter,
+    buyRefinery,
+    buyPowerPlant,
+    currentBiome,
+    hazardTiles,
+    biomeMaps,
   } = useGameStore();
+
+  const activeGridSize = biomeMaps[currentBiome]?.gridSize || gridSize;
+  const activeBiomeRobots = robots.filter((r) => (r.biomeId || 'MARS_BASIN') === currentBiome);
 
   const [hoveredTile, setHoveredTile] = useState<{ x: number; y: number } | null>(null);
   const [quickTile, setQuickTile] = useState<{ x: number; y: number; pixelX: number; pixelY: number } | null>(null);
@@ -102,16 +115,23 @@ export const CanvasGrid: React.FC = () => {
     ctx.restore();
   };
 
-  // Detect Robot Events (Mining, Charging, Unloading) and Spawn Particles / Floating Text
+  // Clear particles & floating texts when switching biomes
+  useEffect(() => {
+    particlesRef.current = [];
+    floatingTextsRef.current = [];
+    prevRobotStatesRef.current = {};
+  }, [currentBiome]);
+
+  // Particle & Floating Text Spawner based on Robot State Changes
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const rect = container.getBoundingClientRect();
-    const cellWidth = rect.width / gridSize.width;
-    const cellHeight = rect.height / gridSize.height;
+    const cellWidth = rect.width / activeGridSize.width;
+    const cellHeight = rect.height / activeGridSize.height;
 
-    robots.forEach((robot) => {
+    activeBiomeRobots.forEach((robot) => {
       const prev = prevRobotStatesRef.current[robot.id];
       const pixelX = robot.x * cellWidth + cellWidth / 2;
       const pixelY = robot.y * cellHeight + cellHeight / 2;
@@ -251,7 +271,7 @@ export const CanvasGrid: React.FC = () => {
         y: robot.y,
       };
     });
-  }, [robots, gridSize]);
+  }, [activeBiomeRobots, activeGridSize]);
 
   // Main 60 FPS Render Loop with Smooth Interpolation, Pulse Effects & Particles
   const renderCanvas = useCallback(() => {
@@ -269,33 +289,79 @@ export const CanvasGrid: React.FC = () => {
     canvas.height = rect.height * dpr;
     ctx.scale(dpr, dpr);
 
-    const cellWidth = rect.width / gridSize.width;
-    const cellHeight = rect.height / gridSize.height;
+    const cellWidth = rect.width / activeGridSize.width;
+    const cellHeight = rect.height / activeGridSize.height;
 
     animTimeRef.current += 1;
     const time = animTimeRef.current;
 
-    // 1. Draw Deep Space Grid Background
-    ctx.fillStyle = '#070b14';
+    const biomeDef = BIOME_CATALOG[currentBiome] || BIOME_CATALOG.MARS_BASIN;
+
+    // 1. Draw Biome Grid Background
+    ctx.fillStyle = biomeDef.bgColor;
     ctx.fillRect(0, 0, rect.width, rect.height);
 
-    // Grid lines with neon contrast
-    ctx.strokeStyle = '#1e293b';
+    // Grid lines with biome contrast
+    ctx.strokeStyle = biomeDef.gridLineColor;
     ctx.lineWidth = 1;
 
-    for (let x = 0; x <= gridSize.width; x++) {
+    for (let x = 0; x <= activeGridSize.width; x++) {
       ctx.beginPath();
       ctx.moveTo(x * cellWidth, 0);
       ctx.lineTo(x * cellWidth, rect.height);
       ctx.stroke();
     }
 
-    for (let y = 0; y <= gridSize.height; y++) {
+    for (let y = 0; y <= activeGridSize.height; y++) {
       ctx.beginPath();
       ctx.moveTo(0, y * cellHeight);
       ctx.lineTo(rect.width, y * cellHeight);
       ctx.stroke();
     }
+
+    // 1.5 Draw Environmental Hazard Tiles (LAVA, RADIATION, ICE)
+    hazardTiles.forEach((hTile) => {
+      const hx = hTile.x * cellWidth;
+      const hy = hTile.y * cellHeight;
+
+      if (hTile.type === 'LAVA') {
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.22)';
+        ctx.fillRect(hx + 1, hy + 1, cellWidth - 2, cellHeight - 2);
+        ctx.strokeStyle = 'rgba(249, 115, 22, 0.6)';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(hx + 3, hy + 3, cellWidth - 6, cellHeight - 6);
+
+        ctx.fillStyle = '#f97316';
+        ctx.font = `bold ${Math.round(cellHeight * 0.28)}px Fira Code, monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('LAV', hx + cellWidth / 2, hy + cellHeight / 2);
+      } else if (hTile.type === 'RADIATION') {
+        ctx.fillStyle = 'rgba(217, 70, 239, 0.22)';
+        ctx.fillRect(hx + 1, hy + 1, cellWidth - 2, cellHeight - 2);
+        ctx.strokeStyle = 'rgba(217, 70, 239, 0.6)';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(hx + 3, hy + 3, cellWidth - 6, cellHeight - 6);
+
+        ctx.fillStyle = '#e879f9';
+        ctx.font = `bold ${Math.round(cellHeight * 0.28)}px Fira Code, monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('RAD', hx + cellWidth / 2, hy + cellHeight / 2);
+      } else if (hTile.type === 'ICE') {
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.22)';
+        ctx.fillRect(hx + 1, hy + 1, cellWidth - 2, cellHeight - 2);
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.6)';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(hx + 3, hy + 3, cellWidth - 6, cellHeight - 6);
+
+        ctx.fillStyle = '#bae6fd';
+        ctx.font = `bold ${Math.round(cellHeight * 0.28)}px Fira Code, monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('ICE', hx + cellWidth / 2, hy + cellHeight / 2);
+      }
+    });
 
     // 2. Draw Charging Stations (Clean Neon Pads)
     chargingStations.forEach((cs) => {
@@ -335,6 +401,213 @@ export const CanvasGrid: React.FC = () => {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('DEP', padCenterX, padCenterY);
+    });
+
+    // 2.6 Draw 2x2 Smelters (Premium Industrial Metal Foundry)
+    smelters.forEach((smelter) => {
+      const bX = smelter.x * cellWidth;
+      const bY = smelter.y * cellHeight;
+      const bW = cellWidth * 2;
+      const bH = cellHeight * 2;
+
+      // Dark Steel Bevelled Plate & Outer Border
+      ctx.fillStyle = '#0c121e';
+      ctx.fillRect(bX + 2, bY + 2, bW - 4, bH - 4);
+      ctx.fillStyle = 'rgba(249, 115, 22, 0.12)';
+      ctx.fillRect(bX + 4, bY + 4, bW - 8, bH - 8);
+      ctx.strokeStyle = '#f97316';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(bX + 5, bY + 5, bW - 10, bH - 10);
+
+      // Industrial Corner Hazard Markers (Yellow/Black diagonal accents)
+      const markSize = Math.min(cellWidth, cellHeight) * 0.3;
+      ctx.fillStyle = '#eab308';
+      ctx.fillRect(bX + 5, bY + 5, markSize, 4);
+      ctx.fillRect(bX + 5, bY + 5, 4, markSize);
+      ctx.fillRect(bX + bW - markSize - 5, bY + bH - 9, markSize, 4);
+      ctx.fillRect(bX + bW - 9, bY + bH - markSize - 5, 4, markSize);
+
+      // Dual Chimneys with Heat Vents
+      const chim1X = bX + cellWidth * 0.45;
+      const chim2X = bX + cellWidth * 1.55;
+      const chimY = bY + cellHeight * 0.4;
+      const chimR = Math.min(cellWidth, cellHeight) * 0.25;
+
+      [chim1X, chim2X].forEach((cx) => {
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath();
+        ctx.arc(cx, chimY, chimR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#f97316';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.fillStyle = '#ff4b1f';
+        ctx.beginPath();
+        ctx.arc(cx, chimY, chimR * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Central Molten Furnace Core
+      const coreX = bX + bW / 2;
+      const coreY = bY + cellHeight * 1.25;
+      const coreR = Math.min(cellWidth, cellHeight) * 0.42;
+
+      ctx.fillStyle = 'rgba(255, 75, 31, 0.3)';
+      ctx.beginPath();
+      ctx.arc(coreX, coreY, coreR * 1.3, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#ff4b1f';
+      ctx.beginPath();
+      ctx.arc(coreX, coreY, coreR, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#fef08a';
+      ctx.beginPath();
+      ctx.arc(coreX, coreY, coreR * 0.4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Top Title Badge Pill
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      ctx.fillRect(bX + bW * 0.1, bY + 8, bW * 0.8, cellHeight * 0.32);
+      ctx.strokeStyle = 'rgba(249, 115, 22, 0.6)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(bX + bW * 0.1, bY + 8, bW * 0.8, cellHeight * 0.32);
+
+      ctx.fillStyle = '#ffedd5';
+      ctx.font = `bold ${Math.round(cellHeight * 0.24)}px Fira Code, monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🏭 DÖKÜMHANE (2x2)', coreX, bY + 8 + cellHeight * 0.16);
+
+      // Buffer Telemetry Text
+      const inCount = Object.values(smelter.inputBuffer || {}).reduce((a: number, b: number) => a + b, 0);
+      const outCount = Object.values(smelter.outputBuffer || {}).reduce((a: number, b: number) => a + b, 0);
+      ctx.fillStyle = '#fdba74';
+      ctx.font = `bold ${Math.round(cellHeight * 0.22)}px Fira Code, monospace`;
+      ctx.fillText(`Girdi: ${inCount} | Çıktı: ${outCount}`, coreX, bY + bH - cellHeight * 0.22);
+    });
+
+    // 2.7 Draw 2x2 Refineries (High-Tech Quantum Energy Facility)
+    refineries.forEach((refinery) => {
+      const bX = refinery.x * cellWidth;
+      const bY = refinery.y * cellHeight;
+      const bW = cellWidth * 2;
+      const bH = cellHeight * 2;
+
+      // Dark Quantum Base & Neon Circuit Trace Overlay
+      ctx.fillStyle = '#070b14';
+      ctx.fillRect(bX + 2, bY + 2, bW - 4, bH - 4);
+      ctx.fillStyle = 'rgba(168, 85, 247, 0.15)';
+      ctx.fillRect(bX + 4, bY + 4, bW - 8, bH - 8);
+      ctx.strokeStyle = '#a855f7';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(bX + 5, bY + 5, bW - 10, bH - 10);
+
+      // Dual Fluid Cooling Cylinders
+      const cyl1X = bX + cellWidth * 0.45;
+      const cyl2X = bX + cellWidth * 1.55;
+      const cylY = bY + cellHeight * 0.45;
+      const cylR = Math.min(cellWidth, cellHeight) * 0.26;
+
+      [cyl1X, cyl2X].forEach((cx) => {
+        ctx.fillStyle = 'rgba(0, 242, 254, 0.2)';
+        ctx.beginPath();
+        ctx.arc(cx, cylY, cylR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#00f2fe';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.fillStyle = '#38bdf8';
+        ctx.beginPath();
+        ctx.arc(cx, cylY, cylR * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Central Rotating Plasma Core
+      const coreX = bX + bW / 2;
+      const coreY = bY + cellHeight * 1.25;
+      const coreR = Math.min(cellWidth, cellHeight) * 0.42;
+
+      ctx.fillStyle = 'rgba(236, 72, 153, 0.3)';
+      ctx.beginPath();
+      ctx.arc(coreX, coreY, coreR * 1.3, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#ec4899';
+      ctx.beginPath();
+      ctx.arc(coreX, coreY, coreR, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#a855f7';
+      ctx.beginPath();
+      ctx.arc(coreX, coreY, coreR * 0.4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Top Title Badge Pill
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      ctx.fillRect(bX + bW * 0.1, bY + 8, bW * 0.8, cellHeight * 0.32);
+      ctx.strokeStyle = 'rgba(168, 85, 247, 0.6)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(bX + bW * 0.1, bY + 8, bW * 0.8, cellHeight * 0.32);
+
+      ctx.fillStyle = '#f3e8ff';
+      ctx.font = `bold ${Math.round(cellHeight * 0.24)}px Fira Code, monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🧪 RAFİNERİ (2x2)', coreX, bY + 8 + cellHeight * 0.16);
+
+      // Buffer Telemetry Text
+      const inCount = Object.values(refinery.inputBuffer || {}).reduce((a: number, b: number) => a + b, 0);
+      const outCount = Object.values(refinery.outputBuffer || {}).reduce((a: number, b: number) => a + b, 0);
+      ctx.fillStyle = '#c084fc';
+      ctx.font = `bold ${Math.round(cellHeight * 0.22)}px Fira Code, monospace`;
+      ctx.fillText(`Girdi: ${inCount} | Çıktı: ${outCount}`, coreX, bY + bH - cellHeight * 0.22);
+    });
+
+    // 2.8 Draw Power Plants & Animated Energy Connection Beams to Linked Stations
+    powerPlants.forEach((plant) => {
+      const pX = plant.x * cellWidth;
+      const pY = plant.y * cellHeight;
+      const pCenterX = pX + cellWidth / 2;
+      const pCenterY = pY + cellHeight / 2;
+
+      // Find linked Charging Station to draw Energy Beam
+      const linkedStation = chargingStations.find((cs) => cs.id === plant.linkedStationId);
+      if (linkedStation) {
+        const sCenterX = linkedStation.x * cellWidth + cellWidth / 2;
+        const sCenterY = linkedStation.y * cellHeight + cellHeight / 2;
+
+        ctx.strokeStyle = plant.isOverheated ? '#ef4444' : '#00f2fe';
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(pCenterX, pCenterY);
+        ctx.lineTo(sCenterX, sCenterY);
+        ctx.stroke();
+        ctx.setLineDash([]); // Reset dash
+      }
+
+      // Power Plant Building Outer Plate
+      ctx.fillStyle = plant.isOverheated ? 'rgba(239, 68, 68, 0.25)' : 'rgba(16, 185, 129, 0.2)';
+      ctx.fillRect(pX + 2, pY + 2, cellWidth - 4, cellHeight - 4);
+      ctx.strokeStyle = plant.isOverheated ? '#ef4444' : '#10b981';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(pX + 4, pY + 4, cellWidth - 8, cellHeight - 8);
+
+      // Central Cooling Reactor Core
+      ctx.fillStyle = plant.isOverheated ? '#dc2626' : '#34d399';
+      ctx.font = `bold ${Math.round(cellHeight * 0.3)}px Fira Code, monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(plant.isOverheated ? '💥' : '⚡', pCenterX, pCenterY - cellHeight * 0.1);
+
+      // Temperature Meter
+      ctx.fillStyle = plant.temperature > 80 ? '#f87171' : '#a7f3d0';
+      ctx.font = `bold ${Math.round(cellHeight * 0.22)}px Fira Code, monospace`;
+      ctx.fillText(`${plant.temperature.toFixed(0)}°C`, pCenterX, pCenterY + cellHeight * 0.25);
     });
 
     // 3. Draw Hovered & QuickSelected Tile Highlight
@@ -403,7 +676,7 @@ export const CanvasGrid: React.FC = () => {
     });
 
     // 5. Draw Contextual Mining Animations (Ground Drill vs Forward Laser Beam)
-    robots.forEach((robot) => {
+    activeBiomeRobots.forEach((robot) => {
       if (robot.status === 'MINING') {
         const smooth = smoothPosRef.current[robot.id] || { x: robot.x, y: robot.y };
         const robotCenterX = smooth.x * cellWidth + cellWidth / 2;
@@ -418,40 +691,27 @@ export const CanvasGrid: React.FC = () => {
         ctx.save();
 
         if (standingOnRes) {
-          // CASE A: Standing directly ON top of the resource -> Ground Vertical Plasma Drill Aura!
-          const pulseRadius = radius * (1.1 + Math.sin(time * 0.25) * 0.15);
+          // GROUND DRILL ANIMATION: Shockwave rings under robot
+          const ringRadius = radius * (0.8 + (time % 10) * 0.08);
           ctx.beginPath();
-          ctx.arc(robotCenterX, robotCenterY, pulseRadius, 0, Math.PI * 2);
-          ctx.fillStyle = 'rgba(0, 242, 254, 0.25)';
-          ctx.fill();
-          ctx.strokeStyle = '#00f2fe';
+          ctx.arc(robotCenterX, robotCenterY, ringRadius, 0, Math.PI * 2);
+          ctx.strokeStyle = 'rgba(0, 242, 254, 0.7)';
           ctx.lineWidth = 2.5;
-          ctx.shadowColor = '#00f2fe';
-          ctx.shadowBlur = 14;
           ctx.stroke();
         } else {
-          // CASE B: Standing adjacent to the resource -> Forward Laser Beam to front tile!
-          let targetX = robot.x;
-          let targetY = robot.y;
-          switch (robot.direction) {
-            case 'NORTH':
-              targetY -= 1;
-              break;
-            case 'EAST':
-              targetX += 1;
-              break;
-            case 'SOUTH':
-              targetY += 1;
-              break;
-            case 'WEST':
-              targetX -= 1;
-              break;
-          }
+          // FORWARD LASER BEAM ANIMATION: Laser beam shooting to forward tile
+          let targetTileX = robot.x;
+          let targetTileY = robot.y;
 
-          const targetCenterX = targetX * cellWidth + cellWidth / 2;
-          const targetCenterY = targetY * cellHeight + cellHeight / 2;
+          if (robot.direction === 'NORTH') targetTileY -= 1;
+          if (robot.direction === 'SOUTH') targetTileY += 1;
+          if (robot.direction === 'EAST') targetTileX += 1;
+          if (robot.direction === 'WEST') targetTileX -= 1;
 
-          // Outer Plasma Beam Glow
+          const targetCenterX = targetTileX * cellWidth + cellWidth / 2;
+          const targetCenterY = targetTileY * cellHeight + cellHeight / 2;
+
+          // Outer Glow Beam
           ctx.beginPath();
           ctx.moveTo(robotCenterX, robotCenterY);
           ctx.lineTo(targetCenterX, targetCenterY);
@@ -483,7 +743,7 @@ export const CanvasGrid: React.FC = () => {
     });
 
     // 6. Draw Robots with Smooth Position Lerp
-    robots.forEach((robot) => {
+    activeBiomeRobots.forEach((robot) => {
       const isSelected = robot.id === selectedRobotId;
 
       // Initialize or Lerp smooth position
@@ -658,6 +918,24 @@ export const CanvasGrid: React.FC = () => {
     setQuickTile(null);
   };
 
+  const handleQuickBuildSmelter = () => {
+    if (!quickTile) return;
+    buySmelter(`Dökümhane #${(biomeMaps[currentBiome]?.smelters?.length || 0) + 1}`, quickTile.x, quickTile.y, 5000);
+    setQuickTile(null);
+  };
+
+  const handleQuickBuildRefinery = () => {
+    if (!quickTile) return;
+    buyRefinery(`Rafineri #${(biomeMaps[currentBiome]?.refineries?.length || 0) + 1}`, quickTile.x, quickTile.y, 12000);
+    setQuickTile(null);
+  };
+
+  const handleQuickBuildPowerPlant = () => {
+    if (!quickTile) return;
+    buyPowerPlant(`Enerji Santrali #${(biomeMaps[currentBiome]?.powerPlants?.length || 0) + 1}`, quickTile.x, quickTile.y, 8000);
+    setQuickTile(null);
+  };
+
   return (
     <div className="canvas-wrapper" ref={containerRef} style={{ position: 'relative' }}>
       <canvas
@@ -709,10 +987,10 @@ export const CanvasGrid: React.FC = () => {
             backdropFilter: 'blur(12px)',
             borderRadius: '8px',
             padding: '0.75rem',
-            width: '230px',
+            width: '260px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '0.6rem',
+            gap: '0.5rem',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #1e293b', paddingBottom: '0.4rem' }}>
@@ -742,7 +1020,7 @@ export const CanvasGrid: React.FC = () => {
               <span>Şarj İstasyonu</span>
             </div>
             <span style={{ fontFamily: 'Fira Code, monospace', fontWeight: 800, fontSize: '0.68rem' }}>
-              {stationPrice === 0 ? 'BEDAVA' : `$${stationPrice}`}
+              {stationPrice === 0 ? 'BEDAVA' : `$${stationPrice.toLocaleString()}`}
             </span>
           </button>
 
@@ -757,7 +1035,52 @@ export const CanvasGrid: React.FC = () => {
               <span>Lojistik Deposu</span>
             </div>
             <span style={{ fontFamily: 'Fira Code, monospace', fontWeight: 800, fontSize: '0.68rem' }}>
-              {depotPrice === 0 ? 'BEDAVA' : `$${depotPrice}`}
+              {depotPrice === 0 ? 'BEDAVA' : `$${depotPrice.toLocaleString()}`}
+            </span>
+          </button>
+
+          <button
+            onClick={handleQuickBuildSmelter}
+            disabled={credits < 5000}
+            className="ui-btn ui-btn-accent"
+            style={{ padding: '0.35rem 0.6rem', fontSize: '0.72rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: credits < 5000 ? 0.5 : 1 }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Pickaxe className="w-3.5 h-3.5 text-orange-400" />
+              <span>Dökümhane (2x2)</span>
+            </div>
+            <span style={{ fontFamily: 'Fira Code, monospace', fontWeight: 800, fontSize: '0.68rem', color: '#fb923c' }}>
+              $5,000
+            </span>
+          </button>
+
+          <button
+            onClick={handleQuickBuildRefinery}
+            disabled={credits < 12000}
+            className="ui-btn ui-btn-secondary"
+            style={{ padding: '0.35rem 0.6rem', fontSize: '0.72rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: credits < 12000 ? 0.5 : 1, color: '#c084fc', borderColor: 'rgba(192,132,252,0.4)' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Radio className="w-3.5 h-3.5 text-purple-400" />
+              <span>Rafineri (2x2)</span>
+            </div>
+            <span style={{ fontFamily: 'Fira Code, monospace', fontWeight: 800, fontSize: '0.68rem', color: '#c084fc' }}>
+              $12,000
+            </span>
+          </button>
+
+          <button
+            onClick={handleQuickBuildPowerPlant}
+            disabled={credits < 8000}
+            className="ui-btn ui-btn-primary"
+            style={{ padding: '0.35rem 0.6rem', fontSize: '0.72rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: credits < 8000 ? 0.5 : 1, background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <BatteryCharging className="w-3.5 h-3.5 text-emerald-300" />
+              <span>Enerji Santrali</span>
+            </div>
+            <span style={{ fontFamily: 'Fira Code, monospace', fontWeight: 800, fontSize: '0.68rem', color: '#a7f3d0' }}>
+              $8,000
             </span>
           </button>
         </div>

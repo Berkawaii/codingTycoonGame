@@ -1,8 +1,25 @@
 import { create } from 'zustand';
-import { Robot, ResourceNode, InventoryMap, GameLog, GridSize, Direction, ChargingStation, Depot } from '../types/game';
-import { DEFAULT_C_SHARP_SCRIPT, SKU_CATALOG } from '../constants/skus';
+import {
+  Direction,
+  Robot,
+  ResourceNode,
+  GridSize,
+  ChargingStation,
+  Depot,
+  GameLog,
+  InventoryMap,
+  BiomeType,
+  HazardTile,
+  BiomeMapState,
+  Smelter,
+  Refinery,
+  PowerPlant,
+} from '../types/game';
+import { DEFAULT_C_SHARP_SCRIPT, DEFAULT_POWER_PLANT_C_SHARP_SCRIPT, SKU_CATALOG } from '../constants/skus';
+import { compileAndRunCSharp, compileAndRunPowerPlantCSharp } from '../services/wasmRunner';
 import { soundService } from '../services/soundService';
-import { compileAndRunCSharp } from '../services/wasmRunner';
+import { BIOME_CATALOG } from '../constants/biomes';
+import { generateBiomeMap, generateSingleRespawnResource, populateExpandedZone } from '../services/mapGenerator';
 
 interface GameState {
   gridSize: GridSize;
@@ -11,9 +28,13 @@ interface GameState {
   resources: ResourceNode[];
   chargingStations: ChargingStation[];
   depots: Depot[];
+  smelters: Smelter[];
+  refineries: Refinery[];
+  powerPlants: PowerPlant[];
   inventory: InventoryMap;
   selectedRobotId: string;
   scriptCode: string;
+  powerPlantScriptCode: string;
   isRunning: boolean;
   tickRate: number; // in milliseconds
   tickCount: number;
@@ -34,10 +55,21 @@ interface GameState {
   exitTutorialMode: () => void;
   setTutorialStepIndex: (index: number) => void;
   markTutorialStepCompleted: (stepId: number) => void;
+  // Phase 5: Biome, Multi-Map Travel & Hazard System
+  currentBiome: BiomeType;
+  unlockedBiomes: BiomeType[];
+  hazardTiles: HazardTile[];
+  biomeMaps: Partial<Record<BiomeType, BiomeMapState>>;
+  unlockBiome: (biome: BiomeType) => boolean;
+  switchBiome: (biome: BiomeType) => void;
+  generateNewSeedMap: (seed?: string) => void;
+  transferRobotToBiome: (robotId: string, targetBiome: BiomeType) => void;
+  expandMapGridSize: (biome?: BiomeType) => boolean;
 
   // Actions
   setSelectedRobotId: (id: string) => void;
   setScriptCode: (code: string) => void;
+  setPowerPlantScriptCode: (code: string) => void;
   setIsRunning: (running: boolean) => void;
   toggleRunning: () => void;
   setTickRate: (rate: number) => void;
@@ -51,7 +83,17 @@ interface GameState {
   buyRobot: (name: string, color: string, price: number) => boolean;
   buyChargingStation: (name: string, x: number, y: number, price: number) => boolean;
   buyDepot: (name: string, x: number, y: number, price: number) => boolean;
+  buySmelter: (name: string, x: number, y: number, price?: number) => boolean;
+  buyRefinery: (name: string, x: number, y: number, price?: number) => boolean;
+  buyPowerPlant: (name: string, x: number, y: number, price?: number) => boolean;
   upgradeRobotStat: (robotId: string, statType: 'radar' | 'battery' | 'mining' | 'cargo', price: number) => boolean;
+  buyEmergencyCharge: (robotId: string, price: number) => boolean;
+
+  // Phase 6: Factory Automation Actions
+  depositRawMaterial: (robotId: string) => boolean;
+  processMaterial: (robotId: string) => boolean;
+  collectProcessedProduct: (robotId: string) => boolean;
+  burnPowerPlantFuel: (plantId: string, fuelSku: string) => boolean;
 
   // Game Mechanics Actions
   moveRobot: (robotId: string, direction: Direction) => void;
@@ -95,6 +137,7 @@ const INITIAL_ROBOTS: Robot[] = [
     cargoLevel: 1,
     scriptName: 'MineIron.cs',
     scriptCode: DEFAULT_C_SHARP_SCRIPT,
+    biomeId: 'MARS_BASIN',
   },
   {
     id: 'robot-2',
@@ -116,6 +159,7 @@ const INITIAL_ROBOTS: Robot[] = [
     maxCargo: 50,
     cargoLevel: 1,
     scriptName: 'CollectCopper.cs',
+    biomeId: 'MARS_BASIN',
     scriptCode: `using System;
 using System.Collections.Generic;
 
@@ -174,25 +218,109 @@ const INITIAL_RESOURCES: ResourceNode[] = [
   { id: 'res-4', x: 14, y: 10, type: 'GOLD_ORE', sku: 'SKU-GOLD-01', amount: 60, maxAmount: 60, name: 'Nadir Altın Yatağı', rarity: 'RARE' },
   { id: 'res-5', x: 17, y: 16, type: 'CRYSTAL', sku: 'SKU-CRYSTAL-01', amount: 30, maxAmount: 30, name: 'Kuantum Kristali', rarity: 'LEGENDARY' },
   { id: 'res-6', x: 12, y: 2, type: 'IRON_ORE', sku: 'SKU-IRON-01', amount: 180, maxAmount: 180, name: 'Kuzey Demir Damarı', rarity: 'COMMON' },
+  { id: 'res-7', x: 2, y: 5, type: 'IRON_ORE', sku: 'COAL_ORE', amount: 250, maxAmount: 250, name: 'Zengin Kömür Yatağı #1', rarity: 'COMMON' },
+  { id: 'res-8', x: 3, y: 5, type: 'IRON_ORE', sku: 'COAL_ORE', amount: 250, maxAmount: 250, name: 'Zengin Kömür Yatağı #2', rarity: 'COMMON' },
 ];
 
 const INITIAL_INVENTORY: InventoryMap = {
   'SKU-IRON-01': 24,
+  'COAL_ORE': 30,
   'SKU-COPPER-01': 10,
   'SKU-GOLD-01': 2,
   'SKU-CRYSTAL-01': 0,
 };
 
+const getMapDataForBiome = (state: GameState, biome: BiomeType) => {
+  if (biome === state.currentBiome) {
+    return {
+      gridSize: state.gridSize,
+      resources: state.resources,
+      chargingStations: state.chargingStations,
+      depots: state.depots,
+      smelters: state.smelters || [],
+      refineries: state.refineries || [],
+      powerPlants: state.powerPlants || [],
+      hazardTiles: state.hazardTiles,
+    };
+  } else {
+    const mapState = state.biomeMaps[biome] || generateBiomeMap(biome);
+    return {
+      gridSize: mapState.gridSize || INITIAL_GRID_SIZE,
+      resources: mapState.resources || [],
+      chargingStations: mapState.chargingStations || [],
+      depots: mapState.depots || [],
+      smelters: mapState.smelters || [],
+      refineries: mapState.refineries || [],
+      powerPlants: mapState.powerPlants || [],
+      hazardTiles: mapState.hazardTiles || [],
+    };
+  }
+};
+
+const updateMapDataForBiome = (
+  state: GameState,
+  biome: BiomeType,
+  updater: (map: BiomeMapState) => Partial<BiomeMapState>
+): Partial<GameState> => {
+  const isCurrent = biome === state.currentBiome;
+  const currentMap: BiomeMapState = isCurrent
+    ? {
+        biome,
+        name: BIOME_CATALOG[biome]?.name || 'Harita',
+        seed: state.biomeMaps[biome]?.seed || 'SEED_ACTIVE',
+        gridSize: state.gridSize,
+        resources: state.resources,
+        chargingStations: state.chargingStations,
+        depots: state.depots,
+        smelters: state.smelters || [],
+        refineries: state.refineries || [],
+        powerPlants: state.powerPlants || [],
+        hazardTiles: state.hazardTiles,
+      }
+    : state.biomeMaps[biome] || generateBiomeMap(biome);
+
+  const updated = updater(currentMap);
+  const updatedMapState: BiomeMapState = { ...currentMap, ...updated };
+
+  if (isCurrent) {
+    return {
+      gridSize: updatedMapState.gridSize,
+      resources: updatedMapState.resources,
+      chargingStations: updatedMapState.chargingStations,
+      depots: updatedMapState.depots,
+      smelters: updatedMapState.smelters || [],
+      refineries: updatedMapState.refineries || [],
+      powerPlants: updatedMapState.powerPlants || [],
+      hazardTiles: updatedMapState.hazardTiles,
+      biomeMaps: {
+        ...state.biomeMaps,
+        [biome]: updatedMapState,
+      },
+    };
+  } else {
+    return {
+      biomeMaps: {
+        ...state.biomeMaps,
+        [biome]: updatedMapState,
+      },
+    };
+  }
+};
+
 export const useGameStore = create<GameState>((set, get) => ({
   gridSize: INITIAL_GRID_SIZE,
-  credits: 500, // Starting cash
+  credits: 99999, // Starting sandbox cash for testing
   robots: INITIAL_ROBOTS,
   resources: INITIAL_RESOURCES,
   chargingStations: INITIAL_CHARGING_STATIONS,
   depots: INITIAL_DEPOTS,
+  smelters: [],
+  refineries: [],
+  powerPlants: [],
   inventory: INITIAL_INVENTORY,
   selectedRobotId: 'robot-1',
   scriptCode: DEFAULT_C_SHARP_SCRIPT,
+  powerPlantScriptCode: DEFAULT_POWER_PLANT_C_SHARP_SCRIPT,
   isRunning: false,
   tickRate: 500,
   tickCount: 0,
@@ -208,9 +336,201 @@ export const useGameStore = create<GameState>((set, get) => ({
       id: 'log-2',
       timestamp: new Date().toLocaleTimeString(),
       level: 'success',
-      message: 'Başlangıç kredisi $500 tanımlandı. Şarj İstasyonları ve Depolar haritaya yerleştirildi.',
+      message: 'Test modu için başlangıç bakiye $99,999 tanımlandı. Tüm biyomlar ve yükseltmeler test edilebilir.',
     },
   ],
+  // Phase 5 Biomes & Multi-Map Travel State
+  currentBiome: 'MARS_BASIN',
+  unlockedBiomes: ['MARS_BASIN'],
+  hazardTiles: [],
+  biomeMaps: {
+    MARS_BASIN: {
+      biome: 'MARS_BASIN',
+      name: 'Mars Çöl Havzası',
+      seed: 'SEED_INITIAL',
+      gridSize: INITIAL_GRID_SIZE,
+      resources: INITIAL_RESOURCES,
+      chargingStations: INITIAL_CHARGING_STATIONS,
+      depots: INITIAL_DEPOTS,
+      hazardTiles: [],
+    },
+  },
+
+  unlockBiome: (biome) => {
+    const { unlockedBiomes, credits, biomeMaps } = get();
+    if (unlockedBiomes.includes(biome)) return true;
+
+    const def = BIOME_CATALOG[biome];
+    if (!def || credits < def.unlockPrice) return false;
+
+    const newCredits = credits - def.unlockPrice;
+    const newMapState = generateBiomeMap(biome, `SEED_${Date.now()}`);
+    const updatedUnlocked = [...unlockedBiomes, biome];
+    const updatedMaps = { ...biomeMaps, [biome]: newMapState };
+
+    set({
+      credits: newCredits,
+      unlockedBiomes: updatedUnlocked,
+      biomeMaps: updatedMaps,
+    });
+
+    soundService.playPurchase();
+    get().addLog('success', `🎉 [BİYOM AÇILDI]: ${def.name} haritası $${def.unlockPrice.toLocaleString()} karşılığında açıldı! Harita seçiciden seyahat edebilirsiniz.`);
+    return true;
+  },
+
+  switchBiome: (targetBiome) => {
+    const { currentBiome, unlockedBiomes, biomeMaps, resources, chargingStations, depots, hazardTiles, gridSize } = get();
+    if (!unlockedBiomes.includes(targetBiome) || targetBiome === currentBiome) return;
+
+    // 1. Save current map state (Buildings & Resources stay on current map)
+    const currentMapState: BiomeMapState = {
+      biome: currentBiome,
+      name: BIOME_CATALOG[currentBiome].name,
+      seed: biomeMaps[currentBiome]?.seed || 'SEED_PREV',
+      gridSize,
+      resources,
+      chargingStations,
+      depots,
+      hazardTiles,
+    };
+
+    // 2. Retrieve or generate target map state
+    let targetMapState = biomeMaps[targetBiome];
+    if (!targetMapState) {
+      targetMapState = generateBiomeMap(targetBiome, `SEED_${Date.now()}`);
+    }
+
+    const updatedMaps = {
+      ...biomeMaps,
+      [currentBiome]: currentMapState,
+      [targetBiome]: targetMapState,
+    };
+
+    // 3. Switch active map state (Robots travel with player to target map!)
+    set({
+      currentBiome: targetBiome,
+      resources: targetMapState.resources,
+      chargingStations: targetMapState.chargingStations,
+      depots: targetMapState.depots,
+      hazardTiles: targetMapState.hazardTiles,
+      biomeMaps: updatedMaps,
+    });
+
+    soundService.playPurchase();
+    get().addLog('info', `🌍 [HARİTA SEYAHATİ]: ${targetMapState.name} haritasına geçiş yapıldı. Robot filonuz yeni haritada göreve başladı!`);
+  },
+
+  generateNewSeedMap: (customSeed) => {
+    const { currentBiome } = get();
+    const seed = customSeed || `SEED_${Date.now()}`;
+    const newMapState = generateBiomeMap(currentBiome, seed);
+
+    set((state) => ({
+      resources: newMapState.resources,
+      chargingStations: newMapState.chargingStations,
+      depots: newMapState.depots,
+      hazardTiles: newMapState.hazardTiles,
+      biomeMaps: {
+        ...state.biomeMaps,
+        [currentBiome]: newMapState,
+      },
+    }));
+
+    get().addLog('info', `🌱 [PROSEDÜREL HARİTA]: ${newMapState.name} haritası '${seed}' tohumu (seed) ile yeniden oluşturuldu.`);
+  },
+
+  transferRobotToBiome: (robotId, targetBiome) => {
+    const { robots, unlockedBiomes } = get();
+    if (!unlockedBiomes.includes(targetBiome)) return;
+
+    const robot = robots.find((r) => r.id === robotId);
+    if (!robot) return;
+
+    set((state) => ({
+      robots: state.robots.map((r) =>
+        r.id === robotId ? { ...r, biomeId: targetBiome, x: 2, y: 2 } : r
+      ),
+    }));
+
+    soundService.playPurchase();
+    get().addLog('info', `🛩️ [ROBOT TRANSFERİ]: ${robot.name} robotu '${BIOME_CATALOG[targetBiome].name}' haritasına transfer edildi.`);
+  },
+
+  expandMapGridSize: (targetBiome) => {
+    const { currentBiome, credits, gridSize, biomeMaps } = get();
+    const biome = targetBiome || currentBiome;
+    const currentSize = biomeMaps[biome]?.gridSize?.width || gridSize.width || 20;
+
+    let upgradeCost = 3000;
+    let nextSize = 30;
+
+    if (currentSize === 30) {
+      upgradeCost = 8000;
+      nextSize = 40;
+    } else if (currentSize === 40) {
+      upgradeCost = 18000;
+      nextSize = 50;
+    } else if (currentSize >= 50) {
+      get().addLog('warn', `Harita zaten maksimum boyutta (50x50).`);
+      return false;
+    }
+
+    if (credits < upgradeCost) {
+      get().addLog('error', `Yetersiz bakiye! Haritayı ${nextSize}x${nextSize} boyutuna büyütmek için $${upgradeCost.toLocaleString()} gerekiyor.`);
+      return false;
+    }
+
+    const newGridSize: GridSize = { width: nextSize, height: nextSize };
+
+    set((state) => {
+      const isCurrent = biome === state.currentBiome;
+      const currentBiomeState = state.biomeMaps[biome] || generateBiomeMap(biome);
+
+      const activeResources = isCurrent ? state.resources : (currentBiomeState.resources || []);
+      const activeHazards = isCurrent ? state.hazardTiles : (currentBiomeState.hazardTiles || []);
+
+      const mapDataForGen: BiomeMapState = {
+        ...currentBiomeState,
+        gridSize: { width: currentSize, height: currentSize },
+        resources: activeResources,
+        hazardTiles: activeHazards,
+      };
+
+      const { newResources, newHazardTiles } = populateExpandedZone(
+        biome,
+        { width: currentSize, height: currentSize },
+        newGridSize,
+        mapDataForGen,
+        `EXPAND_${nextSize}_${Date.now()}`
+      );
+
+      const combinedResources = [...activeResources, ...newResources];
+      const combinedHazards = [...activeHazards, ...newHazardTiles];
+
+      const updatedBiomeState: BiomeMapState = {
+        ...currentBiomeState,
+        gridSize: newGridSize,
+        resources: combinedResources,
+        hazardTiles: combinedHazards,
+      };
+
+      return {
+        credits: state.credits - upgradeCost,
+        gridSize: isCurrent ? newGridSize : state.gridSize,
+        resources: isCurrent ? combinedResources : state.resources,
+        hazardTiles: isCurrent ? combinedHazards : state.hazardTiles,
+        biomeMaps: {
+          ...state.biomeMaps,
+          [biome]: updatedBiomeState,
+        },
+      };
+    });
+
+    soundService.playPurchase();
+    get().addLog('success', `🧱 [HARİTA BÜYÜTÜLDÜ]: ${BIOME_CATALOG[biome].name} haritası ${nextSize}x${nextSize} boyutuna genişletildi! Yeni bölgede +${10} zengin maden damarı ve +${12} tehlike karosu belirdi! (-$${upgradeCost.toLocaleString()})`);
+    return true;
+  },
 
   // Tutorial Stage System
   isTutorialModeActive: false,
@@ -306,7 +626,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   setTutorialStepIndex: (index) => set({ tutorialStepIndex: index }),
 
-  markTutorialStepCompleted: (stepId) => {
+  markTutorialStepCompleted: (stepId: number) => {
     const { tutorialCompleted, credits } = get();
     if (!tutorialCompleted.includes(stepId)) {
       const updated = [...tutorialCompleted, stepId];
@@ -404,7 +724,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   buyRobot: (name, color, price) => {
-    const { credits, robots } = get();
+    const { credits, robots, currentBiome } = get();
     if (credits < price) {
       get().addLog('error', `Yetersiz bakiye! ${name} satın almak için $${price.toLocaleString()} gerekiyor.`);
       return false;
@@ -432,6 +752,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       cargoLevel: 1,
       scriptName: `${name.replace(/\s+/g, '')}.cs`,
       scriptCode: DEFAULT_C_SHARP_SCRIPT,
+      biomeId: currentBiome,
     };
 
     set((state) => ({
@@ -506,6 +827,452 @@ export const useGameStore = create<GameState>((set, get) => ({
     return true;
   },
 
+  buySmelter: (name, x, y, price = 5000) => {
+    const { credits, currentBiome, gridSize, resources, chargingStations, depots, smelters = [], refineries = [], hazardTiles } = get();
+    if (credits < price) {
+      get().addLog('error', `Yetersiz bakiye! Dökümhane (2x2) inşası için $${price.toLocaleString()} gerekiyor.`);
+      return false;
+    }
+
+    if (x < 0 || y < 0 || x + 1 >= gridSize.width || y + 1 >= gridSize.height) {
+      get().addLog('error', `Geçersiz konum! Dökümhane (2x2) harita sınırları dışına çıkamaz.`);
+      return false;
+    }
+
+    const tilesToOccupy = [`${x},${y}`, `${x+1},${y}`, `${x},${y+1}`, `${x+1},${y+1}`];
+
+    const occupied = new Set<string>();
+    resources.forEach((r) => occupied.add(`${r.x},${r.y}`));
+    chargingStations.forEach((c) => occupied.add(`${c.x},${c.y}`));
+    depots.forEach((d) => occupied.add(`${d.x},${d.y}`));
+    hazardTiles.forEach((h) => occupied.add(`${h.x},${h.y}`));
+
+    smelters.forEach((s) => {
+      occupied.add(`${s.x},${s.y}`); occupied.add(`${s.x+1},${s.y}`);
+      occupied.add(`${s.x},${s.y+1}`); occupied.add(`${s.x+1},${s.y+1}`);
+    });
+
+    refineries.forEach((rf) => {
+      occupied.add(`${rf.x},${rf.y}`); occupied.add(`${rf.x+1},${rf.y}`);
+      occupied.add(`${rf.x},${rf.y+1}`); occupied.add(`${rf.x+1},${rf.y+1}`);
+    });
+
+    if (tilesToOccupy.some((t) => occupied.has(t))) {
+      get().addLog('error', `Seçilen 2x2 alanda başka bir nesne veya maden var. Dökümhane inşa edilemedi.`);
+      return false;
+    }
+
+    const newSmelter: Smelter = {
+      id: `smelter-${Date.now()}`,
+      x,
+      y,
+      name,
+      width: 2,
+      height: 2,
+      inputBuffer: {},
+      outputBuffer: {},
+    };
+
+    set((state) => ({
+      ...updateMapDataForBiome(state, currentBiome, (map) => ({
+        smelters: [...(map.smelters || []), newSmelter],
+      })),
+      credits: state.credits - price,
+    }));
+
+    soundService.playPurchase();
+    get().addLog('success', `🏭 [DÖKÜMHANE İNŞA EDİLDİ]: '${name}' (2x2) (${x}, ${y}) konumunda kuruldu! (-$${price.toLocaleString()})`);
+    return true;
+  },
+
+  buyRefinery: (name, x, y, price = 12000) => {
+    const { credits, currentBiome, gridSize, resources, chargingStations, depots, smelters = [], refineries = [], hazardTiles } = get();
+    if (credits < price) {
+      get().addLog('error', `Yetersiz bakiye! Rafineri (2x2) inşası için $${price.toLocaleString()} gerekiyor.`);
+      return false;
+    }
+
+    if (x < 0 || y < 0 || x + 1 >= gridSize.width || y + 1 >= gridSize.height) {
+      get().addLog('error', `Geçersiz konum! Rafineri (2x2) harita sınırları dışına çıkamaz.`);
+      return false;
+    }
+
+    const tilesToOccupy = [`${x},${y}`, `${x+1},${y}`, `${x},${y+1}`, `${x+1},${y+1}`];
+
+    const occupied = new Set<string>();
+    resources.forEach((r) => occupied.add(`${r.x},${r.y}`));
+    chargingStations.forEach((c) => occupied.add(`${c.x},${c.y}`));
+    depots.forEach((d) => occupied.add(`${d.x},${d.y}`));
+    hazardTiles.forEach((h) => occupied.add(`${h.x},${h.y}`));
+
+    smelters.forEach((s) => {
+      occupied.add(`${s.x},${s.y}`); occupied.add(`${s.x+1},${s.y}`);
+      occupied.add(`${s.x},${s.y+1}`); occupied.add(`${s.x+1},${s.y+1}`);
+    });
+
+    refineries.forEach((rf) => {
+      occupied.add(`${rf.x},${rf.y}`); occupied.add(`${rf.x+1},${rf.y}`);
+      occupied.add(`${rf.x},${rf.y+1}`); occupied.add(`${rf.x+1},${rf.y+1}`);
+    });
+
+    if (tilesToOccupy.some((t) => occupied.has(t))) {
+      get().addLog('error', `Seçilen 2x2 alanda başka bir nesne veya maden var. Rafineri inşa edilemedi.`);
+      return false;
+    }
+
+    const newRefinery: Refinery = {
+      id: `refinery-${Date.now()}`,
+      x,
+      y,
+      name,
+      width: 2,
+      height: 2,
+      inputBuffer: {},
+      outputBuffer: {},
+    };
+
+    set((state) => ({
+      ...updateMapDataForBiome(state, currentBiome, (map) => ({
+        refineries: [...(map.refineries || []), newRefinery],
+      })),
+      credits: state.credits - price,
+    }));
+
+    soundService.playPurchase();
+    get().addLog('success', `🧪 [RAFİNERİ İNŞA EDİLDİ]: '${name}' (2x2) (${x}, ${y}) konumunda kuruldu! (-$${price.toLocaleString()})`);
+    return true;
+  },
+
+  setPowerPlantScriptCode: (code) => set({ powerPlantScriptCode: code }),
+
+  buyPowerPlant: (name, x, y, price = 8000) => {
+    const { credits, currentBiome, gridSize, resources, chargingStations, depots, smelters = [], refineries = [], powerPlants = [], hazardTiles } = get();
+    if (credits < price) {
+      get().addLog('error', `Yetersiz bakiye! Santral inşası için $${price.toLocaleString()} gerekiyor.`);
+      return false;
+    }
+
+    if (x < 0 || y < 0 || x >= gridSize.width || y >= gridSize.height) {
+      get().addLog('error', `Geçersiz konum! Santral harita sınırları dışına çıkamaz.`);
+      return false;
+    }
+
+    const linkedStation = chargingStations.find(
+      (cs) => Math.abs(cs.x - x) + Math.abs(cs.y - y) === 1
+    );
+
+    if (!linkedStation) {
+      get().addLog('error', `❌ [KOMŞULUK UYARISI]: Santral SADECE bir Şarj İstasyonunun hemen bitişik komşu karesine kurulabilir! (Mevcut konum: ${x}, ${y})`);
+      return false;
+    }
+
+    const occupied = new Set<string>();
+    resources.forEach((r) => occupied.add(`${r.x},${r.y}`));
+    chargingStations.forEach((c) => occupied.add(`${c.x},${c.y}`));
+    depots.forEach((d) => occupied.add(`${d.x},${d.y}`));
+    hazardTiles.forEach((h) => occupied.add(`${h.x},${h.y}`));
+    powerPlants.forEach((p) => occupied.add(`${p.x},${p.y}`));
+
+    smelters.forEach((s) => {
+      occupied.add(`${s.x},${s.y}`); occupied.add(`${s.x+1},${s.y}`);
+      occupied.add(`${s.x},${s.y+1}`); occupied.add(`${s.x+1},${s.y+1}`);
+    });
+
+    refineries.forEach((rf) => {
+      occupied.add(`${rf.x},${rf.y}`); occupied.add(`${rf.x+1},${rf.y}`);
+      occupied.add(`${rf.x},${rf.y+1}`); occupied.add(`${rf.x+1},${rf.y+1}`);
+    });
+
+    if (occupied.has(`${x},${y}`)) {
+      get().addLog('error', `Seçilen kare dolu. Santral inşa edilemedi.`);
+      return false;
+    }
+
+    const newPlant: PowerPlant = {
+      id: `plant-${Date.now()}`,
+      x,
+      y,
+      name,
+      linkedStationId: linkedStation.id,
+      powerBuffer: 1000,
+      maxPowerBuffer: 5000,
+      temperature: 30.0,
+      overclockRate: 1.0,
+      isOverheated: false,
+      overheatTicksRemaining: 0,
+      scriptCode: DEFAULT_POWER_PLANT_C_SHARP_SCRIPT,
+    };
+
+    set((state) => ({
+      ...updateMapDataForBiome(state, currentBiome, (map) => ({
+        powerPlants: [...(map.powerPlants || []), newPlant],
+      })),
+      credits: state.credits - price,
+    }));
+
+    soundService.playPurchase();
+    get().addLog('success', `⚡ [SANTRAL KURULDU]: '${name}' (${x}, ${y}) konumunda [${linkedStation.name}] istasyonuna bağlı inşa edildi! (-$${price.toLocaleString()})`);
+    return true;
+  },
+
+  burnPowerPlantFuel: (plantId, fuelSku) => {
+    const state = get();
+    const currentBiome = state.currentBiome;
+    const mapData = getMapDataForBiome(state, currentBiome);
+    const { powerPlants = [] } = mapData;
+
+    const plant = powerPlants.find((p) => p.id === plantId);
+    if (!plant || plant.isOverheated) return false;
+
+    const availableQty = state.inventory[fuelSku] || 0;
+    if (availableQty < 1) {
+      get().addLog('warn', `⚠️ [YAKIT TÜKENDİ]: Deponuzda '${fuelSku}' yakıt cevheri bulunmuyor.`);
+      return false;
+    }
+
+    let caloricValue = 50;
+    if (fuelSku === 'COAL_ORE') caloricValue = 50;
+    else if (fuelSku === 'FE_ORE' || fuelSku === 'SKU-IRON-01') caloricValue = 30;
+    else if (fuelSku === 'RUBY_GEM') caloricValue = 200;
+    else if (fuelSku === 'PLASMA_CORE') caloricValue = 1500;
+
+    const efficiencyPenalty = 1.0 - (plant.overclockRate > 1.0 ? (plant.overclockRate - 1.0) * 0.4 : 0);
+    const energyProduced = Math.round(caloricValue * plant.overclockRate * efficiencyPenalty);
+
+    const newPowerBuffer = Math.min(plant.maxPowerBuffer, plant.powerBuffer + energyProduced);
+
+    const updatedPlants = powerPlants.map((p) =>
+      p.id === plantId ? { ...p, powerBuffer: newPowerBuffer } : p
+    );
+
+    set((prev) => ({
+      ...updateMapDataForBiome(prev, currentBiome, () => ({ powerPlants: updatedPlants })),
+      inventory: {
+        ...prev.inventory,
+        [fuelSku]: prev.inventory[fuelSku] - 1,
+      },
+    }));
+
+    soundService.playCharging();
+    get().addLog('success', `🔥 [YAKIT YAKILDI]: ${plant.name} 1x ${fuelSku} yakarak +${energyProduced} kWh enerjiyi depoya aktardı! (${newPowerBuffer}/${plant.maxPowerBuffer} kWh)`);
+    return true;
+  },
+
+  depositRawMaterial: (robotId) => {
+    const state = get();
+    const robot = state.robots.find((r) => r.id === robotId);
+    if (!robot || robot.cargoAmount <= 0 || !robot.cargoSku) return false;
+
+    const robotBiome = robot.biomeId || 'MARS_BASIN';
+    const mapData = getMapDataForBiome(state, robotBiome);
+    const { smelters = [], refineries = [] } = mapData;
+
+    const smelter = smelters.find(
+      (s) => robot.x >= s.x && robot.x <= s.x + 1 && robot.y >= s.y && robot.y <= s.y + 1
+    );
+
+    const refinery = refineries.find(
+      (rf) => robot.x >= rf.x && robot.x <= rf.x + 1 && robot.y >= rf.y && robot.y <= rf.y + 1
+    );
+
+    const targetBuilding = smelter || refinery;
+    if (!targetBuilding) return false;
+
+    const sku = robot.cargoSku;
+    const amount = robot.cargoAmount;
+
+    if (smelter) {
+      const updatedSmelters = smelters.map((s) => {
+        if (s.id !== smelter.id) return s;
+        const currentInput = s.inputBuffer[sku] || 0;
+        return {
+          ...s,
+          inputBuffer: { ...s.inputBuffer, [sku]: currentInput + amount },
+        };
+      });
+
+      set((prev) => ({
+        ...updateMapDataForBiome(prev, robotBiome, () => ({ smelters: updatedSmelters })),
+        robots: prev.robots.map((r) =>
+          r.id === robotId ? { ...r, cargoAmount: 0, cargoSku: undefined } : r
+        ),
+      }));
+    } else if (refinery) {
+      const updatedRefineries = refineries.map((rf) => {
+        if (rf.id !== refinery.id) return rf;
+        const currentInput = rf.inputBuffer[sku] || 0;
+        return {
+          ...rf,
+          inputBuffer: { ...rf.inputBuffer, [sku]: currentInput + amount },
+        };
+      });
+
+      set((prev) => ({
+        ...updateMapDataForBiome(prev, robotBiome, () => ({ refineries: updatedRefineries })),
+        robots: prev.robots.map((r) =>
+          r.id === robotId ? { ...r, cargoAmount: 0, cargoSku: undefined } : r
+        ),
+      }));
+    }
+
+    soundService.playUnload();
+    get().addLog('info', `📥 [HAM MADDE TESLİMİ]: ${robot.name} ${amount} birim ${sku} ham maddesini ${targetBuilding.name} girdisine bıraktı!`);
+    return true;
+  },
+
+  processMaterial: (robotId) => {
+    const state = get();
+    const robot = state.robots.find((r) => r.id === robotId);
+    if (!robot) return false;
+
+    const robotBiome = robot.biomeId || 'MARS_BASIN';
+    const mapData = getMapDataForBiome(state, robotBiome);
+    const { smelters = [], refineries = [] } = mapData;
+
+    const smelter = smelters.find(
+      (s) => robot.x >= s.x && robot.x <= s.x + 1 && robot.y >= s.y && robot.y <= s.y + 1
+    );
+
+    const refinery = refineries.find(
+      (rf) => robot.x >= rf.x && robot.x <= rf.x + 1 && robot.y >= rf.y && robot.y <= rf.y + 1
+    );
+
+    if (smelter) {
+      let rawSku = Object.keys(smelter.inputBuffer).find((k) => (smelter.inputBuffer[k] || 0) >= 2);
+      if (!rawSku) {
+        get().addLog('warn', `${smelter.name} girdisinde döküm yapmak için en az 2x ham cevher gerekiyor.`);
+        return false;
+      }
+
+      let refinedSku = 'STEEL_INGOT';
+      if (rawSku === 'RUBY_GEM') refinedSku = 'REINFORCED_ALLOY';
+      else if (rawSku === 'FE_ORE' || rawSku === 'SKU-IRON-01') refinedSku = 'STEEL_INGOT';
+
+      const newInputCount = (smelter.inputBuffer[rawSku] || 0) - 2;
+      const newOutputCount = (smelter.outputBuffer[refinedSku] || 0) + 1;
+
+      const updatedInputBuffer = { ...smelter.inputBuffer, [rawSku]: newInputCount };
+      if (newInputCount <= 0) delete updatedInputBuffer[rawSku];
+
+      const updatedSmelters = smelters.map((s) =>
+        s.id === smelter.id
+          ? {
+              ...s,
+              inputBuffer: updatedInputBuffer,
+              outputBuffer: { ...s.outputBuffer, [refinedSku]: newOutputCount },
+            }
+          : s
+      );
+
+      set((prev) => updateMapDataForBiome(prev, robotBiome, () => ({ smelters: updatedSmelters })));
+      soundService.playMining();
+      get().addLog('success', `⚙️ [DÖKÜM İŞLEMİ]: ${smelter.name} 2x ${rawSku} kullanarak 1x ${refinedSku} (10x Değerli Çelik/Alaşım) üretti!`);
+      return true;
+    } else if (refinery) {
+      let rawSku = Object.keys(refinery.inputBuffer).find((k) => (refinery.inputBuffer[k] || 0) >= 2);
+      if (!rawSku) {
+        get().addLog('warn', `${refinery.name} girdisinde rafine etmek için en az 2x değerli maden gerekiyor.`);
+        return false;
+      }
+
+      let refinedSku = 'QUANTUM_CHIP';
+      if (rawSku === 'DIAMOND_ICE' || rawSku === 'SKU-CRYSTAL-01') refinedSku = 'PLASMA_CORE';
+      else if (rawSku === 'AU_ORE' || rawSku === 'SKU-GOLD-01') refinedSku = 'QUANTUM_CHIP';
+
+      const newInputCount = (refinery.inputBuffer[rawSku] || 0) - 2;
+      const newOutputCount = (refinery.outputBuffer[refinedSku] || 0) + 1;
+
+      const updatedInputBuffer = { ...refinery.inputBuffer, [rawSku]: newInputCount };
+      if (newInputCount <= 0) delete updatedInputBuffer[rawSku];
+
+      const updatedRefineries = refineries.map((rf) =>
+        rf.id === refinery.id
+          ? {
+              ...rf,
+              inputBuffer: updatedInputBuffer,
+              outputBuffer: { ...rf.outputBuffer, [refinedSku]: newOutputCount },
+            }
+          : rf
+      );
+
+      set((prev) => updateMapDataForBiome(prev, robotBiome, () => ({ refineries: updatedRefineries })));
+      soundService.playMining();
+      get().addLog('success', `🧪 [RAFİNERİ İŞLEMİ]: ${refinery.name} 2x ${rawSku} kullanarak 1x ${refinedSku} (10x Değerli Çip/Plazma Çekirdek) üretti!`);
+      return true;
+    }
+
+    return false;
+  },
+
+  collectProcessedProduct: (robotId) => {
+    const state = get();
+    const robot = state.robots.find((r) => r.id === robotId);
+    if (!robot) return false;
+
+    if (robot.cargoAmount > 0) {
+      get().addLog('warn', `${robot.name} kargosu dolu iken işlenmiş ürün yükleyemez.`);
+      return false;
+    }
+
+    const robotBiome = robot.biomeId || 'MARS_BASIN';
+    const mapData = getMapDataForBiome(state, robotBiome);
+    const { smelters = [], refineries = [] } = mapData;
+
+    const smelter = smelters.find(
+      (s) => robot.x >= s.x && robot.x <= s.x + 1 && robot.y >= s.y && robot.y <= s.y + 1
+    );
+
+    const refinery = refineries.find(
+      (rf) => robot.x >= rf.x && robot.x <= rf.x + 1 && robot.y >= rf.y && robot.y <= rf.y + 1
+    );
+
+    const targetBuilding = smelter || refinery;
+    if (!targetBuilding) return false;
+
+    const outputBuffer = targetBuilding.outputBuffer;
+    const refinedSku = Object.keys(outputBuffer).find((k) => (outputBuffer[k] || 0) > 0);
+
+    if (!refinedSku) {
+      get().addLog('warn', `${targetBuilding.name} çıktısında işlenmiş hazır ürün bulunmuyor.`);
+      return false;
+    }
+
+    const availableAmount = outputBuffer[refinedSku] || 0;
+    const amountToTake = Math.min(availableAmount, Math.floor(robot.maxCargo / 10) || 1);
+
+    const newOutputCount = availableAmount - amountToTake;
+    const updatedOutputBuffer = { ...outputBuffer, [refinedSku]: newOutputCount };
+    if (newOutputCount <= 0) delete updatedOutputBuffer[refinedSku];
+
+    if (smelter) {
+      const updatedSmelters = smelters.map((s) =>
+        s.id === smelter.id ? { ...s, outputBuffer: updatedOutputBuffer } : s
+      );
+
+      set((prev) => ({
+        ...updateMapDataForBiome(prev, robotBiome, () => ({ smelters: updatedSmelters })),
+        robots: prev.robots.map((r) =>
+          r.id === robotId ? { ...r, cargoAmount: amountToTake * 10, cargoSku: refinedSku } : r
+        ),
+      }));
+    } else if (refinery) {
+      const updatedRefineries = refineries.map((rf) =>
+        rf.id === refinery.id ? { ...rf, outputBuffer: updatedOutputBuffer } : rf
+      );
+
+      set((prev) => ({
+        ...updateMapDataForBiome(prev, robotBiome, () => ({ refineries: updatedRefineries })),
+        robots: prev.robots.map((r) =>
+          r.id === robotId ? { ...r, cargoAmount: amountToTake * 10, cargoSku: refinedSku } : r
+        ),
+      }));
+    }
+
+    soundService.playPurchase();
+    get().addLog('success', `📦 [ÜRÜN ALINDI]: ${robot.name} ${targetBuilding.name} çıktısından ${amountToTake} adet ${refinedSku} işlenmiş ürünü kargosuna yükledi!`);
+    return true;
+  },
+
   upgradeRobotStat: (robotId, statType, price) => {
     const { credits, robots } = get();
     const robot = robots.find((r) => r.id === robotId);
@@ -548,10 +1315,44 @@ export const useGameStore = create<GameState>((set, get) => ({
     return true;
   },
 
-  moveRobot: (robotId, direction) => {
-    const { robots, gridSize, chargingStations, depots } = get();
+  buyEmergencyCharge: (robotId, price) => {
+    const { credits, robots } = get();
     const robot = robots.find((r) => r.id === robotId);
+    if (!robot) return false;
+
+    if (robot.energy >= robot.maxEnergy) {
+      get().addLog('warn', `${robot.name} bataryası zaten %100 dolu (${robot.energy}/${robot.maxEnergy}).`);
+      return false;
+    }
+
+    if (credits < price) {
+      get().addLog('error', `Yetersiz bakiye! ${robot.name} için acil şarj yükleme ücreti: $${price.toLocaleString()}`);
+      return false;
+    }
+
+    const chargeBoost = Math.max(10, Math.round(robot.maxEnergy * 0.10));
+    const newEnergy = Math.min(robot.maxEnergy, robot.energy + chargeBoost);
+
+    set((state) => ({
+      credits: state.credits - price,
+      robots: state.robots.map((r) =>
+        r.id === robotId ? { ...r, energy: newEnergy, status: r.status === 'ERROR' ? 'ERROR' : ('IDLE' as const) } : r
+      ),
+    }));
+
+    soundService.playCharging();
+    get().addLog('success', `⚡ [ACİL ŞARJ]: ${robot.name} robotuna %10 Şarj (+${chargeBoost} Enerji -> ${newEnergy}/${robot.maxEnergy}) satın alındı! (-$${price.toLocaleString()})`);
+    return true;
+  },
+
+  moveRobot: (robotId, direction) => {
+    const state = get();
+    const robot = state.robots.find((r) => r.id === robotId);
     if (!robot || robot.energy <= 0) return;
+
+    const robotBiome = robot.biomeId || 'MARS_BASIN';
+    const mapData = getMapDataForBiome(state, robotBiome);
+    const { gridSize, chargingStations, depots, hazardTiles } = mapData;
 
     let dx = 0;
     let dy = 0;
@@ -573,12 +1374,13 @@ export const useGameStore = create<GameState>((set, get) => ({
     const newX = Math.max(0, Math.min(gridSize.width - 1, robot.x + dx));
     const newY = Math.max(0, Math.min(gridSize.height - 1, robot.y + dy));
 
-    // Collision Check: Is target tile occupied by another robot?
+    // Collision Check: Is target tile occupied by another robot in the SAME biome?
     const isStationOrDepot =
       chargingStations.some((cs) => cs.x === newX && cs.y === newY) ||
       depots.some((d) => d.x === newX && d.y === newY);
 
-    const isOccupiedByRobot = robots.some(
+    const sameBiomeRobots = state.robots.filter((r) => (r.biomeId || 'MARS_BASIN') === robotBiome);
+    const isOccupiedByRobot = sameBiomeRobots.some(
       (r) => r.id !== robotId && r.x === newX && r.y === newY
     );
 
@@ -603,7 +1405,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
         if (tx < 0 || tx >= gridSize.width || ty < 0 || ty >= gridSize.height) continue;
 
-        const isFree = !robots.some((r) => r.id !== robotId && r.x === tx && r.y === ty);
+        const isFree = !sameBiomeRobots.some((r) => r.id !== robotId && r.x === tx && r.y === ty);
         if (isFree) {
           detourDirection = d;
           detourX = tx;
@@ -618,8 +1420,8 @@ export const useGameStore = create<GameState>((set, get) => ({
           `${robot.name} çakışmayı önlemek için '${detourDirection}' yönüne otonom yan adım (Detour) attı.`
         );
         soundService.playStep();
-        set((state) => ({
-          robots: state.robots.map((r) =>
+        set((prev) => ({
+          robots: prev.robots.map((r) =>
             r.id === robotId
               ? {
                   ...r,
@@ -641,15 +1443,23 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     soundService.playStep();
 
-    set((state) => {
-      const newMoves = state.tutorialProgress.movesCount + 1;
+    // Check Hazard Tile Penalty (LAVA, RADIATION, ICE)
+    const hazardOnTile = hazardTiles.find((h) => h.x === newX && h.y === newY);
+    const hazardPenalty = hazardOnTile ? hazardOnTile.damage : 0;
+
+    if (hazardOnTile) {
+      get().addLog('warn', `⚠️ [TEHLİKE KAROSU]: ${robot.name} [${hazardOnTile.name}] karosuna bastı! (-${hazardOnTile.damage} Enerji)`);
+    }
+
+    set((prev) => {
+      const newMoves = prev.tutorialProgress.movesCount + 1;
       if (newMoves >= 3) {
         get().markTutorialStepCompleted(1);
       }
 
       return {
-        tutorialProgress: { ...state.tutorialProgress, movesCount: newMoves },
-        robots: state.robots.map((r) =>
+        tutorialProgress: { ...prev.tutorialProgress, movesCount: newMoves },
+        robots: prev.robots.map((r) =>
           r.id === robotId
             ? {
                 ...r,
@@ -657,7 +1467,7 @@ export const useGameStore = create<GameState>((set, get) => ({
                 y: newY,
                 direction,
                 status: 'MOVING',
-                energy: Math.max(0, r.energy - 1),
+                energy: Math.max(0, r.energy - 1 - hazardPenalty),
               }
             : r
         ),
@@ -666,9 +1476,13 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   mineResource: (robotId, targetX, targetY) => {
-    const { robots, resources } = get();
-    const robot = robots.find((r) => r.id === robotId);
+    const state = get();
+    const robot = state.robots.find((r) => r.id === robotId);
     if (!robot || robot.energy <= 0) return;
+
+    const robotBiome = robot.biomeId || 'MARS_BASIN';
+    const mapData = getMapDataForBiome(state, robotBiome);
+    const { resources } = mapData;
 
     // Check cargo capacity
     if (robot.cargoAmount >= robot.maxCargo) {
@@ -727,14 +1541,14 @@ export const useGameStore = create<GameState>((set, get) => ({
       return;
     }
 
-    set((state) => {
-      const updatedResources = state.resources.map((res) =>
+    set((prev) => {
+      const updatedResources = resources.map((res) =>
         res.id === targetNode!.id
           ? { ...res, amount: res.amount - mineAmount }
           : res
       );
 
-      const updatedRobots = state.robots.map((r) =>
+      const updatedRobots = prev.robots.map((r) =>
         r.id === robotId
           ? {
               ...r,
@@ -749,13 +1563,13 @@ export const useGameStore = create<GameState>((set, get) => ({
           : r
       );
 
-      const newMines = state.tutorialProgress.minesCount + 1;
+      const newMines = prev.tutorialProgress.minesCount + 1;
       if (newMines >= 1) get().markTutorialStepCompleted(2);
       if (newMines >= 2) get().markTutorialStepCompleted(5);
 
       return {
-        tutorialProgress: { ...state.tutorialProgress, minesCount: newMines },
-        resources: updatedResources,
+        ...updateMapDataForBiome(prev, robotBiome, () => ({ resources: updatedResources })),
+        tutorialProgress: { ...prev.tutorialProgress, minesCount: newMines },
         robots: updatedRobots,
       };
     });
@@ -864,20 +1678,143 @@ export const useGameStore = create<GameState>((set, get) => ({
     const nextTick = state.tickCount + 1;
     set({ tickCount: nextTick });
 
+    // Periodic Resource Respawning across ALL unlocked biomes (Every 12 Ticks)
+    if (nextTick % 12 === 0) {
+      const activeState = get();
+      for (const biomeKey of activeState.unlockedBiomes) {
+        const mapData = getMapDataForBiome(activeState, biomeKey);
+        const depletedCount = mapData.resources.filter((r) => r.amount <= 0).length;
+
+        if (depletedCount > 0 || mapData.resources.length < 10) {
+          const existingCoords = new Set<string>();
+          mapData.resources.forEach((r) => existingCoords.add(`${r.x},${r.y}`));
+          mapData.chargingStations.forEach((c) => existingCoords.add(`${c.x},${c.y}`));
+          mapData.depots.forEach((d) => existingCoords.add(`${d.x},${d.y}`));
+          mapData.hazardTiles.forEach((h) => existingCoords.add(`${h.x},${h.y}`));
+
+          const newResource = generateSingleRespawnResource(
+            biomeKey,
+            existingCoords,
+            `SEED_RESPAWN_${nextTick}_${biomeKey}`
+          );
+
+          if (newResource) {
+            const cleanedResources = mapData.resources.filter((r) => r.amount > 0);
+            set((prev) =>
+              updateMapDataForBiome(prev, biomeKey, () => ({
+                resources: [...cleanedResources, newResource],
+              }))
+            );
+            get().addLog('info', `🌱 [KAYNAK YENİLENDİ]: ${BIOME_CATALOG[biomeKey]?.name} haritasında yeni ${newResource.name} damarı (${newResource.x}, ${newResource.y}) koordinatında türedi!`);
+          }
+        }
+      }
+    }
+
+    // Power Plant Thermal & C# Script Simulation
+    const activeState = get();
+    for (const biomeKey of activeState.unlockedBiomes) {
+      const mapData = getMapDataForBiome(get(), biomeKey);
+      const { powerPlants = [] } = mapData;
+      if (powerPlants.length === 0) continue;
+
+      const updatedPlants: PowerPlant[] = [];
+
+      for (const plant of powerPlants) {
+        if (plant.isOverheated) {
+          const rem = plant.overheatTicksRemaining - 1;
+          const newTemp = Math.max(30, plant.temperature - 3.5);
+          const isStillOverheated = rem > 0;
+
+          if (!isStillOverheated) {
+            get().addLog('info', `❄️ [SOĞUMA TAMAMLANDI]: ${plant.name} yeniden faaliyete geçti!`);
+          }
+
+          updatedPlants.push({
+            ...plant,
+            temperature: newTemp,
+            isOverheated: isStillOverheated,
+            overheatTicksRemaining: Math.max(0, rem),
+          });
+          continue;
+        }
+
+        const scriptToRun = plant.scriptCode || get().powerPlantScriptCode || DEFAULT_POWER_PLANT_C_SHARP_SCRIPT;
+        const result = await compileAndRunPowerPlantCSharp(scriptToRun, {
+          id: plant.id,
+          name: plant.name,
+          temperature: plant.temperature,
+          powerBuffer: plant.powerBuffer,
+          maxPowerBuffer: plant.maxPowerBuffer,
+          isOverheated: plant.isOverheated,
+        });
+
+        let newOverclock = plant.overclockRate;
+
+        result.logs.forEach((l) => {
+          if (l.action === 'SET_OVERCLOCK') {
+            const parsed = parseFloat(l.payload);
+            if (!isNaN(parsed)) newOverclock = Math.max(0.5, Math.min(2.0, parsed));
+          } else if (l.action === 'BURN_FUEL') {
+            get().burnPowerPlantFuel(plant.id, l.payload);
+          }
+        });
+
+        let tempDelta = -1.0;
+        if (newOverclock > 1.0) tempDelta = (newOverclock - 1.0) * 8.0;
+        else if (newOverclock < 1.0) tempDelta = -5.0;
+
+        const nextTemp = Math.max(30, Math.min(100, plant.temperature + tempDelta));
+        const overheatTriggered = nextTemp >= 100.0;
+
+        if (overheatTriggered) {
+          get().addLog('error', `🚨 [AŞIRI ISINMA PATLAMASI]: ${plant.name} 100°C'ye ulaştı ve TERMAL KİLİTLENMEYE GİRDİ! 20 tick boyunca tamamen KAPANDI!`);
+        }
+
+        updatedPlants.push({
+          ...plant,
+          overclockRate: newOverclock,
+          temperature: nextTemp,
+          isOverheated: overheatTriggered,
+          overheatTicksRemaining: overheatTriggered ? 20 : 0,
+        });
+      }
+
+      set((prev) => updateMapDataForBiome(prev, biomeKey, () => ({ powerPlants: updatedPlants })));
+    }
+
     const currentRobots = get().robots;
-    const currentResources = get().resources;
-    const currentGridSize = get().gridSize;
 
     for (const robot of currentRobots) {
       if (robot.status === 'ERROR') continue;
 
-      // 1. Check if robot is on a charging station
-      const stationOnTile = state.chargingStations.find(
+      const robotBiome = robot.biomeId || 'MARS_BASIN';
+      const mapData = getMapDataForBiome(get(), robotBiome);
+      const { gridSize, resources, chargingStations, depots, smelters = [], refineries = [], powerPlants = [] } = mapData;
+
+      // 1. Check if robot is on a charging station on ITS OWN biome map
+      const stationOnTile = chargingStations.find(
         (cs) => cs.x === robot.x && cs.y === robot.y
       );
 
       if (stationOnTile && robot.energy < robot.maxEnergy) {
-        const newEnergy = Math.min(robot.maxEnergy, robot.energy + 30);
+        const linkedPlant = powerPlants.find((p) => p.linkedStationId === stationOnTile.id);
+        let chargeBoost = 30;
+
+        if (linkedPlant) {
+          if (linkedPlant.powerBuffer > 0) {
+            chargeBoost = Math.min(30, linkedPlant.powerBuffer);
+            const updatedPlants = powerPlants.map((p) =>
+              p.id === linkedPlant.id ? { ...p, powerBuffer: Math.max(0, p.powerBuffer - chargeBoost) } : p
+            );
+            set((prev) => updateMapDataForBiome(prev, robotBiome, () => ({ powerPlants: updatedPlants })));
+          } else {
+            chargeBoost = 2; // Emergency trickle when grid power is empty!
+            get().addLog('warn', `⚠️ [ŞEBEKE DEPODAN HIZLI ŞARJ KESİLDİ]: ${robot.name} ${stationOnTile.name} istasyonunda (0 kWh Depo) acil durum sızıntısıyla yavaş şarj oluyor (+2 Enerji).`);
+          }
+        }
+
+        const newEnergy = Math.min(robot.maxEnergy, robot.energy + chargeBoost);
         set((prev) => {
           const newCharges = prev.tutorialProgress.chargesCount + 1;
           if (newCharges >= 1) get().markTutorialStepCompleted(3);
@@ -896,12 +1833,14 @@ export const useGameStore = create<GameState>((set, get) => ({
           };
         });
         soundService.playCharging();
-        get().addLog('info', `${robot.name} [${stationOnTile.name}] istasyonunda şarj oldu (+30 Enerji -> ${newEnergy}/${robot.maxEnergy})!`);
+        if (chargeBoost > 2) {
+          get().addLog('info', `${robot.name} [${stationOnTile.name}] istasyonunda şarj oldu (+${chargeBoost} Enerji -> ${newEnergy}/${robot.maxEnergy})!`);
+        }
         if (newEnergy < robot.maxEnergy) continue;
       }
 
-      // 2. Check if robot is on a Depot tile (Auto-Unload Cargo)
-      const depotOnTile = state.depots.find(
+      // 2. Check if robot is on a Depot tile (Auto-Unload Cargo) on ITS OWN biome map
+      const depotOnTile = depots.find(
         (d) => d.x === robot.x && d.y === robot.y
       );
 
@@ -909,7 +1848,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         get().unloadCargo(robot.id);
       }
 
-      // 3. Run Robot's C# Script
+      // 3. Run Robot's C# Script against ITS OWN biome map data
       const codeToRun = robot.scriptCode || state.scriptCode || DEFAULT_C_SHARP_SCRIPT;
 
       const result = await compileAndRunCSharp(
@@ -925,10 +1864,12 @@ export const useGameStore = create<GameState>((set, get) => ({
           cargoAmount: robot.cargoAmount,
           maxCargo: robot.maxCargo,
         },
-        currentResources,
-        currentGridSize,
-        state.chargingStations,
-        state.depots
+        resources,
+        gridSize,
+        chargingStations,
+        depots,
+        smelters,
+        refineries
       );
 
       if (!result.success) {
@@ -941,7 +1882,13 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
 
       result.logs.forEach((log) => {
-        if (log.action === 'MINE') {
+        if (log.action === 'DEPOSIT_RAW_MATERIAL') {
+          get().depositRawMaterial(robot.id);
+        } else if (log.action === 'PROCESS_MATERIAL') {
+          get().processMaterial(robot.id);
+        } else if (log.action === 'COLLECT_PROCESSED') {
+          get().collectProcessedProduct(robot.id);
+        } else if (log.action === 'MINE') {
           let tx: number | undefined;
           let ty: number | undefined;
           try {
