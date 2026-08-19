@@ -60,15 +60,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
     setLoading(true);
     try {
       const res = await loginWithGoogle();
-      if (res.user?.displayName) {
+      if (res && res.user?.displayName) {
         localStorage.setItem('syntax_factory_user_name', res.user.displayName);
+        setLoading(false);
+        if (onSuccess) onSuccess();
+        onClose();
+      } else if (res === null) {
+        setErrorMsg('Google giriş sayfasına yönlendiriliyorsunuz...');
       }
-      setLoading(false);
-      if (onSuccess) onSuccess();
-      onClose();
     } catch (err: any) {
       setLoading(false);
-      setErrorMsg('Google ile giriş yapılırken bir sorun oluştu: ' + (err.message || ''));
+      if (err.message && (err.message.includes('closing') || err.message.includes('closed'))) {
+        setErrorMsg('Pencere kapandı. Lütfen tekrar açıp hesap seçin veya E-posta ile giriş yapın.');
+      } else {
+        setErrorMsg('Google ile giriş yapılırken bir sorun oluştu: ' + (err.message || ''));
+      }
     }
   };
 
