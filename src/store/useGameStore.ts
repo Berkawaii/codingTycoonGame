@@ -2359,6 +2359,9 @@ export const useGameStore = create<GameState>()((set, get) => ({
           cargoAmount: robot.cargoAmount,
           maxCargo: robot.maxCargo,
           canMine: robot.canMine,
+          health: robot.health,
+          maxHealth: robot.maxHealth,
+          role: robot.role,
         },
         resources,
         gridSize,
@@ -2366,7 +2369,8 @@ export const useGameStore = create<GameState>()((set, get) => ({
         depots,
         smelters,
         refineries,
-        state.radioMessages || []
+        state.radioMessages || [],
+        state.robots || []
       );
 
       if (!result.success) {

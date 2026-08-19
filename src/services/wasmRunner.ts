@@ -23,11 +23,14 @@ interface RobotState {
   cargoAmount?: number;
   maxCargo?: number;
   canMine?: boolean;
+  health?: number;
+  maxHealth?: number;
+  role?: string;
 }
 
 /**
  * Intelligent C# Script Evaluator & WASM Bridge
- * Dynamic radar pathfinding, charging station auto-recharge, depot cargo unloading, smelter/refinery processing, swarm radio network navigation, and GoTo(x, y) target navigation.
+ * Dynamic radar pathfinding, charging station auto-recharge, depot cargo unloading, smelter/refinery processing, swarm radio network navigation, repair drones, transporters, and GoTo(x, y) target navigation.
  */
 export function compileAndRunCSharp(
   code: string,
@@ -38,7 +41,8 @@ export function compileAndRunCSharp(
   depots: Depot[] = [{ id: 'depot1', name: 'Ana Lojistik Deposu', x: 0, y: 19 }],
   _smelters: Smelter[] = [],
   _refineries: Refinery[] = [],
-  radioMessages: RadioMessage[] = []
+  radioMessages: RadioMessage[] = [],
+  allRobots: Array<{ id: string; name: string; x: number; y: number; health?: number; role?: string; cargoAmount?: number; maxCargo?: number }> = []
 ): ScriptExecutionResult {
   const diagnostics: string[] = [];
   const logs: CompilationLog[] = [];
@@ -140,15 +144,17 @@ export function compileAndRunCSharp(
   }
 
   // 4. Inspect C# code intent & Target Resolution
-  const usesRandom = /random|Random|Next/i.test(code);
   const globalHasMine = /robot\s*\.\s*Mine\s*\(\s*\)/i.test(code);
   const globalHasMove = /robot\s*\.\s*Move\s*\(/i.test(code);
   const globalHasGoTo = /robot\s*\.\s*GoTo\s*\(/i.test(code);
 
   const scriptMentionsDepot = /DEPOT|depot|GetCargo|GetMaxCargo/i.test(code);
   const scriptMentionsStation = /CHARGING_PAD|station|charging|GetEnergy/i.test(code);
-  const scriptMentionsRadio = /ReadRadioMessages|CARGO_FULL/i.test(code);
+  const scriptMentionsRadio = /ReadRadioMessages|CARGO_FULL|REPAIR_NEEDED|BANDIT_SPOTTED/i.test(code);
   const scriptEmitsRadio = /SendRadioMessage/i.test(code);
+  const hasRepairRobot = /RepairRobot/i.test(code);
+  const hasCollectFromRobot = /CollectCargoFromRobot/i.test(code);
+
   const activeCargoFullMsg = radioMessages.find((m) => m.messageType === 'CARGO_FULL');
 
   const isCargo100Percent = cargoAmount > 0 && cargoAmount >= maxCargo;
@@ -159,40 +165,75 @@ export function compileAndRunCSharp(
   let shouldMove = false;
   let moveDir: Direction = robotState.direction;
 
+  // Find nearest damaged robot for Repair Drones
+  const damagedRobots = allRobots.filter(
+    (r) => r.id !== robotState.id && (r.health ?? 100) < 100
+  );
+  let nearestDamagedRobot = damagedRobots.length > 0
+    ? damagedRobots.reduce((prev, curr) => {
+        const dPrev = Math.abs(prev.x - robotState.x) + Math.abs(prev.y - robotState.y);
+        const dCurr = Math.abs(curr.x - robotState.x) + Math.abs(curr.y - robotState.y);
+        return dCurr < dPrev ? curr : prev;
+      })
+    : null;
+
   // Extract GoTo target coordinates
   let goToTarget: { x: number; y: number } | null = null;
+  let isAdjacentToMiner = false;
+  let targetMinerId = '';
 
   // PRIORITY A: Battery is low -> Nearest Station
   if (isEnergyLow && scriptMentionsStation) {
     goToTarget = { x: nearestStation.x, y: nearestStation.y };
   }
-  // PRIORITY B: Cargo is 100% full (or almost full without radio) -> Nearest Depot
+  // PRIORITY B: Repair Drone -> Go to Damaged Robot
+  else if ((robotState.role === 'REPAIR_DRONE' || hasRepairRobot) && nearestDamagedRobot) {
+    const distToDamaged = Math.abs(nearestDamagedRobot.x - robotState.x) + Math.abs(nearestDamagedRobot.y - robotState.y);
+    if (distToDamaged > 1) {
+      goToTarget = { x: nearestDamagedRobot.x, y: nearestDamagedRobot.y };
+    }
+  }
+  // PRIORITY C: Transporter -> Full Cargo -> Nearest Depot
   else if ((isCargo100Percent || (isCargoAlmostFull && !scriptEmitsRadio)) && scriptMentionsDepot) {
     goToTarget = { x: nearestDepot.x, y: nearestDepot.y };
   }
-  // PRIORITY C: Swarm Radio Call from Miner (for Transporter)
-  else if (activeCargoFullMsg && scriptMentionsRadio && robotState.canMine === false) {
+  // PRIORITY D: Transporter Swarm Call -> Go to Miner sending CARGO_FULL
+  else if (activeCargoFullMsg && (scriptMentionsRadio || robotState.role === 'TRANSPORTER') && robotState.canMine === false) {
     goToTarget = { x: activeCargoFullMsg.x, y: activeCargoFullMsg.y };
+    const dist = Math.abs(activeCargoFullMsg.x - robotState.x) + Math.abs(activeCargoFullMsg.y - robotState.y);
+    if (dist <= 2) {
+      isAdjacentToMiner = true;
+      targetMinerId = activeCargoFullMsg.senderId || '';
+    }
   }
-  // PRIORITY D: General GoTo target parsing from C# code
+  // PRIORITY E: General GoTo target parsing from C# code
   else {
-    const goToMatch = code.match(/robot\s*\.\s*GoTo\s*\(\s*(\d+|\w+\.X)\s*,\s*(\d+|\w+\.Y)\s*\)/i);
+    const goToMatch = code.match(/robot\s*\.\s*GoTo\s*\(\s*([^,]+)\s*,\s*([^)]+)\s*\)/i);
     if (goToMatch) {
-      const parsedX = parseInt(goToMatch[1], 10);
-      const parsedY = parseInt(goToMatch[2], 10);
+      const rawX = goToMatch[1].trim();
+      const rawY = goToMatch[2].trim();
+      let parsedX = parseInt(rawX, 10);
+      let parsedY = parseInt(rawY, 10);
+
+      // Handle variable names e.g. GoTo(depot.X, depot.Y), GoTo(station.X, station.Y), GoTo(msg.X, msg.Y)
+      if (isNaN(parsedX) || isNaN(parsedY)) {
+        if (/depot/i.test(rawX)) {
+          parsedX = nearestDepot.x;
+          parsedY = nearestDepot.y;
+        } else if (/station|pad/i.test(rawX)) {
+          parsedX = nearestStation.x;
+          parsedY = nearestStation.y;
+        } else if (/msg/i.test(rawX) && activeCargoFullMsg) {
+          parsedX = activeCargoFullMsg.x;
+          parsedY = activeCargoFullMsg.y;
+        } else if (/target/i.test(rawX) && nearestDamagedRobot) {
+          parsedX = nearestDamagedRobot.x;
+          parsedY = nearestDamagedRobot.y;
+        }
+      }
 
       if (!isNaN(parsedX) && !isNaN(parsedY)) {
-        // Explicit numeric coordinates e.g. GoTo(10, 5)
-        const isStation = chargingStations.some((cs) => cs.x === parsedX && cs.y === parsedY);
-        const isDepot = depots.some((d) => d.x === parsedX && d.y === parsedY);
-
-        if (isStation && isEnergyLow) {
-          goToTarget = { x: parsedX, y: parsedY };
-        } else if (isDepot && isCargoAlmostFull) {
-          goToTarget = { x: parsedX, y: parsedY };
-        } else if (!isStation && !isDepot) {
-          goToTarget = { x: parsedX, y: parsedY };
-        }
+        goToTarget = { x: parsedX, y: parsedY };
       }
     }
   }
@@ -205,7 +246,7 @@ export function compileAndRunCSharp(
   } else if (globalHasMove || globalHasGoTo || goToTarget || robotState.canMine === false) {
     shouldMove = true;
 
-    // Pick target: GoTo target > Radar Target > Explicit Direction / Straight Forward
+    // Pick target: GoTo target > Radar Target > Explicit Direction / Straight Forward / Patrol
     const target: { x: number; y: number } | null = goToTarget || (scriptUsesRadar ? nearestResource : null);
 
     if (target) {
@@ -217,7 +258,8 @@ export function compileAndRunCSharp(
       } else if (dy !== 0) {
         moveDir = dy > 0 ? 'SOUTH' : 'NORTH';
       }
-    } else if (usesRandom) {
+    } else {
+      // Patrol / Wander loop for drones when no active targets exist
       const allDirs: Direction[] = ['NORTH', 'EAST', 'SOUTH', 'WEST'];
       const validDirs = allDirs.filter((d) => {
         if (d === 'NORTH' && robotState.y <= 0) return false;
@@ -226,24 +268,12 @@ export function compileAndRunCSharp(
         if (d === 'EAST' && robotState.x >= gridSize.width - 1) return false;
         return true;
       });
-      const pool = validDirs.length > 0 ? validDirs : allDirs;
-      moveDir = pool[Math.floor(Math.random() * pool.length)];
-    } else {
-      if (
-        (robotState.direction === 'EAST' && robotState.x >= gridSize.width - 1) ||
-        (robotState.direction === 'WEST' && robotState.x <= 0) ||
-        (robotState.direction === 'SOUTH' && robotState.y >= gridSize.height - 1) ||
-        (robotState.direction === 'NORTH' && robotState.y <= 0)
-      ) {
-        const rotations: Record<Direction, Direction> = {
-          EAST: 'SOUTH',
-          SOUTH: 'WEST',
-          WEST: 'NORTH',
-          NORTH: 'EAST',
-        };
-        moveDir = rotations[robotState.direction];
-      } else {
+
+      // Keep moving in current direction if valid, otherwise rotate
+      if (validDirs.includes(robotState.direction)) {
         moveDir = robotState.direction;
+      } else if (validDirs.length > 0) {
+        moveDir = validDirs[Math.floor(Math.random() * validDirs.length)];
       }
     }
   }
@@ -252,24 +282,10 @@ export function compileAndRunCSharp(
   const hasProcess = /ProcessMaterial/i.test(code);
   const hasCollectProcessed = /CollectProcessedProduct/i.test(code);
   const hasSendRadio = /SendRadioMessage/i.test(code);
-  const hasCollectFromRobot = /CollectCargoFromRobot/i.test(code);
   const hasTransferToRobot = /TransferCargoToRobot/i.test(code);
-  const hasRepairRobot = /RepairRobot/i.test(code);
   const hasCoolPlant = /CoolPowerPlant/i.test(code);
 
-  // Check if Transporter is close enough to collect cargo (adjacent tile <= 2 dist)
-  let isAdjacentToMiner = false;
-  let targetMinerId = '';
-  if (activeCargoFullMsg && robotState.canMine === false) {
-    const dist = Math.abs(activeCargoFullMsg.x - robotState.x) + Math.abs(activeCargoFullMsg.y - robotState.y);
-    if (dist <= 2) {
-      isAdjacentToMiner = true;
-      targetMinerId = activeCargoFullMsg.senderId || '';
-    }
-  }
-
   // 5. Generate Actions & Logs
-  // Send Radio Message as side-effect action if C# script calls SendRadioMessage
   if (hasSendRadio) {
     const match = code.match(/SendRadioMessage\s*\(\s*"([^"]+)"/i);
     const msgType = match ? match[1] : 'CARGO_FULL';
@@ -280,13 +296,11 @@ export function compileAndRunCSharp(
     });
   }
 
-  if (hasRepairRobot) {
-    const match = code.match(/RepairRobot\s*\(\s*"([^"]+)"/i);
-    const targetId = match ? match[1] : '';
+  if (hasRepairRobot && nearestDamagedRobot && (Math.abs(nearestDamagedRobot.x - robotState.x) + Math.abs(nearestDamagedRobot.y - robotState.y) <= 1)) {
     logs.push({
       action: 'REPAIR_ROBOT',
-      payload: targetId,
-      message: `🛠️ ${robotState.name} lazer tamir ışınını aktifleştirip hasarlı robotu onarıyor ('RepairRobot').`,
+      payload: nearestDamagedRobot.id,
+      message: `🛠️ ${robotState.name} lazer tamir ışınını aktifleştirip '${nearestDamagedRobot.name}' robotunu onarıyor (+25 HP).`,
     });
   } else if (hasCoolPlant) {
     const match = code.match(/CoolPowerPlant\s*\(\s*"([^"]+)"/i);
@@ -296,10 +310,11 @@ export function compileAndRunCSharp(
       payload: plantId,
       message: `❄️ ${robotState.name} termal santrale soğutucu sıvı sıkarak sıcaklığı düşürüyor ('CoolPowerPlant').`,
     });
-  } else if (isAdjacentToMiner && hasCollectFromRobot) {
+  } else if (hasCollectFromRobot && (isAdjacentToMiner || activeCargoFullMsg)) {
+    const minerId = targetMinerId || activeCargoFullMsg?.senderId || '';
     logs.push({
       action: 'COLLECT_CARGO_FROM_ROBOT',
-      payload: targetMinerId,
+      payload: minerId,
       message: `🚚 ${robotState.name} madenci robottan kargoyu devralıyor ('CollectCargoFromRobot').`,
     });
   } else if (hasTransferToRobot) {
