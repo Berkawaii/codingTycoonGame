@@ -34,6 +34,7 @@ export const App: React.FC = () => {
     setEditorSizeMode,
     scriptCode,
     setScriptCode,
+    language,
     addLog,
   } = useGameStore();
 
@@ -220,25 +221,25 @@ export const App: React.FC = () => {
             top: '70px',
             right: '24px',
             zIndex: 40,
-            background: 'linear-gradient(135deg, #090e17 0%, #0f172a 100%)',
-            border: '1.5px solid #00f2fe',
-            boxShadow: '0 0 20px rgba(0, 242, 254, 0.4)',
+            background: '#0f172a',
+            border: '1px solid #334155',
+            boxShadow: 'none',
             borderRadius: '8px',
-            padding: '0.55rem 1rem',
-            color: '#00f2fe',
-            fontWeight: 800,
-            fontSize: '0.8rem',
+            padding: '0.5rem 0.85rem',
+            color: '#38bdf8',
+            fontWeight: 700,
+            fontSize: '0.78rem',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            backdropFilter: 'blur(12px)',
+            backdropFilter: 'blur(8px)',
           }}
-          title="C# Kod Editörünü Geri Aç / Göster"
+          title={language === 'en' ? 'Show C# Code Editor' : 'C# Kod Editörünü Göster'}
         >
           <Code2 className="w-4 h-4 text-cyan-400" />
-          <span>💻 C# EDITÖRÜNÜ GÖSTER</span>
-          <Maximize2 className="w-3.5 h-3.5 text-amber-400" />
+          <span>{language === 'en' ? 'SHOW C# EDITOR' : 'C# EDİTÖRÜNÜ GÖSTER'}</span>
+          <Maximize2 className="w-3.5 h-3.5 text-slate-400" />
         </button>
       )}
 
