@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import { useGameStore } from '../store/useGameStore';
 import { saveScriptToFirebase, fetchFirebaseScripts, FirebaseScriptDoc } from '../services/firebase';
-import { Code2, Cpu, CheckCircle2, Play, RefreshCw, CloudUpload, FolderOpen, GraduationCap, Maximize2, Minimize2, Globe } from 'lucide-react';
-import { CommunityScriptsModal } from './CommunityScriptsModal';
+import { Code2, Cpu, CheckCircle2, Play, RefreshCw, CloudUpload, FolderOpen, GraduationCap, Maximize2, Minimize2 } from 'lucide-react';
 
 export const CodeEditor: React.FC = () => {
   const {
@@ -36,7 +35,6 @@ export const CodeEditor: React.FC = () => {
   const [isSavingCloud, setIsSavingCloud] = useState(false);
   const [scriptName, setScriptName] = useState('MineIron.cs');
   const [showScriptMenu, setShowScriptMenu] = useState(false);
-  const [isCommunityModalOpen, setIsCommunityModalOpen] = useState(false);
 
   useEffect(() => {
     loadCloudScripts();
@@ -127,42 +125,15 @@ export const CodeEditor: React.FC = () => {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px', marginLeft: 'auto' }}>
-          {/* Cyberpunk Academy & Guide Button */}
+          {/* Academy & Guide Button */}
           <button
             onClick={() => setAcademyModalOpen(true)}
-            className="ui-btn"
-            style={{
-              padding: '0.25rem 0.5rem',
-              fontSize: '0.7rem',
-              background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.25) 0%, rgba(0, 242, 254, 0.25) 100%)',
-              border: '1px solid rgba(0, 242, 254, 0.5)',
-              color: '#00f2fe',
-              fontWeight: 700,
-              boxShadow: '0 0 10px rgba(0, 242, 254, 0.2)',
-            }}
-            title="C# Otomasyon Akademisi ve Oynanabilir Görev Rehberi"
+            className="ui-btn ui-btn-secondary"
+            style={{ padding: '0.25rem 0.55rem', fontSize: '0.7rem' }}
+            title="C# Otomasyon Akademisi ve Görev Rehberi"
           >
             <GraduationCap className="w-3.5 h-3.5 text-cyan-400" />
             <span>Akademi</span>
-          </button>
-
-          {/* Community Script Hub Button */}
-          <button
-            onClick={() => setIsCommunityModalOpen(true)}
-            className="ui-btn"
-            style={{
-              padding: '0.25rem 0.5rem',
-              fontSize: '0.7rem',
-              background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.25) 0%, rgba(168, 85, 247, 0.25) 100%)',
-              border: '1px solid rgba(249, 115, 22, 0.5)',
-              color: '#fdba74',
-              fontWeight: 700,
-              boxShadow: '0 0 10px rgba(249, 115, 22, 0.2)',
-            }}
-            title="Topluluk Scriptlerini İncele ve Yükle"
-          >
-            <Globe className="w-3.5 h-3.5 text-orange-400" />
-            <span>Topluluk (5)</span>
           </button>
 
           {/* Cloud Scripts Picker */}
@@ -319,16 +290,6 @@ export const CodeEditor: React.FC = () => {
           </button>
         </div>
       </div>
-
-      {/* Community Script Hub Modal */}
-      <CommunityScriptsModal
-        isOpen={isCommunityModalOpen}
-        onClose={() => setIsCommunityModalOpen(false)}
-        onApplyScript={(code, title) => {
-          currentSetCode(code);
-          setScriptName(title.split(' ')[1] || 'Community.cs');
-        }}
-      />
     </div>
   );
 };
