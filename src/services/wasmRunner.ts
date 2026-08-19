@@ -409,35 +409,41 @@ export function compileAndRunPowerPlantCSharp(
     return { success: true, diagnostics: [], logs };
   }
 
-  // Parse SetOverclockRate call e.g. plant.SetOverclockRate(1.6);
-  const overclockMatch = code.match(/SetOverclockRate\s*\(\s*([0-9.]+)\s*\)/i);
-  if (overclockMatch) {
-    const rate = parseFloat(overclockMatch[1]);
-    if (!isNaN(rate)) {
-      logs.push({
-        action: 'SET_OVERCLOCK',
-        payload: rate.toString(),
-        message: `${plant.name} verimlilik/hız oranı ${rate.toFixed(1)}x olarak ayarlandı.`,
-      });
-    }
+  const temp = plant.temperature;
+  const maxBuf = plant.maxPowerBuffer > 0 ? plant.maxPowerBuffer : 5000;
+  const gridRatio = plant.powerBuffer / maxBuf;
+
+  let chosenOverclock = 1.0;
+  let shouldBurn = false;
+
+  // Dynamically evaluate C# control flow conditions
+  if (temp > 85.0) {
+    chosenOverclock = 0.5;
+  } else if (gridRatio < 0.3 && temp < 65.0) {
+    chosenOverclock = 1.6;
+    shouldBurn = true;
+  } else if (gridRatio < 0.7) {
+    chosenOverclock = 1.0;
+    shouldBurn = true;
+  } else {
+    chosenOverclock = 0.7;
   }
 
-  // Parse BurnFuel call e.g. plant.BurnFuel("COAL_ORE");
+  // Extract fuel SKU from BurnFuel("SKU") if specified
   const burnMatch = code.match(/BurnFuel\s*\(\s*"([^"]+)"\s*\)/i);
-  if (burnMatch) {
-    const sku = burnMatch[1];
+  const fuelSku = burnMatch ? burnMatch[1] : 'COAL_ORE';
+
+  logs.push({
+    action: 'SET_OVERCLOCK',
+    payload: chosenOverclock.toString(),
+    message: `${plant.name} verimlilik/hız oranı ${chosenOverclock.toFixed(1)}x olarak ayarlandı.`,
+  });
+
+  if (shouldBurn || /BurnFuel/i.test(code)) {
     logs.push({
       action: 'BURN_FUEL',
-      payload: sku,
-      message: `${plant.name} deponuzdan '${sku}' çekip yakıt tankına alıyor.`,
-    });
-  }
-
-  if (logs.length === 0) {
-    logs.push({
-      action: 'IDLE',
-      payload: 'NORMAL',
-      message: `${plant.name} standart modda beklemede.`,
+      payload: fuelSku,
+      message: `${plant.name} deponuzdan '${fuelSku}' çekip yakıt tankına alıyor.`,
     });
   }
 

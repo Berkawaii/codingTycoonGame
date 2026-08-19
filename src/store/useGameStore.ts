@@ -1164,7 +1164,21 @@ export const useGameStore = create<GameState>()((set, get) => ({
     return true;
   },
 
-  setPowerPlantScriptCode: (code) => set({ powerPlantScriptCode: code }),
+  setPowerPlantScriptCode: (code) => {
+    set((state) => ({
+      powerPlantScriptCode: code,
+      powerPlants: (state.powerPlants || []).map((p) => ({ ...p, scriptCode: code })),
+      biomeMaps: Object.fromEntries(
+        Object.entries(state.biomeMaps || {}).map(([key, map]) => [
+          key,
+          {
+            ...map,
+            powerPlants: (map.powerPlants || []).map((p) => ({ ...p, scriptCode: code })),
+          },
+        ])
+      ),
+    }));
+  },
 
   buyPowerPlant: (name, x, y, price = 8000) => {
     const { credits, currentBiome, gridSize, resources, chargingStations, depots, smelters = [], refineries = [], powerPlants = [], hazardTiles } = get();
@@ -1221,13 +1235,17 @@ export const useGameStore = create<GameState>()((set, get) => ({
       overclockRate: 1.0,
       isOverheated: false,
       overheatTicksRemaining: 0,
-      scriptCode: DEFAULT_POWER_PLANT_C_SHARP_SCRIPT,
+      scriptCode: get().powerPlantScriptCode || DEFAULT_POWER_PLANT_C_SHARP_SCRIPT,
     };
 
     set((state) => ({
       ...updateMapDataForBiome(state, currentBiome, (map) => ({
         powerPlants: [...(map.powerPlants || []), newPlant],
       })),
+      inventory: {
+        ...state.inventory,
+        COAL_ORE: Math.max(state.inventory['COAL_ORE'] || 0, 50),
+      },
       credits: state.credits - price,
     }));
 
@@ -1247,7 +1265,9 @@ export const useGameStore = create<GameState>()((set, get) => ({
 
     const availableQty = state.inventory[fuelSku] || 0;
     if (availableQty < 1) {
-      get().addLog('warn', `⚠️ [YAKIT TÜKENDİ]: Deponuzda '${fuelSku}' yakıt cevheri bulunmuyor.`);
+      get().addLog('warn', state.language === 'en'
+        ? `⚠️ [OUT OF FUEL]: No '${fuelSku}' fuel ore available in factory depot inventory.`
+        : `⚠️ [YAKIT TÜKENDİ]: Deponuzda '${fuelSku}' yakıt cevheri bulunmuyor.`);
       return false;
     }
 
