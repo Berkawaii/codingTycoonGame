@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Play, Trophy, Code2, GraduationCap, User, Check, X, LogIn } from 'lucide-react';
+import { Play, Trophy, Code2, GraduationCap, User, Check, X, LogIn, LogOut, ShieldCheck } from 'lucide-react';
 import { AuthModal } from './AuthModal';
+import { useGameStore } from '../store/useGameStore';
 
 interface WelcomePortalModalProps {
   isOpen: boolean;
@@ -17,8 +18,10 @@ export const WelcomePortalModal: React.FC<WelcomePortalModalProps> = ({
   onOpenMarketplace,
   onOpenTutorial,
 }) => {
+  const { authUser, userDisplayName, startAnonymousSession, logout } = useGameStore();
+
   const [userName, setUserName] = useState<string>(
-    () => localStorage.getItem('syntax_factory_user_name') || 'Mühendis Oyuncu'
+    () => localStorage.getItem('syntax_factory_user_name') || userDisplayName || 'Mühendis Oyuncu'
   );
   const [savedNameSuccess, setSavedNameSuccess] = useState<boolean>(false);
   const [isAuthOpen, setIsAuthOpen] = useState<boolean>(false);
@@ -117,10 +120,43 @@ export const WelcomePortalModal: React.FC<WelcomePortalModalProps> = ({
             </button>
           </form>
 
+          {/* Account Status Badge */}
+          <div style={{ width: '100%', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(15, 23, 42, 0.6)', padding: '6px 12px', borderRadius: '8px', border: '1px solid #1e293b' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem' }}>
+              {authUser ? (
+                <>
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <span style={{ color: '#34d399', fontWeight: 700 }}>Oturum Açıldı: {userDisplayName}</span>
+                </>
+              ) : (
+                <>
+                  <User className="w-4 h-4 text-amber-400" />
+                  <span style={{ color: '#fbbf24', fontWeight: 600 }}>Misafir Oyuncu (Bulut Kayıt İçin Kaydolun)</span>
+                </>
+              )}
+            </div>
+
+            {authUser && (
+              <button
+                onClick={logout}
+                style={{ background: 'transparent', border: 'none', color: '#f87171', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Çıkış Yap</span>
+              </button>
+            )}
+          </div>
+
           {/* Primary Action Buttons */}
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <button
-              onClick={onClose}
+              onClick={() => {
+                if (!authUser) {
+                  startAnonymousSession();
+                } else {
+                  onClose();
+                }
+              }}
               className="ui-btn"
               style={{
                 width: '100%',
@@ -143,14 +179,31 @@ export const WelcomePortalModal: React.FC<WelcomePortalModalProps> = ({
             </button>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%' }}>
-              <button
-                onClick={() => setIsAuthOpen(true)}
-                className="ui-btn ui-btn-primary"
-                style={{ padding: '0.7rem', fontSize: '0.78rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-              >
-                <LogIn className="w-4 h-4" />
-                <span>Giriş Yap / Kaydol</span>
-              </button>
+              {!authUser ? (
+                <button
+                  onClick={() => setIsAuthOpen(true)}
+                  className="ui-btn ui-btn-primary"
+                  style={{ padding: '0.7rem', fontSize: '0.78rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>Giriş Yap / Kaydol</span>
+                </button>
+              ) : (
+                <div
+                  style={{
+                    padding: '0.7rem',
+                    fontSize: '0.75rem',
+                    color: '#34d399',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    textAlign: 'center',
+                    fontWeight: 700,
+                  }}
+                >
+                  Cloud Sync Aktif
+                </div>
+              )}
 
               <button
                 onClick={() => {

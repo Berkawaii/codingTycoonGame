@@ -11,6 +11,8 @@ import { LeaderboardModal } from './components/LeaderboardModal';
 import { ScriptMarketplaceModal } from './components/ScriptMarketplaceModal';
 import { WelcomePortalModal } from './components/WelcomePortalModal';
 
+import { subscribeToAuth, checkRedirectResult } from './services/firebaseService';
+
 import { Code2, Maximize2 } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -47,6 +49,43 @@ export const App: React.FC = () => {
       if (intervalId) clearInterval(intervalId);
     };
   }, [isRunning, tickRate, stepTick]);
+
+  // Firebase Auth State Listener & Redirect Result Handler
+  useEffect(() => {
+    checkRedirectResult()
+      .then((res) => {
+        if (res && res.user) {
+          const name = res.user.displayName || res.user.email?.split('@')[0] || 'Mühendis';
+          localStorage.setItem('syntax_factory_user_id', res.user.uid);
+          localStorage.setItem('syntax_factory_user_name', name);
+          useGameStore.setState({
+            authUser: res.user,
+            isAnonymousPlayer: false,
+            userDisplayName: name,
+            isWelcomeOpen: false,
+          });
+          addLog('success', `[OTURUM GİRİŞİ]: Google ile giriş başarılı! Hoş geldiniz, ${name}.`);
+        }
+      })
+      .catch((err) => console.warn('Redirect result check:', err));
+
+    const unsubscribe = subscribeToAuth((user) => {
+      if (user) {
+        const name = user.displayName || user.email?.split('@')[0] || 'Mühendis';
+        localStorage.setItem('syntax_factory_user_id', user.uid);
+        localStorage.setItem('syntax_factory_user_name', name);
+        useGameStore.setState({
+          authUser: user,
+          isAnonymousPlayer: false,
+          userDisplayName: name,
+          isWelcomeOpen: false,
+        });
+        addLog('success', `[OTURUM HESABI]: Oturum doğrulandı: ${name}.`);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [addLog]);
 
   const handleInsertSnippet = (snippet: string) => {
     if (scriptCode.includes('Execute(')) {

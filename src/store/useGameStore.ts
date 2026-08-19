@@ -23,6 +23,7 @@ import {
 import { DEFAULT_C_SHARP_SCRIPT, DEFAULT_POWER_PLANT_C_SHARP_SCRIPT, DEFAULT_TRANSPORTER_C_SHARP_SCRIPT, DEFAULT_REPAIR_DRONE_C_SHARP_SCRIPT, SKU_CATALOG } from '../constants/skus';
 import { compileAndRunCSharp, compileAndRunPowerPlantCSharp } from '../services/wasmRunner';
 import { soundService } from '../services/soundService';
+import { logoutUser } from '../services/firebaseService';
 import { BIOME_CATALOG } from '../constants/biomes';
 import { generateBiomeMap, generateSingleRespawnResource, populateExpandedZone } from '../services/mapGenerator';
 
@@ -122,6 +123,13 @@ interface GameState {
   repairRobot: (droneId: string, targetId: string) => void;
   coolPowerPlant: (droneId: string, plantId: string) => void;
 
+  // User Auth & Anonymous Session State
+  authUser: any | null;
+  isAnonymousPlayer: boolean;
+  userDisplayName: string;
+  startAnonymousSession: () => void;
+  logout: () => Promise<void>;
+  
   // Admin & Simulation Testing Console Actions
   isAdminModalOpen: boolean;
   setAdminModalOpen: (open: boolean) => void;
@@ -275,6 +283,45 @@ export const useGameStore = create<GameState>()(
   isRunning: false,
   tickRate: 500,
   tickCount: 0,
+  // Auth & User Profile State
+  authUser: null,
+  isAnonymousPlayer: !localStorage.getItem('syntax_factory_user_id'),
+  userDisplayName: localStorage.getItem('syntax_factory_user_name') || 'Mühendis Oyuncu',
+
+  startAnonymousSession: () => {
+    let anonName = localStorage.getItem('syntax_factory_user_name');
+    let anonId = localStorage.getItem('syntax_factory_user_id');
+
+    if (!anonId) {
+      anonId = `anon-${Math.floor(1000 + Math.random() * 9000)}`;
+      anonName = `Anonim_Mühendis_${Math.floor(100 + Math.random() * 900)}`;
+      localStorage.setItem('syntax_factory_user_id', anonId);
+      localStorage.setItem('syntax_factory_user_name', anonName);
+    }
+
+    set({
+      isAnonymousPlayer: true,
+      userDisplayName: anonName || 'Anonim Mühendis',
+      isWelcomeOpen: false,
+    });
+    get().addLog('info', `[OTURUM]: '${anonName}' çağrı adıyla Anonim Misafir Seansı başlatıldı. Skor kaydedilebilir, Cloud Save için Giriş Yapın.`);
+  },
+
+  logout: async () => {
+    try {
+      await logoutUser();
+    } catch {}
+    localStorage.removeItem('syntax_factory_user_id');
+    localStorage.removeItem('syntax_factory_user_name');
+    set({
+      authUser: null,
+      isAnonymousPlayer: true,
+      userDisplayName: 'Mühendis Oyuncu',
+      isWelcomeOpen: true,
+    });
+    get().addLog('info', '[OTURUM]: Oturum kapatıldı.');
+  },
+
   isApiModalOpen: false,
   isAdminModalOpen: false,
   isLeaderboardOpen: false,
