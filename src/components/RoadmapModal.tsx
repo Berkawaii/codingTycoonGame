@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Map, ExternalLink, GitBranch, Terminal, Shield, Zap, Cpu, Bot, Factory, Crosshair, Orbit } from 'lucide-react';
+import { X, Map, ExternalLink, GitBranch, Terminal, Shield, Zap, Cpu, Bot, Factory, Crosshair, Building2, Layers, TrendingUp } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
 
 interface RoadmapModalProps {
@@ -107,31 +107,93 @@ export const RoadmapModal: React.FC<RoadmapModalProps> = ({ isOpen, onClose }) =
       id: 'phase-5',
       number: 'PHASE 05',
       status: 'IN PROGRESS',
-      title: isEn ? 'Industrial Processing & Refineries' : 'Endüstriyel İşleme & Rafineriler',
+      title: isEn ? 'Industrial Processing & Refineries' : 'Endüstriyel İşleme & Depolama Tesisleri',
       date: 'Q4 2026',
       badgeColor: '#fbbf24',
       icon: Factory,
       items: isEn
         ? [
             'Multi-tier Smelter & Refinery crafting recipes (Iron Ingots, Gold Bars, Ruby Lenses)',
-            'Automated Conveyor Belts & Sorting Junctions for continuous material transport',
             'Storage Silos and automated inventory logistics nodes',
-            'Advanced C# IBuilding and IRefinery control APIs',
+            'Automated Mineral Smelters and Processing Refineries',
+            'Advanced C# IBuilding, ISmelter, and IRefinery control APIs',
           ]
         : [
-            'Çok aşamalı Dökümhane ve Rafineri işleme tarifleri (Demir Külçe, Altın Külçe, Yakut Mercek)',
-            'Sürekli malzeme taşıması için Otomatik Taşıyıcı Bantlar ve Ayırıcı Kavşaklar',
-            'Depolama Siloları ve otonom envanter lojistik düğümleri',
-            'Gelişmiş C# IBuilding ve IRefinery kontrol API arayüzleri',
+            'Çok aşamalı işleme tarifleri (Demir Külçe, Altın Külçe, Yakut Mercek, Kuantum Çekirdek)',
+            'Depolama siloları ve otonom envanter lojistik düğümleri',
+            'Otomatik Maden İşleme Rafinerileri ve Dökümhaneler',
+            'Gelişmiş C# IBuilding, ISmelter ve IRefinery kontrol API arayüzleri',
           ],
     },
     {
       id: 'phase-6',
       number: 'PHASE 06',
-      status: 'IN PROGRESS',
-      title: isEn ? 'Automated Base Defense & Rogue Raids' : 'Otomatik Üs Savunması & Haydut Baskınları',
+      status: 'PLANNING',
+      title: isEn ? 'Corporate HQ & Dual-Resource R&D Lab' : 'Şirket Binası & Çift Kaynaklı AR-GE Laboratuvarı',
       date: 'Q4 2026',
-      badgeColor: '#fbbf24',
+      badgeColor: '#38bdf8',
+      icon: Building2,
+      items: isEn
+        ? [
+            'Corporate HQ administrative control building and management dashboard',
+            'R&D Lab Tech Tree requiring both Credits ($) and Processed Products (Ingots, Cores)',
+            'Tech Upgrades: Superconductor Cables (-30% Temp), Nuclear Bits (2x Mining), Biome Shields',
+            'New Robot Classes: Titan Heavy Excavator, Sky Transporter Flying Drone, Combat Sentinel',
+          ]
+        : [
+            'Şirket Genel Merkezi (Corporate HQ) idari kontrol binası ve yönetim paneli',
+            'Bakiye ($) + İşlenmiş Ürünler (Külçe, Çip, Mercek) gerektiren AR-GE Teknoloji Ağacı',
+            'Teknoloji Yükseltmeleri: Süper-İletken Kablolar (%30 Düşük Sıcaklık), Nükleer Kazı Ucu (2x Hız), Biyom Kalkanı',
+            'Yeni Robot Sınıfları: Titan Ağır Kazıcı, Uçan Kargo Dronu (Sky Transporter), Savunma Sentineli',
+          ],
+    },
+    {
+      id: 'phase-7',
+      number: 'PHASE 07',
+      status: 'PLANNING',
+      title: isEn ? 'Exotic Biomes & Advanced Mining' : 'Egzotik Biyomlar & İleri Madencilik',
+      date: 'Q1 2027',
+      badgeColor: '#38bdf8',
+      icon: Layers,
+      items: isEn
+        ? [
+            'New Planetary Biomes: Titanium Trenches, Hyperion Orbital Rings, Sub-Crustal Magma Vent',
+            'Exotic Resources: Titanium Ore, Neodymium Magnets, Helium-3, Antimatter Cells, Diamonds',
+            'Advanced C# APIs for drone flight altitude control and energy shield status telemetry',
+          ]
+        : [
+            'Yeni Gezegen Biyomları: Titanyum Hendekleri, Hiperyon Yörünge Halkaları, Magma Altı Kristal Mağarası',
+            'Egzotik Kaynaklar: Titanyum Cevheri, Neodimyum Mıknatısı, Helyum-3 Yakıtı, Antimadde Hücresi, Elmas',
+            'Yeni C# API arayüzleri: Dron uçuş irtifası kontrolü ve enerji kalkanı durum telemetrisi',
+          ],
+    },
+    {
+      id: 'phase-8',
+      number: 'PHASE 08',
+      status: 'PLANNING',
+      title: isEn ? 'Dynamic Market Crises & Volatile Economy' : 'Dinamik Pazar Krizleri & Galaktik Borsa',
+      date: 'Q1 2027',
+      badgeColor: '#38bdf8',
+      icon: TrendingUp,
+      items: isEn
+        ? [
+            'Economic Crises Engine featuring sudden resource shortages and price spikes',
+            'Crises Events: Quantum Chip Shortage (50x Price), Helium-3 Surge (+500%), Iron Glut (-80%)',
+            'Commodity Market Telemetry displaying price charts and forecast crisis alerts',
+          ]
+        : [
+            'Aniden patlak veren kaynak kıtlıkları ve fiyat patlamaları sunan Ekonomik Kriz Motoru',
+            'Kriz Olayları: Kuantum Çip Kıtlığı (50x Fiyat), Helyum-3 Kriz Sıçraması (%500), Demir Arz Patlaması (-%80)',
+            'Pazar fiyat grafikleri ve yaklaşan kriz uyarılarını gösteren Borsa Telemetri Paneli',
+          ],
+    },
+    {
+      id: 'phase-9',
+      number: 'PHASE 09',
+      status: 'PLANNING',
+      title: isEn ? 'Automated Base Defense & Rogue Raids' : 'Otomatik Üs Savunması & Haydut Baskınları',
+      date: 'Q2 2027',
+      badgeColor: '#38bdf8',
       icon: Crosshair,
       items: isEn
         ? [
@@ -144,15 +206,15 @@ export const RoadmapModal: React.FC<RoadmapModalProps> = ({ isOpen, onClose }) =
             'Programlanabilir hedefleme algoritmalarına sahip Savunma Kulesi ağları (ITurret API)',
             'Dinamik Haydut dalgaları ve otomatik savunma müdahale protokolleri',
             'Güvenlik alarmları, çevre sensörleri ve otomatik kilitlenme modları',
-            'Üs saldırıları sırasında Tamir Dronlarının öncelikli müdahale sevkiyatı',
+            'Üs saldırıları sırasında Tamir Dronlarının tehdit bölgelerine öncelikli sevkiyatı',
           ],
     },
     {
-      id: 'phase-7',
-      number: 'PHASE 07',
-      status: 'PLANNED',
+      id: 'phase-10',
+      number: 'PHASE 10',
+      status: 'PLANNING',
       title: isEn ? 'Custom Assemblies & Script Profiler' : 'Özel C# Montajları & Performans Profili',
-      date: 'Q1 2027',
+      date: 'Q2 2027',
       badgeColor: '#38bdf8',
       icon: Cpu,
       items: isEn
@@ -170,30 +232,8 @@ export const RoadmapModal: React.FC<RoadmapModalProps> = ({ isOpen, onClose }) =
           ],
     },
     {
-      id: 'phase-8',
-      number: 'PHASE 08',
-      status: 'PLANNED',
-      title: isEn ? 'Orbital Stations & Zero-Gravity Logistics' : 'Yörünge İstasyonları & Sıfır Yerçekimi',
-      date: 'Q2 2027',
-      badgeColor: '#38bdf8',
-      icon: Orbit,
-      items: isEn
-        ? [
-            'Orbital Space Station biomes featuring zero-gravity physical momentum',
-            'Automated surface-to-orbit launch pads and cargo shuttles',
-            'Orbital Solar Arrays and wireless energy beam transmitters',
-            'Micro-meteorite defense fields and vacuum logistics pipelines',
-          ]
-        : [
-            'Sıfır yerçekimi fiziksel ivmelenmesi sunan Yörünge Uzay İstasyonu biyomları',
-            'Otomatik yüzeyden yörüngeye fırlatma pedleri ve kargo mekikleri',
-            'Yörünge Güneş Paneli dizilimleri ve kablosuz enerji ışınlayıcıları',
-            'Mikro-göktaşı savunma alanları ve vakum lojistik hatları',
-          ],
-    },
-    {
-      id: 'phase-9',
-      number: 'PHASE 09',
+      id: 'phase-11',
+      number: 'PHASE 11',
       status: 'FUTURE VISION',
       title: isEn ? 'AI Copilot Agent & Visual Logic Builder' : 'Yapay Zeka Asistanı & Görsel Mantık Editörü',
       date: 'Q3 2027',

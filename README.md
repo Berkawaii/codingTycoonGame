@@ -73,7 +73,7 @@ flowchart LR
 
 ## Development Roadmap & Engineering Phases
 
-The platform follows an extended 9-phase engineering trajectory:
+The platform follows an extended 11-phase engineering trajectory:
 
 ```mermaid
 graph LR
@@ -81,10 +81,12 @@ graph LR
     P2 --> P3[Phase 03: Biomes & Power]
     P3 --> P4[Phase 04: Cloud & Market]
     P4 --> P5[Phase 05: Refineries]
-    P5 --> P6[Phase 06: Base Defense]
-    P6 --> P7[Phase 07: Assemblies]
-    P7 --> P8[Phase 08: Orbital Stations]
-    P8 --> P9[Phase 09: AI Copilot]
+    P5 --> P6[Phase 06: R&D Tech Tree]
+    P6 --> P7[Phase 07: Exotic Biomes]
+    P7 --> P8[Phase 08: Market Crises]
+    P8 --> P9[Phase 09: Base Defense]
+    P9 --> P10[Phase 10: Custom Assemblies]
+    P10 --> P11[Phase 11: AI Copilot]
 ```
 
 ### Phase Details
@@ -115,29 +117,39 @@ graph LR
 
 #### Phase 05: Industrial Processing & Refineries (In Progress)
 - Multi-tier Smelter & Refinery crafting recipes (Iron Ingots, Gold Bars, Ruby Lenses).
-- Automated Conveyor Belts & Sorting Junctions for continuous material transport.
 - Storage Silos and automated inventory logistics nodes.
-- Advanced C# IBuilding and IRefinery control APIs.
+- Automated Mineral Smelters and Processing Refineries.
+- Advanced C# IBuilding, ISmelter, and IRefinery control APIs.
 
-#### Phase 06: Automated Base Defense & Rogue Raids (In Progress)
+#### Phase 06: Corporate HQ & Dual-Resource R&D Lab (Planning)
+- Corporate HQ administrative control building and management dashboard.
+- R&D Lab Tech Tree requiring both Credits ($) and Processed Products (Ingots, Cores).
+- Tech Upgrades: Superconductor Cables (-30% Temp), Nuclear Bits (2x Mining), Biome Shields.
+- New Robot Classes: Titan Heavy Excavator, Sky Transporter Flying Drone, Combat Sentinel.
+
+#### Phase 07: Exotic Biomes & Advanced Mining (Planning)
+- New Planetary Biomes: Titanium Trenches, Hyperion Orbital Rings, Sub-Crustal Magma Vent.
+- Exotic Resources: Titanium Ore, Neodymium Magnets, Helium-3, Antimatter Cells, Diamonds.
+- Advanced C# APIs for drone flight altitude control and energy shield status telemetry.
+
+#### Phase 08: Dynamic Market Crises & Volatile Economy (Planning)
+- Economic Crises Engine featuring sudden resource shortages and price spikes.
+- Crises Events: Quantum Chip Shortage (50x Price), Helium-3 Surge (+500%), Iron Glut (-80%).
+- Commodity Market Telemetry displaying price charts and forecast crisis alerts.
+
+#### Phase 09: Automated Base Defense & Rogue Raids (Planning)
 - Defensive Turret networks with programmable targeting algorithms (ITurret API).
 - Dynamic Rogue Bandit waves and automated defense response protocols.
 - Security alarms, perimeter sensors, and automated lockdown modes.
 - Repair Drone threat priority dispatching during base attacks.
 
-#### Phase 07: Custom Assemblies & Script Profiler (Planned)
+#### Phase 10: Custom Assemblies & Script Profiler (Planning)
 - User-defined C# helper classes and custom namespace imports (using MyCustomLib).
 - Multi-file C# workspace management inside integrated Monaco Editor.
 - Script version history, diff inspector, and single-click rollback.
 - CPU tick execution profiler and memory usage telemetry inspector.
 
-#### Phase 08: Orbital Stations & Zero-Gravity Logistics (Planned)
-- Orbital Space Station biomes featuring zero-gravity physical momentum.
-- Automated surface-to-orbit launch pads and cargo shuttles.
-- Orbital Solar Arrays and wireless energy beam transmitters.
-- Micro-meteorite defense fields and vacuum logistics pipelines.
-
-#### Phase 09: AI Copilot Agent & Visual Logic Builder (Future Vision)
+#### Phase 11: AI Copilot Agent & Visual Logic Builder (Future Vision)
 - Integrated AI C# Copilot agent for real-time syntax and logic diagnostics.
 - Automated code optimizer suggesting vector pathfinding improvements.
 - Visual Block-Code bridge for converting C# code to visual node graphs.
