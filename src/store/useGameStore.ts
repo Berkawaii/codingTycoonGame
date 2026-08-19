@@ -920,7 +920,9 @@ export const useGameStore = create<GameState>()((set, get) => ({
       radioMessages: [newMsg, ...(state.radioMessages || [])].slice(0, 30),
     }));
 
-    get().addLog('info', `📡 [RADYO YAYINI]: ${sender.name} şebekeye '${messageType}' radyo sinyali yaydı! (${x}, ${y})`);
+    get().addLog('info', get().language === 'en'
+      ? `📡 [RADIO BROADCAST]: ${sender.name} broadcasted '${messageType}' radio signal on frequency! (${x}, ${y})`
+      : `📡 [RADYO YAYINI]: ${sender.name} şebekeye '${messageType}' radyo sinyali yaydı! (${x}, ${y})`);
   },
 
   collectCargoFromRobot: (transporterId, targetMinerId) => {
@@ -2304,9 +2306,13 @@ export const useGameStore = create<GameState>()((set, get) => ({
           );
           set((prev) => updateMapDataForBiome(prev, robotBiome, () => ({ powerPlants: updatedPlants })));
         } else if (powerPlants.length === 0) {
-          get().addLog('warn', `⚠️ [SANTRAL YOK - YAVAŞ ŞARJ]: ${robot.name} istasyonda şarj oluyor ancak haritada Enerji Santrali yok! Dahili acil durum güneş paneliyle yavaş şarj oluyor (+2 Enerji). Mağazadan Enerji Santrali inşa edin!`);
+          get().addLog('warn', state.language === 'en'
+            ? `⚠️ [NO POWER PLANT - SLOW CHARGE]: ${robot.name} is charging at station but no Power Plant exists on grid! Slow charging via emergency solar panel (+2 Energy). Build a Power Plant from Shop!`
+            : `⚠️ [SANTRAL YOK - YAVAŞ ŞARJ]: ${robot.name} istasyonda şarj oluyor ancak haritada Enerji Santrali yok! Dahili acil durum güneş paneliyle yavaş şarj oluyor (+2 Enerji). Mağazadan Enerji Santrali inşa edin!`);
         } else {
-          get().addLog('warn', `⚠️ [ŞEBEKE DEPODAN HIZLI ŞARJ KESİLDİ]: ${robot.name} ${stationOnTile.name} istasyonunda (0 kWh Depo) acil durum sızıntısıyla yavaş şarj oluyor (+2 Enerji).`);
+          get().addLog('warn', state.language === 'en'
+            ? `⚠️ [GRID STORAGE FAST CHARGE CUT OFF]: ${robot.name} is slow-charging (+2 Energy) at '${stationOnTile.name}' via emergency leak (0 kWh Storage).`
+            : `⚠️ [ŞEBEKE DEPODAN HIZLI ŞARJ KESİLDİ]: ${robot.name} ${stationOnTile.name} istasyonunda (0 kWh Depo) acil durum sızıntısıyla yavaş şarj oluyor (+2 Enerji).`);
         }
 
         const newEnergy = Math.min(robot.maxEnergy, robot.energy + chargeBoost);
@@ -2329,7 +2335,9 @@ export const useGameStore = create<GameState>()((set, get) => ({
         });
         soundService.playCharging();
         if (chargeBoost > 2) {
-          get().addLog('info', `${robot.name} [${stationOnTile.name}] istasyonunda şarj oldu (+${chargeBoost} Enerji -> ${newEnergy}/${robot.maxEnergy})!`);
+          get().addLog('info', state.language === 'en'
+            ? `${robot.name} charged at [${stationOnTile.name}] (+${chargeBoost} Energy -> ${newEnergy}/${robot.maxEnergy})!`
+            : `${robot.name} [${stationOnTile.name}] istasyonunda şarj oldu (+${chargeBoost} Enerji -> ${newEnergy}/${robot.maxEnergy})!`);
         }
         if (newEnergy < robot.maxEnergy) continue;
       }
@@ -2370,7 +2378,8 @@ export const useGameStore = create<GameState>()((set, get) => ({
         smelters,
         refineries,
         state.radioMessages || [],
-        state.robots || []
+        state.robots || [],
+        state.language || 'tr'
       );
 
       if (!result.success) {

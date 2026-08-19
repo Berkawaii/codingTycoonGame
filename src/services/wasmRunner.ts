@@ -42,7 +42,8 @@ export function compileAndRunCSharp(
   _smelters: Smelter[] = [],
   _refineries: Refinery[] = [],
   radioMessages: RadioMessage[] = [],
-  allRobots: Array<{ id: string; name: string; x: number; y: number; health?: number; role?: string; cargoAmount?: number; maxCargo?: number }> = []
+  allRobots: Array<{ id: string; name: string; x: number; y: number; health?: number; role?: string; cargoAmount?: number; maxCargo?: number }> = [],
+  lang: 'tr' | 'en' = 'tr'
 ): ScriptExecutionResult {
   const diagnostics: string[] = [];
   const logs: CompilationLog[] = [];
@@ -292,7 +293,9 @@ export function compileAndRunCSharp(
     logs.push({
       action: 'SEND_RADIO_MESSAGE',
       payload: JSON.stringify({ messageType: msgType, x: robotState.x, y: robotState.y }),
-      message: `📡 ${robotState.name} radyo şebekesine '${msgType}' yayını yapıyor ('SendRadioMessage').`,
+      message: lang === 'en'
+        ? `📡 ${robotState.name} broadcasting '${msgType}' radio signal on frequency ('SendRadioMessage').`
+        : `📡 ${robotState.name} radyo şebekesine '${msgType}' yayını yapıyor ('SendRadioMessage').`,
     });
   }
 
@@ -300,7 +303,9 @@ export function compileAndRunCSharp(
     logs.push({
       action: 'REPAIR_ROBOT',
       payload: nearestDamagedRobot.id,
-      message: `🛠️ ${robotState.name} lazer tamir ışınını aktifleştirip '${nearestDamagedRobot.name}' robotunu onarıyor (+25 HP).`,
+      message: lang === 'en'
+        ? `🛠️ ${robotState.name} activated laser repair beam repairing '${nearestDamagedRobot.name}' (+25 HP).`
+        : `🛠️ ${robotState.name} lazer tamir ışınını aktifleştirip '${nearestDamagedRobot.name}' robotunu onarıyor (+25 HP).`,
     });
   } else if (hasCoolPlant) {
     const match = code.match(/CoolPowerPlant\s*\(\s*"([^"]+)"/i);
@@ -308,14 +313,18 @@ export function compileAndRunCSharp(
     logs.push({
       action: 'COOL_POWER_PLANT',
       payload: plantId,
-      message: `❄️ ${robotState.name} termal santrale soğutucu sıvı sıkarak sıcaklığı düşürüyor ('CoolPowerPlant').`,
+      message: lang === 'en'
+        ? `❄️ ${robotState.name} spraying coolant fluid to cool power plant ('CoolPowerPlant').`
+        : `❄️ ${robotState.name} termal santrale soğutucu sıvı sıkarak sıcaklığı düşürüyor ('CoolPowerPlant').`,
     });
   } else if (hasCollectFromRobot && (isAdjacentToMiner || activeCargoFullMsg)) {
     const minerId = targetMinerId || activeCargoFullMsg?.senderId || '';
     logs.push({
       action: 'COLLECT_CARGO_FROM_ROBOT',
       payload: minerId,
-      message: `🚚 ${robotState.name} madenci robottan kargoyu devralıyor ('CollectCargoFromRobot').`,
+      message: lang === 'en'
+        ? `🚚 ${robotState.name} collecting cargo hold from miner robot ('CollectCargoFromRobot').`
+        : `🚚 ${robotState.name} madenci robottan kargoyu devralıyor ('CollectCargoFromRobot').`,
     });
   } else if (hasTransferToRobot) {
     const match = code.match(/TransferCargoToRobot\s*\(\s*"([^"]+)"/i);
@@ -323,25 +332,33 @@ export function compileAndRunCSharp(
     logs.push({
       action: 'TRANSFER_CARGO_TO_ROBOT',
       payload: targetId,
-      message: `📦 ${robotState.name} kargosunu kargocu robota devrediyor ('TransferCargoToRobot').`,
+      message: lang === 'en'
+        ? `📦 ${robotState.name} transferring cargo to transporter robot ('TransferCargoToRobot').`
+        : `📦 ${robotState.name} kargosunu kargocu robota devrediyor ('TransferCargoToRobot').`,
     });
   } else if (hasDepositRaw) {
     logs.push({
       action: 'DEPOSIT_RAW_MATERIAL',
       payload: 'DEPOSIT',
-      message: `${robotState.name} kargosundaki ham maddeleri tesise teslim ediyor ('DepositRawMaterial').`,
+      message: lang === 'en'
+        ? `${robotState.name} unloading raw materials to facility ('DepositRawMaterial').`
+        : `${robotState.name} kargosundaki ham maddeleri tesise teslim ediyor ('DepositRawMaterial').`,
     });
   } else if (hasProcess) {
     logs.push({
       action: 'PROCESS_MATERIAL',
       payload: 'PROCESS',
-      message: `${robotState.name} tesisteki ham maddeleri döküm/rafine ediyor ('ProcessMaterial').`,
+      message: lang === 'en'
+        ? `${robotState.name} smelting/refining raw materials at facility ('ProcessMaterial').`
+        : `${robotState.name} tesisteki ham maddeleri döküm/rafine ediyor ('ProcessMaterial').`,
     });
   } else if (hasCollectProcessed) {
     logs.push({
       action: 'COLLECT_PROCESSED',
       payload: 'COLLECT',
-      message: `${robotState.name} tesisten işlenmiş 10x değerli ürünleri kargosuna yüklüyor ('CollectProcessedProduct').`,
+      message: lang === 'en'
+        ? `${robotState.name} loading 10x processed products from facility ('CollectProcessedProduct').`
+        : `${robotState.name} tesisten işlenmiş 10x değerli ürünleri kargosuna yüklüyor ('CollectProcessedProduct').`,
     });
   } else if (shouldMine) {
     const targetTile = adjacentResourceTile || standingOnResource;
@@ -352,19 +369,25 @@ export function compileAndRunCSharp(
     logs.push({
       action: 'MINE',
       payload,
-      message: `${robotState.name} maden tespit etti ve 'robot.Mine()' ile kazı yaptı.`,
+      message: lang === 'en'
+        ? `${robotState.name} detected ore node and mined via 'robot.Mine()'.`
+        : `${robotState.name} maden tespit etti ve 'robot.Mine()' ile kazı yaptı.`,
     });
   } else if (shouldMove) {
     logs.push({
       action: 'MOVE',
       payload: moveDir,
-      message: `${robotState.name} '${moveDir}' yönüne hareket etti.`,
+      message: lang === 'en'
+        ? `${robotState.name} moved in direction '${moveDir}'.`
+        : `${robotState.name} '${moveDir}' yönüne hareket etti.`,
     });
   } else {
     logs.push({
       action: 'IDLE',
       payload: 'NONE',
-      message: `${robotState.name} bekleme durumunda (IDLE).`,
+      message: lang === 'en'
+        ? `${robotState.name} is standing by (IDLE).`
+        : `${robotState.name} bekleme durumunda (IDLE).`,
     });
   }
 
