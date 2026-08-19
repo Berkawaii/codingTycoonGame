@@ -308,23 +308,20 @@ export const useGameStore = create<GameState>()((set, get) => ({
   isAnonymousPlayer: !localStorage.getItem('syntax_factory_user_id'),
   userDisplayName: localStorage.getItem('syntax_factory_user_name') || 'Mühendis Oyuncu',
 
-  startAnonymousSession: () => {
-    let anonName = localStorage.getItem('syntax_factory_user_name');
-    let anonId = localStorage.getItem('syntax_factory_user_id');
-
-    if (!anonId) {
-      anonId = `anon-${Math.floor(1000 + Math.random() * 9000)}`;
-      anonName = `Anonim_Mühendis_${Math.floor(100 + Math.random() * 900)}`;
-      localStorage.setItem('syntax_factory_user_id', anonId);
-      localStorage.setItem('syntax_factory_user_name', anonName);
+  startAnonymousSession: (anonName?: string) => {
+    let finalName = anonName || localStorage.getItem('syntax_factory_user_name');
+    if (!finalName) {
+      finalName = `Anonim_Mühendis_${Math.floor(100 + Math.random() * 900)}`;
     }
-
+    localStorage.removeItem('syntax_factory_user_id');
+    localStorage.setItem('syntax_factory_user_name', finalName);
+    get().resetGame();
     set({
       isAnonymousPlayer: true,
-      userDisplayName: anonName || 'Anonim Mühendis',
+      userDisplayName: finalName,
       isWelcomeOpen: false,
     });
-    get().addLog('info', `[OTURUM]: '${anonName}' çağrı adıyla Anonim Misafir Seansı başlatıldı. Skor kaydedilebilir, Cloud Save için Giriş Yapın.`);
+    get().addLog('info', `[OTURUM]: '${finalName}' çağrı adıyla Anonim Misafir Seansı başlatıldı. Temiz seans açıldı.`);
   },
 
   logout: async () => {
@@ -333,13 +330,14 @@ export const useGameStore = create<GameState>()((set, get) => ({
     } catch {}
     localStorage.removeItem('syntax_factory_user_id');
     localStorage.removeItem('syntax_factory_user_name');
+    get().resetGame();
     set({
       authUser: null,
       isAnonymousPlayer: true,
       userDisplayName: 'Mühendis Oyuncu',
       isWelcomeOpen: true,
     });
-    get().addLog('info', '[OTURUM]: Oturum kapatıldı.');
+    get().addLog('info', '[OTURUM]: Oturum kapatıldı ve fabrika durumu sıfırlandı.');
   },
 
   saveGameStateToCloud: async () => {
@@ -2402,7 +2400,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
       }
 
       // 3. Run Robot's C# Script against ITS OWN biome map data
-      const codeToRun = robot.scriptCode || state.scriptCode || DEFAULT_C_SHARP_SCRIPT;
+      const codeToRun = robot.scriptCode !== undefined ? robot.scriptCode : (state.scriptCode || DEFAULT_C_SHARP_SCRIPT);
 
       const result = compileAndRunCSharp(
         codeToRun,
