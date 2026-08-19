@@ -41,6 +41,13 @@ function evaluateCSharpExecution(
   radioMessages: RadioMessage[],
   allRobots: Array<{ id: string; name: string; x: number; y: number; health?: number; role?: string; cargoAmount?: number; maxCargo?: number }>
 ) {
+  // 0. If Execute method body is empty or contains no statement logic, stay IDLE
+  const executeMatch = code.match(/Execute\s*\([^)]*\)\s*\{([\s\S]*)\}/i);
+  const bodyText = executeMatch ? executeMatch[1].replace(/\/\/.*/g, '').replace(/\/\*[\s\S]*?\*\//g, '').trim() : '';
+  if (!bodyText) {
+    return { targetGoTo: null, actionToExecute: 'NONE', targetMinerId: '' };
+  }
+
   const currentCargo = robotState.cargoAmount ?? 0;
   const maxCargo = robotState.maxCargo ?? 50;
   const currentEnergy = robotState.energy ?? 100;
