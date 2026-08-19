@@ -324,15 +324,15 @@ export const submitPlayerScore = async (
 // --- COMMUNITY SCRIPT MARKETPLACE SERVICES ---
 export const fetchCommunityScripts = async (): Promise<CommunityScript[]> => {
   try {
-    const q = query(collection(db, 'community_scripts'), orderBy('likes', 'desc'), limit(30));
+    const q = query(collection(db, 'community_scripts'), orderBy('createdAt', 'desc'), limit(50));
     const snapshot = await getDocs(q);
     if (!snapshot.empty) {
       return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as CommunityScript));
     }
   } catch (e) {
-    console.warn('Firebase Firestore Community Scripts fallback mode active:', e);
+    console.error('Firebase Firestore fetchCommunityScripts error:', e);
   }
-  return getLocalCommunityScripts();
+  return [];
 };
 
 export const publishCommunityScript = async (
@@ -357,17 +357,11 @@ export const publishCommunityScript = async (
     createdAt: new Date().toISOString().split('T')[0],
   };
 
-  try {
-    const docRef = doc(db, 'community_scripts', scriptId);
-    await setDoc(docRef, newScript);
-    console.log('[FIRESTORE SINK]: Script document published to Firestore:', scriptId);
-  } catch (e) {
-    console.error('[FIRESTORE SINK SCRIPT ERROR]:', e);
-  }
+  // Direct write to Cloud Firestore
+  const docRef = doc(db, 'community_scripts', scriptId);
+  await setDoc(docRef, newScript);
+  console.log('[FIRESTORE SINK]: Script document published directly to Firestore:', scriptId);
 
-  const local = getLocalCommunityScripts();
-  local.unshift(newScript);
-  localStorage.setItem(LOCAL_COMMUNITY_SCRIPTS_KEY, JSON.stringify(local));
   return newScript;
 };
 
@@ -376,11 +370,6 @@ export const likeCommunityScript = async (scriptId: string): Promise<void> => {
     const scriptRef = doc(db, 'community_scripts', scriptId);
     await updateDoc(scriptRef, { likes: increment(1) });
   } catch (e) {
-    console.warn('Firebase Firestore like fallback:', e);
+    console.error('Firebase Firestore likeCommunityScript error:', e);
   }
-
-  const local = getLocalCommunityScripts().map((s) =>
-    s.id === scriptId ? { ...s, likes: s.likes + 1 } : s
-  );
-  localStorage.setItem(LOCAL_COMMUNITY_SCRIPTS_KEY, JSON.stringify(local));
 };

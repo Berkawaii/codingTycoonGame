@@ -61,20 +61,25 @@ export const ScriptMarketplaceModal: React.FC<ScriptMarketplaceModalProps> = ({ 
     const authorName = localStorage.getItem('syntax_factory_user_name') || 'Mühendis Oyuncu';
     const authorId = localStorage.getItem('syntax_factory_user_id') || `user-${Date.now()}`;
 
-    await publishCommunityScript(
-      newTitle,
-      newDescription || 'Gelişmiş otonom C# betiği.',
-      newCategory,
-      newCode,
-      authorName,
-      authorId
-    );
-
-    setIsPublishing(false);
-    setNewTitle('');
-    setNewDescription('');
-    setNewCode('');
-    await loadScripts();
+    try {
+      await publishCommunityScript(
+        newTitle,
+        newDescription || 'Gelişmiş otonom C# betiği.',
+        newCategory,
+        newCode,
+        authorName,
+        authorId
+      );
+      addLog('success', `[SCRIPT PAZARI]: '${newTitle}' betiği doğrudan Firestore veritabanına yayınlandı.`);
+      setIsPublishing(false);
+      setNewTitle('');
+      setNewDescription('');
+      setNewCode('');
+      await loadScripts();
+    } catch (err: any) {
+      console.error('Publish script Firestore error:', err);
+      alert(`[FIRESTORE YAZMA HATASI]: Betik Firestore veritabanına kaydedilemedi!\n\nHata Detayı: ${err.message || err}\n\nLütfen Firebase Console -> Firestore Database -> Rules sekmesinden yetki kuralını güncelleyin.`);
+    }
   };
 
   const filteredScripts = scripts.filter((s) => {
