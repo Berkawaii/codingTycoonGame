@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import { useGameStore } from '../store/useGameStore';
 import { saveScriptToFirebase, fetchFirebaseScripts, FirebaseScriptDoc } from '../services/firebase';
-import { Code2, Cpu, CheckCircle2, Play, RefreshCw, CloudUpload, FolderOpen } from 'lucide-react';
+import { Code2, Cpu, CheckCircle2, Play, RefreshCw, CloudUpload, FolderOpen, GraduationCap, Maximize2, Minimize2 } from 'lucide-react';
 
 export const CodeEditor: React.FC = () => {
   const {
@@ -17,6 +17,9 @@ export const CodeEditor: React.FC = () => {
     isRunning,
     toggleRunning,
     compileAndRunScript,
+    setAcademyModalOpen,
+    editorSizeMode,
+    setEditorSizeMode,
   } = useGameStore();
 
   const [activeEditorTab, setActiveEditorTab] = useState<'ROBOT' | 'POWER_PLANT'>('ROBOT');
@@ -120,6 +123,25 @@ export const CodeEditor: React.FC = () => {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Cyberpunk Academy & Guide Button */}
+          <button
+            onClick={() => setAcademyModalOpen(true)}
+            className="ui-btn"
+            style={{
+              padding: '0.3rem 0.65rem',
+              fontSize: '0.73rem',
+              background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.25) 0%, rgba(0, 242, 254, 0.25) 100%)',
+              border: '1px solid rgba(0, 242, 254, 0.5)',
+              color: '#00f2fe',
+              fontWeight: 700,
+              boxShadow: '0 0 10px rgba(0, 242, 254, 0.2)',
+            }}
+            title="C# Otomasyon Akademisi ve Oynanabilir Görev Rehberi"
+          >
+            <GraduationCap className="w-4 h-4 text-cyan-400" />
+            <span>Akademi & Rehber</span>
+          </button>
+
           {/* Cloud Scripts Picker */}
           <div style={{ position: 'relative' }}>
             <button
@@ -173,6 +195,26 @@ export const CodeEditor: React.FC = () => {
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Editor Panel Size Controls (Maximize / Minimize Toggle) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '3px', background: 'rgba(15,23,42,0.8)', padding: '2px', borderRadius: '6px', border: '1px solid #1e293b' }}>
+            <button
+              onClick={() => setEditorSizeMode(editorSizeMode === 'expanded' ? 'normal' : 'expanded')}
+              className={`ui-btn ui-btn-icon ${editorSizeMode === 'expanded' ? 'ui-btn-cyan' : ''}`}
+              style={{ padding: '0.25rem', background: editorSizeMode === 'expanded' ? 'rgba(0,242,254,0.2)' : 'transparent', border: 'none' }}
+              title={editorSizeMode === 'expanded' ? 'Varsayılan Boyuta Dön' : 'Editörü Genişlet / Büyüt (Rahat Kodlama Modu)'}
+            >
+              <Maximize2 className="w-3.5 h-3.5 text-cyan-400" />
+            </button>
+            <button
+              onClick={() => setEditorSizeMode('hidden')}
+              className="ui-btn ui-btn-icon"
+              style={{ padding: '0.25rem', background: 'transparent', border: 'none' }}
+              title="Editörü Gizle / Paneli Sakla (Simülatöre Tam Ekran Ver)"
+            >
+              <Minimize2 className="w-3.5 h-3.5 text-slate-400" />
+            </button>
           </div>
         </div>
       </div>

@@ -5,7 +5,10 @@ import { Header } from './components/Header';
 import { CanvasGrid } from './components/CanvasGrid';
 import { CodeEditor } from './components/CodeEditor';
 import { InventoryPanel } from './components/InventoryPanel';
+import { TutorialModal } from './components/TutorialModal';
 import { ApiReferencePanel } from './components/ApiReferencePanel';
+
+import { Code2, Maximize2 } from 'lucide-react';
 
 export const App: React.FC = () => {
   const {
@@ -14,6 +17,10 @@ export const App: React.FC = () => {
     stepTick,
     isApiModalOpen,
     setApiModalOpen,
+    isAcademyModalOpen,
+    setAcademyModalOpen,
+    editorSizeMode,
+    setEditorSizeMode,
     scriptCode,
     setScriptCode,
     addLog,
@@ -61,8 +68,19 @@ export const App: React.FC = () => {
       {/* Top Header & Simulation Telemetry */}
       <Header />
 
-      {/* Main Split Layout */}
-      <main className="main-content">
+      {/* Main Split Layout with Dynamic Editor Sizing */}
+      <main
+        className="main-content"
+        style={{
+          gridTemplateColumns:
+            editorSizeMode === 'expanded'
+              ? '0.35fr 1.65fr'
+              : editorSizeMode === 'hidden'
+              ? '1fr'
+              : '1fr 1fr',
+          transition: 'grid-template-columns 0.3s ease-in-out',
+        }}
+      >
         {/* Left Side: 2D Grid Canvas Engine & Inventory/Logs */}
         <section className="left-pane">
           {/* Tutorial Stage Active Banner */}
@@ -126,9 +144,11 @@ export const App: React.FC = () => {
               <span className="canvas-title">
                 {isTutorialModeActive ? `EĞİTİM HARİTASI: BÖLÜM ${activeTutorialStep?.id}` : '2D GRID SIMULATOR (20x20)'}
               </span>
-              <span className="text-xs text-slate-400">
-                {isTutorialModeActive ? 'Görevi başarmak için sağ taraftaki C# kodunu düzenleyip Çalıştırın' : 'Tıklayarak Robot/Maden Detayı İnceleyebilirsiniz'}
-              </span>
+              {isTutorialModeActive && (
+                <span className="text-xs text-slate-400">
+                  Görevi başarmak için sağ taraftaki C# kodunu düzenleyip Çalıştırın
+                </span>
+              )}
             </div>
             <CanvasGrid />
           </div>
@@ -138,17 +158,57 @@ export const App: React.FC = () => {
           </div>
         </section>
 
-        {/* Right Side: C# Monaco Code Editor */}
-        <section className="right-pane">
-          <CodeEditor />
-        </section>
+        {/* Right Side: C# Monaco Code Editor (Shown if not hidden) */}
+        {editorSizeMode !== 'hidden' && (
+          <section className="right-pane">
+            <CodeEditor />
+          </section>
+        )}
       </main>
+
+      {/* Floating Restore Editor Button (Shown when hidden) */}
+      {editorSizeMode === 'hidden' && (
+        <button
+          onClick={() => setEditorSizeMode('normal')}
+          className="ui-btn"
+          style={{
+            position: 'fixed',
+            top: '70px',
+            right: '24px',
+            zIndex: 40,
+            background: 'linear-gradient(135deg, #090e17 0%, #0f172a 100%)',
+            border: '1.5px solid #00f2fe',
+            boxShadow: '0 0 20px rgba(0, 242, 254, 0.4)',
+            borderRadius: '8px',
+            padding: '0.55rem 1rem',
+            color: '#00f2fe',
+            fontWeight: 800,
+            fontSize: '0.8rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            backdropFilter: 'blur(12px)',
+          }}
+          title="C# Kod Editörünü Geri Aç / Göster"
+        >
+          <Code2 className="w-4 h-4 text-cyan-400" />
+          <span>💻 C# EDITÖRÜNÜ GÖSTER</span>
+          <Maximize2 className="w-3.5 h-3.5 text-amber-400" />
+        </button>
+      )}
 
       {/* Global C# Robot API Reference Modal */}
       <ApiReferencePanel
         isOpen={isApiModalOpen}
         onClose={() => setApiModalOpen(false)}
         onInsertSnippet={handleInsertSnippet}
+      />
+
+      {/* Global C# Automation Academy & Guide Modal */}
+      <TutorialModal
+        isOpen={isAcademyModalOpen}
+        onClose={() => setAcademyModalOpen(false)}
       />
     </div>
   );

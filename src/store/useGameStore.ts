@@ -40,6 +40,8 @@ interface GameState {
   tickCount: number;
   logs: GameLog[];
   isApiModalOpen: boolean;
+  isAcademyModalOpen: boolean;
+  editorSizeMode: 'normal' | 'expanded' | 'hidden';
 
   // Tutorial Stage System
   isTutorialModeActive: boolean;
@@ -74,6 +76,8 @@ interface GameState {
   toggleRunning: () => void;
   setTickRate: (rate: number) => void;
   setApiModalOpen: (open: boolean) => void;
+  setAcademyModalOpen: (open: boolean) => void;
+  setEditorSizeMode: (mode: 'normal' | 'expanded' | 'hidden') => void;
   addLog: (level: GameLog['level'], message: string) => void;
   clearLogs: () => void;
   
@@ -532,6 +536,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     return true;
   },
 
+  isAcademyModalOpen: false,
+  editorSizeMode: 'normal',
   // Tutorial Stage System
   isTutorialModeActive: false,
   tutorialStepIndex: 0,
@@ -663,6 +669,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   toggleRunning: () => set((state) => ({ isRunning: !state.isRunning })),
   setTickRate: (rate) => set({ tickRate: rate }),
   setApiModalOpen: (open) => set({ isApiModalOpen: open }),
+  setAcademyModalOpen: (open) => set({ isAcademyModalOpen: open }),
+  setEditorSizeMode: (mode) => set({ editorSizeMode: mode }),
 
   addLog: (level, message) => {
     const newLog: GameLog = {

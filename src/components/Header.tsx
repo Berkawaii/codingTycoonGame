@@ -5,7 +5,7 @@ import { BIOME_CATALOG } from '../constants/biomes';
 import { BiomeType } from '../types/game';
 import { soundService } from '../services/soundService';
 import { TutorialModal } from './TutorialModal';
-import { Play, Pause, RotateCcw, FastForward, Cpu, DollarSign, Volume2, VolumeX, Package, Terminal, GraduationCap, Globe, RefreshCw, Bot, Zap } from 'lucide-react';
+import { Play, Pause, RotateCcw, FastForward, Cpu, DollarSign, Volume2, VolumeX, Package, Terminal, Globe, RefreshCw, Bot, Zap } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const [isMuted, setMuted] = useState(soundService.isMuted);
@@ -139,15 +139,6 @@ export const Header: React.FC = () => {
 
         {/* Quick Actions & Speed Controls */}
         <div className="control-group">
-          <button
-            onClick={() => setTutorialOpen(true)}
-            className="ui-btn ui-btn-accent"
-            style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', background: 'linear-gradient(135deg, #a855f7 0%, #00f2fe 100%)', border: 'none', color: '#000' }}
-          >
-            <GraduationCap className="w-4 h-4" />
-            <span>Akademi & Rehber</span>
-          </button>
-
           <div className="speed-selector">
             <span className="speed-label">Hız:</span>
             <button
