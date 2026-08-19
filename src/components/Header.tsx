@@ -5,7 +5,8 @@ import { BIOME_CATALOG } from '../constants/biomes';
 import { BiomeType } from '../types/game';
 import { soundService } from '../services/soundService';
 import { TutorialModal } from './TutorialModal';
-import { Play, Pause, RotateCcw, FastForward, Cpu, DollarSign, Volume2, VolumeX, Package, Terminal, Globe, RefreshCw, Bot, Zap } from 'lucide-react';
+import { AdminConsoleModal } from './AdminConsoleModal';
+import { Play, Pause, RotateCcw, FastForward, Cpu, DollarSign, Volume2, VolumeX, Package, Terminal, Globe, RefreshCw, Bot, Zap, ShieldAlert } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const [isMuted, setMuted] = useState(soundService.isMuted);
@@ -26,6 +27,7 @@ export const Header: React.FC = () => {
     unlockedBiomes,
     switchBiome,
     generateNewSeedMap,
+    setAdminModalOpen,
   } = useGameStore();
 
   // Calculate total inventory value
@@ -200,6 +202,24 @@ export const Header: React.FC = () => {
           </button>
 
           <button
+            onClick={() => setAdminModalOpen(true)}
+            className="ui-btn"
+            style={{
+              padding: '0.35rem 0.6rem',
+              fontSize: '0.72rem',
+              background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.25) 0%, rgba(168, 85, 247, 0.25) 100%)',
+              border: '1px solid rgba(239, 68, 68, 0.5)',
+              color: '#f87171',
+              fontWeight: 800,
+              boxShadow: '0 0 10px rgba(239, 68, 68, 0.2)',
+            }}
+            title="Geliştirici & Admin Test Konsolu"
+          >
+            <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+            <span>ADMIN</span>
+          </button>
+
+          <button
             onClick={resetGame}
             className="ui-btn ui-btn-icon"
             title="Sıfırla"
@@ -210,6 +230,7 @@ export const Header: React.FC = () => {
       </header>
       
       <TutorialModal isOpen={isTutorialOpen} onClose={() => setTutorialOpen(false)} />
+      <AdminConsoleModal />
     </>
   );
 };

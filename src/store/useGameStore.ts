@@ -122,6 +122,18 @@ interface GameState {
   repairRobot: (droneId: string, targetId: string) => void;
   coolPowerPlant: (droneId: string, plantId: string) => void;
 
+  // Admin & Simulation Testing Console Actions
+  isAdminModalOpen: boolean;
+  setAdminModalOpen: (open: boolean) => void;
+  addCredits: (amount: number) => void;
+  spawnBandit: (x?: number, y?: number) => void;
+  clearBandits: () => void;
+  triggerHazard: (type: 'DUST_STORM') => void;
+  clearHazard: () => void;
+  healAllRobots: () => void;
+  coolAllPowerPlants: () => void;
+  fillAllDepots: () => void;
+
   // Game Mechanics Actions
   moveRobot: (robotId: string, direction: Direction) => void;
   mineResource: (robotId: string, targetX?: number, targetY?: number) => void;
@@ -373,6 +385,7 @@ export const useGameStore = create<GameState>()(
   tickRate: 500,
   tickCount: 0,
   isApiModalOpen: false,
+  isAdminModalOpen: false,
   logs: [
     {
       id: 'log-1',
@@ -1957,6 +1970,102 @@ export const useGameStore = create<GameState>()(
       ...updateMapDataForBiome(prev, currentBiome, () => ({ powerPlants: updatedPlants })),
       powerPlants: updatedPlants,
     }));
+  },
+
+  // Admin & Simulation Testing Console Implementations
+  setAdminModalOpen: (open) => set({ isAdminModalOpen: open }),
+
+  addCredits: (amount) => {
+    set((prev) => ({ credits: Math.max(0, prev.credits + amount) }));
+    soundService.playPurchase();
+    get().addLog('success', `🛠️ [ADMIN PANELDEN BAKİYE EKLENDİ]: +$${amount.toLocaleString()} bakiye aktarıldı.`);
+  },
+
+  spawnBandit: (x, y) => {
+    const { activeBandits = [], gridSize } = get();
+    const spawnX = x !== undefined ? x : 0;
+    const spawnY = y !== undefined ? y : Math.floor(Math.random() * (gridSize.height - 2)) + 1;
+    const newBandit: BanditRobot = {
+      id: `bandit-admin-${Date.now()}`,
+      name: 'Korsan Robot (Admin)',
+      x: spawnX,
+      y: spawnY,
+      health: 100,
+      maxHealth: 100,
+      cargoAmount: 0,
+      maxCargo: 30,
+      state: 'RAIDING',
+    };
+
+    set({ activeBandits: [...activeBandits, newBandit] });
+    get().addLog('warn', `🛠️ [ADMIN TETİKLEME]: (${spawnX}, ${spawnY}) konumunda manuel Korsan Robot doğuruldu!`);
+  },
+
+  clearBandits: () => {
+    set({ activeBandits: [] });
+    get().addLog('info', `🛠️ [ADMIN TEMİZLİK]: Haritadaki tüm Korsan Robotlar silindi.`);
+  },
+
+  triggerHazard: (type = 'DUST_STORM') => {
+    set({
+      activeHazard: {
+        id: `hazard-admin-${Date.now()}`,
+        type,
+        name: 'Mars Kum Fırtınası (Admin)',
+        durationTicks: 25,
+        remainingTicks: 25,
+        severity: 3,
+      },
+    });
+    get().addLog('warn', `🛠️ [ADMIN FIRTINA]: Şiddetli Mars kum fırtınası manuel olarak başlatıldı!`);
+  },
+
+  clearHazard: () => {
+    set({ activeHazard: null });
+    get().addLog('info', `🛠️ [ADMIN FIRTINA]: Fırtına ve tehlike hava olayı manuel olarak dindirildi.`);
+  },
+
+  healAllRobots: () => {
+    set((prev) => ({
+      robots: prev.robots.map((r) => ({
+        ...r,
+        health: r.maxHealth || 100,
+        energy: r.maxEnergy,
+        isDamaged: false,
+        status: 'IDLE' as const,
+      })),
+    }));
+    soundService.playCharging();
+    get().addLog('success', `🛠️ [ADMIN TAMİR]: Tüm filo robotları %100 Can ve %100 Şarj seviyesine getirildi.`);
+  },
+
+  coolAllPowerPlants: () => {
+    const { currentBiome, powerPlants = [] } = get();
+    const updated = powerPlants.map((p) => ({
+      ...p,
+      temperature: 20.0,
+      isOverheated: false,
+      powerBuffer: p.maxPowerBuffer,
+    }));
+    set((prev) => ({
+      ...updateMapDataForBiome(prev, currentBiome, () => ({ powerPlants: updated })),
+      powerPlants: updated,
+    }));
+    get().addLog('success', `🛠️ [ADMIN SOĞUTMA]: Tüm Enerji Santralleri 20°C'ye soğutuldu ve kWh depoları dolduruldu.`);
+  },
+
+  fillAllDepots: () => {
+    set((prev) => ({
+      inventory: {
+        ...prev.inventory,
+        'SKU-IRON-01': (prev.inventory['SKU-IRON-01'] || 0) + 100,
+        'COAL_ORE': (prev.inventory['COAL_ORE'] || 0) + 100,
+        'SKU-COPPER-01': (prev.inventory['SKU-COPPER-01'] || 0) + 100,
+        'SKU-GOLD-01': (prev.inventory['SKU-GOLD-01'] || 0) + 50,
+      },
+    }));
+    soundService.playUnload();
+    get().addLog('success', `🛠️ [ADMIN ENVANTER]: Ana depolara +100kg Demir, Kömür, Bakır ve Altın eklendi.`);
   },
 
   rotateRobot: (robotId, direction) => {
