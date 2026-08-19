@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
-import { SKU_CATALOG } from '../constants/skus';
+import { SKU_CATALOG, getLocalizedSkuName, getLocalizedSkuUnit, getLocalizedSkuDesc } from '../constants/skus';
 import { MarketPanel } from './MarketPanel';
 import { ShopPanel } from './ShopPanel';
 import { ApiReferencePanel } from './ApiReferencePanel';
@@ -142,14 +142,8 @@ export const InventoryPanel: React.FC = () => {
             {Object.values(SKU_CATALOG).map((skuItem) => {
               const count = inventory[skuItem.sku] || 0;
               const totalVal = count * skuItem.baseValue;
-
-              const skuName = language === 'en'
-                ? skuItem.sku === 'SKU-IRON-01' || skuItem.sku === 'FE_ORE' ? 'Raw Iron Ore' : skuItem.sku === 'COAL_ORE' ? 'Coal Ore' : skuItem.sku === 'SKU-COPPER-01' ? 'Raw Copper Ore' : 'Raw Gold Ore'
-                : skuItem.name;
-
-              const skuDesc = language === 'en'
-                ? skuItem.sku === 'SKU-IRON-01' || skuItem.sku === 'FE_ORE' ? 'Essential industrial metal. Used for construction and robotics.' : skuItem.sku === 'COAL_ORE' ? 'High thermal coal burned in power plants for energy.' : skuItem.sku === 'SKU-COPPER-01' ? 'High conductivity metal required for electrical circuits.' : 'Precious rare metal for microchips and automation.'
-                : skuItem.description;
+              const skuName = getLocalizedSkuName(skuItem, language);
+              const skuUnit = getLocalizedSkuUnit(skuItem.unit, language);
 
               return (
                 <div
@@ -176,7 +170,7 @@ export const InventoryPanel: React.FC = () => {
                       <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffffff' }}>
                         {count.toLocaleString()}{' '}
                         <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 400 }}>
-                          {skuItem.unit}
+                          {skuUnit}
                         </span>
                       </span>
                       <div style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 600 }}>
@@ -185,7 +179,7 @@ export const InventoryPanel: React.FC = () => {
                     </div>
                   </div>
                   <p style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '6px', lineHeight: '1.3' }}>
-                    {skuDesc}
+                    {getLocalizedSkuDesc(skuItem, language)}
                   </p>
                 </div>
               );

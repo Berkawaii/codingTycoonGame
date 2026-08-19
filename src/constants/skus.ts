@@ -164,6 +164,65 @@ export const SKU_CATALOG: Record<string, SKU> = {
   },
 };
 
+export function getLocalizedSkuName(skuItem: SKU, lang: 'tr' | 'en'): string {
+  if (lang === 'tr') return skuItem.name;
+  switch (skuItem.sku) {
+    case 'SKU-IRON-01': return 'Raw Iron Ore';
+    case 'COAL_ORE': return 'Coal Ore';
+    case 'FE_ORE': return 'Iron Ore';
+    case 'SKU-COPPER-01': return 'Raw Copper Ore';
+    case 'SKU-GOLD-01': return 'Raw Gold Ore';
+    case 'AU_ORE': return 'Gold Bar';
+    case 'RUBY_GEM': return 'Magma Ruby';
+    case 'OBSIDIAN_ORE': return 'Obsidian Ore';
+    case 'QUANTUM_CRYSTAL': return 'Quantum Crystal Core';
+    case 'PLASMA_ORE': return 'Plasma Ore';
+    case 'DIAMOND_ICE': return 'Glacial Ice Diamond';
+    case 'STEEL_INGOT': return 'Smelted Steel Ingot';
+    case 'REINFORCED_ALLOY': return 'Reinforced Obsidian Alloy';
+    case 'QUANTUM_CHIP': return 'Quantum Microchip';
+    case 'PLASMA_CORE': return 'Plasma Power Core';
+    case 'SKU-CRYSTAL-01': return 'Quantum Crystal';
+    default: return skuItem.name;
+  }
+}
+
+export function getLocalizedSkuDesc(skuItem: SKU, lang: 'tr' | 'en'): string {
+  if (lang === 'tr') return skuItem.description;
+  switch (skuItem.sku) {
+    case 'SKU-IRON-01': return 'Essential industrial metal. Used for construction and robotics.';
+    case 'COAL_ORE': return 'High thermal coal burned in power plants for energy.';
+    case 'FE_ORE': return 'Essential iron mined for structures and robot chassis.';
+    case 'SKU-COPPER-01': return 'High conductivity metal required for electrical circuits.';
+    case 'SKU-GOLD-01': return 'Precious rare metal for microchips and automation.';
+    case 'AU_ORE': return 'Pure gold ingot used in high-value conductive circuits.';
+    case 'RUBY_GEM': return 'Valuable magma ruby used in high-energy lasers.';
+    case 'OBSIDIAN_ORE': return 'Ultra-hard volcanic obsidian rock.';
+    case 'QUANTUM_CRYSTAL': return 'Quantum crystal generating infinite energy cells.';
+    case 'PLASMA_ORE': return 'Ionized plasma fueling ion reactors.';
+    case 'DIAMOND_ICE': return 'Rare diamond ice crystal extracted from permafrost.';
+    case 'STEEL_INGOT': return 'High-strength steel smelted from 2x iron ore.';
+    case 'REINFORCED_ALLOY': return 'Ultra armor alloy smelted from 2x obsidian ore.';
+    case 'QUANTUM_CHIP': return 'Superconducting microchip refined from 2x gold.';
+    case 'PLASMA_CORE': return 'Massive power core refined from 2x quantum crystals.';
+    case 'SKU-CRYSTAL-01': return 'High energy crystal feeding advanced WASM cores.';
+    default: return skuItem.description;
+  }
+}
+
+export function getLocalizedSkuUnit(unit: string, lang: 'tr' | 'en'): string {
+  if (lang === 'tr') return unit;
+  switch (unit.toLowerCase()) {
+    case 'kg': return 'kg';
+    case 'gram': return 'Grams';
+    case 'karat': return 'Carats';
+    case 'çekirdek': return 'Cores';
+    case 'litre': return 'Liters';
+    case 'adet': return 'Units';
+    default: return unit;
+  }
+}
+
 export const DEFAULT_C_SHARP_SCRIPT = `using System;
 using System.Collections.Generic;
 

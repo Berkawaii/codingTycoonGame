@@ -1,10 +1,10 @@
 import React from 'react';
 import { useGameStore } from '../store/useGameStore';
-import { SKU_CATALOG } from '../constants/skus';
+import { SKU_CATALOG, getLocalizedSkuName, getLocalizedSkuUnit } from '../constants/skus';
 import { DollarSign, ShoppingBag, ArrowRightLeft, Building2 } from 'lucide-react';
 
 export const MarketPanel: React.FC = () => {
-  const { inventory, credits, sellResource, sellAllResources, t } = useGameStore();
+  const { inventory, credits, sellResource, sellAllResources, t, language } = useGameStore();
 
   const totalValue = Object.entries(inventory).reduce((acc, [sku, amount]) => {
     const skuDef = SKU_CATALOG[sku];
@@ -69,6 +69,8 @@ export const MarketPanel: React.FC = () => {
           {availableSkus.map((skuItem) => {
             const count = inventory[skuItem.sku] || 0;
             const stackValue = count * skuItem.baseValue;
+            const localizedName = getLocalizedSkuName(skuItem, language);
+            const localizedUnit = getLocalizedSkuUnit(skuItem.unit, language);
 
             return (
               <div
@@ -83,16 +85,17 @@ export const MarketPanel: React.FC = () => {
                         style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: skuItem.color }}
                       />
                       <h4 style={{ fontWeight: 700, color: '#f1f5f9', fontSize: '0.8rem' }}>
-                        {skuItem.name}
+                        {localizedName}
                       </h4>
                     </div>
                     <span style={{ fontSize: '0.7rem', fontFamily: 'Fira Code, monospace', color: '#64748b', display: 'block', marginTop: '2px' }}>
-                      {t('unit_price')}: ${skuItem.baseValue} / {skuItem.unit}
+                      {t('unit_price')}: ${skuItem.baseValue} / {localizedUnit}
                     </span>
                   </div>
+
                   <div style={{ textAlign: 'right' }}>
                     <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#e2e8f0', display: 'block', fontFamily: 'Fira Code, monospace' }}>
-                      {count.toLocaleString()} {skuItem.unit}
+                      {count.toLocaleString()} {localizedUnit}
                     </span>
                     <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#34d399', fontFamily: 'Fira Code, monospace' }}>
                       ${stackValue.toLocaleString()}
