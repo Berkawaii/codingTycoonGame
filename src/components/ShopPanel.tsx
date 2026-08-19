@@ -70,17 +70,17 @@ export const ShopPanel: React.FC = () => {
   const selectedRobot = robots.find((r) => r.id === selectedRobotId);
 
   const stationPrice =
-    chargingStations.length === 1
+    chargingStations.length === 0
       ? 0
-      : Math.round(800 * Math.pow(1.5, chargingStations.length - 2));
+      : Math.round(800 * Math.pow(1.5, chargingStations.length - 1));
 
   const depotPrice =
-    depots.length === 1
+    depots.length === 0
       ? 0
-      : Math.round(1200 * Math.pow(1.5, depots.length - 2));
+      : Math.round(1200 * Math.pow(1.5, depots.length - 1));
 
   const getRobotPurchasePrice = (basePrice: number) => {
-    const fleetMultiplier = Math.pow(1.4, Math.max(0, robots.length - 2));
+    const fleetMultiplier = Math.pow(1.25, Math.max(0, robots.length));
     return Math.round(basePrice * fleetMultiplier);
   };
 

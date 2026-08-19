@@ -146,124 +146,9 @@ interface GameState {
 
 const INITIAL_GRID_SIZE: GridSize = { width: 20, height: 20 };
 
-const INITIAL_CHARGING_STATIONS: ChargingStation[] = [
-  { id: 'charge-1', x: 0, y: 0, name: 'Ana Şarj İstasyonu (Kuzey-Batı)', chargeRate: 25 },
-];
-
-const INITIAL_DEPOTS: Depot[] = [
-  { id: 'depot-1', x: 0, y: 19, name: 'Ana Lojistik Deposu (Güneydoğu)' },
-];
-
-const INITIAL_ROBOTS: Robot[] = [
-  {
-    id: 'robot-1',
-    name: 'Rover Alpha',
-    x: 2,
-    y: 3,
-    direction: 'EAST',
-    status: 'IDLE',
-    color: '#00f2fe',
-    energy: 100,
-    maxEnergy: 100,
-    minedCount: 0,
-    miningSpeed: 1,
-    miningLevel: 1,
-    batteryLevel: 1,
-    radarRange: 5,
-    radarLevel: 1,
-    cargoAmount: 0,
-    maxCargo: 50,
-    cargoLevel: 1,
-    scriptName: 'MineIron.cs',
-    scriptCode: DEFAULT_C_SHARP_SCRIPT,
-    biomeId: 'MARS_BASIN',
-  },
-  {
-    id: 'robot-2',
-    name: 'Rover Beta',
-    x: 14,
-    y: 12,
-    direction: 'NORTH',
-    status: 'IDLE',
-    color: '#4facfe',
-    energy: 85,
-    maxEnergy: 100,
-    minedCount: 0,
-    miningSpeed: 1,
-    miningLevel: 1,
-    batteryLevel: 1,
-    radarRange: 5,
-    radarLevel: 1,
-    cargoAmount: 0,
-    maxCargo: 50,
-    cargoLevel: 1,
-    scriptName: 'CollectCopper.cs',
-    biomeId: 'MARS_BASIN',
-    scriptCode: `using System;
-using System.Collections.Generic;
-
-public class RobotScript
-{
-    // Rover Beta - Özel Bakır Toplayıcı & Akıllı Batarya Algoritması
-    public void Execute(IRobot robot)
-    {
-        // 1. Kargo Kontrolü: Kargo dolunca Kargocu Transporter robotunu radyo ile çağır!
-        int currentCargo = robot.GetCargo();
-        int maxCargo = robot.GetMaxCargo();
-
-        if (currentCargo >= maxCargo - 10)
-        {
-            robot.SendRadioMessage("CARGO_FULL", robot.GetX(), robot.GetY(), robot.GetId());
-            if (currentCargo >= maxCargo)
-            {
-                BuildingInfo depot = robot.GetNearestBuilding("DEPOT");
-                robot.GoTo(depot.X, depot.Y);
-                return;
-            }
-        }
-
-        // 2. Batarya Sorgulama: Batarya %25 altına düşerse Şarj İstasyonuna dön!
-        int currentEnergy = robot.GetEnergy();
-        int neededEnergy = robot.GetEnergyToNearestStation();
-
-        if (currentEnergy <= 25 || currentEnergy <= neededEnergy + 2)
-        {
-            BuildingInfo station = robot.GetNearestBuilding("CHARGING_PAD");
-            robot.GoTo(station.X, station.Y);
-            return;
-        }
-
-        // 2. Radardan sadece Bakır Cevheri (SKU-COPPER-01) tarayalım
-        List<RadarTileInfo> radarData = robot.GetRadarInfo();
-        RadarTileInfo copperNode = null;
-
-        foreach (var info in radarData)
-        {
-            if (info.SKU == "SKU-COPPER-01" && info.Amount > 0)
-            {
-                copperNode = info;
-                break;
-            }
-        }
-
-        Tile front = robot.GetTileInfo(Direction.Forward);
-        if (front.HasResource && front.Amount > 0)
-        {
-            robot.Mine();
-        }
-        else if (copperNode != null)
-        {
-            // Bakır madeninin koordinatına adımla
-            robot.GoTo(copperNode.X, copperNode.Y);
-        }
-        else
-        {
-            robot.Move(Direction.Forward);
-        }
-    }
-}`,
-  },
-];
+const INITIAL_CHARGING_STATIONS: ChargingStation[] = [];
+const INITIAL_DEPOTS: Depot[] = [];
+const INITIAL_ROBOTS: Robot[] = [];
 
 const INITIAL_RESOURCES: ResourceNode[] = [
   { id: 'res-1', x: 5, y: 3, type: 'IRON_ORE', sku: 'SKU-IRON-01', amount: 150, maxAmount: 150, name: 'Demir Damarı Alpha', rarity: 'COMMON' },
@@ -378,7 +263,7 @@ export const useGameStore = create<GameState>()(
   turrets: [],
   activeHazard: null,
   inventory: INITIAL_INVENTORY,
-  selectedRobotId: 'robot-1',
+  selectedRobotId: '',
   scriptCode: DEFAULT_C_SHARP_SCRIPT,
   powerPlantScriptCode: DEFAULT_POWER_PLANT_C_SHARP_SCRIPT,
   isRunning: false,
@@ -966,7 +851,7 @@ export const useGameStore = create<GameState>()(
 
   buyChargingStation: (name, x, y, price) => {
     const { credits, chargingStations, gridSize } = get();
-    const actualPrice = chargingStations.length === 1 ? 0 : price;
+    const actualPrice = chargingStations.length === 0 ? 0 : price;
 
     if (credits < actualPrice) {
       get().addLog('error', `Yetersiz bakiye! Şarj İstasyonu için $${actualPrice.toLocaleString()} gerekiyor.`);
@@ -997,7 +882,7 @@ export const useGameStore = create<GameState>()(
 
   buyDepot: (name, x, y, price) => {
     const { credits, depots, gridSize } = get();
-    const actualPrice = depots.length === 1 ? 0 : price;
+    const actualPrice = depots.length === 0 ? 0 : price;
 
     if (credits < actualPrice) {
       get().addLog('error', `Yetersiz bakiye! Depo için $${actualPrice.toLocaleString()} gerekiyor.`);
@@ -2593,11 +2478,15 @@ export const useGameStore = create<GameState>()(
 
   resetGame: () => {
     set({
-      credits: 500,
-      robots: INITIAL_ROBOTS,
+      credits: 1000,
+      robots: [],
       resources: INITIAL_RESOURCES,
-      chargingStations: INITIAL_CHARGING_STATIONS,
-      depots: INITIAL_DEPOTS,
+      chargingStations: [],
+      depots: [],
+      smelters: [],
+      refineries: [],
+      powerPlants: [],
+      selectedRobotId: '',
       inventory: INITIAL_INVENTORY,
       tickCount: 0,
       isRunning: false,
@@ -2606,7 +2495,7 @@ export const useGameStore = create<GameState>()(
           id: `log-reset-${Date.now()}`,
           timestamp: new Date().toLocaleTimeString(),
           level: 'warn',
-          message: 'Simülasyon sıfırlandı. Tüm robotlar, depolar ve madenler varsayılan konuma getirildi.',
+          message: 'Simülasyon sıfırlandı. 0 Robot, 0 Depo, 0 Şarj İstasyonu ile temiz başlangıç yapıldı! Mağazadan ilk robotunuzu ve ücretsiz tesislerinizi inşa edebilirsiniz.',
         },
       ],
     });

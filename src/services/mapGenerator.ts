@@ -22,18 +22,11 @@ export function generateBiomeMap(biome: BiomeType, seed: string = 'SEED_101'): B
   const resources: ResourceNode[] = [];
   const hazardTiles: HazardTile[] = [];
 
-  // Default station at (0,0) and depot at (0, 19)
-  const chargingStations: ChargingStation[] = [
-    { id: `${biome}-station-1`, x: 0, y: 0, name: `${definition.name} Şarj Pad #1`, chargeRate: 25 },
-  ];
-
-  const depots: Depot[] = [
-    { id: `${biome}-depot-1`, x: 0, y: 19, name: `${definition.name} Deposu #1` },
-  ];
+  // Initial map starts with 0 stations & 0 depots (Player builds first station & depot for FREE)
+  const chargingStations: ChargingStation[] = [];
+  const depots: Depot[] = [];
 
   const reservedTiles = new Set<string>();
-  reservedTiles.add('0,0');
-  reservedTiles.add('0,19');
 
   // 1. Generate Environmental Hazard Tiles (Lava, Radiation, Ice)
   if (definition.hazardType !== 'NONE') {

@@ -1025,16 +1025,27 @@ export const CanvasGrid: React.FC = () => {
       setSelectedRobotId(clickedRobot.id);
     }
 
-    // Calculate relative pixel position inside container for popover
-    const pixelX = Math.min(rect.width - 240, Math.max(10, e.clientX - rect.left));
-    const pixelY = Math.min(rect.height - 180, Math.max(10, e.clientY - rect.top));
+    // Calculate relative pixel position inside container for popover safely within bounds
+    const popoverWidth = 270;
+    const popoverHeight = 280;
+    let pixelX = e.clientX - rect.left;
+    let pixelY = e.clientY - rect.top;
+
+    if (pixelX + popoverWidth > rect.width - 10) {
+      pixelX = rect.width - popoverWidth - 10;
+    }
+    if (pixelY + popoverHeight > rect.height - 10) {
+      pixelY = rect.height - popoverHeight - 10;
+    }
+    pixelX = Math.max(10, pixelX);
+    pixelY = Math.max(10, pixelY);
 
     setQuickTile({ x, y, pixelX, pixelY });
   };
 
-  // Dynamic Building Prices
-  const stationPrice = chargingStations.length === 1 ? 0 : Math.round(800 * Math.pow(1.5, chargingStations.length - 2));
-  const depotPrice = depots.length === 1 ? 0 : Math.round(1200 * Math.pow(1.5, depots.length - 2));
+  // Dynamic Building Prices (First Station & First Depot are 100% FREE $0)
+  const stationPrice = chargingStations.length === 0 ? 0 : Math.round(800 * Math.pow(1.5, chargingStations.length - 1));
+  const depotPrice = depots.length === 0 ? 0 : Math.round(1200 * Math.pow(1.5, depots.length - 1));
 
   const handleQuickBuildStation = () => {
     if (!quickTile) return;
