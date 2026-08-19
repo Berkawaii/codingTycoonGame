@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import {
   Direction,
   Robot,
@@ -14,8 +15,9 @@ import {
   Smelter,
   Refinery,
   PowerPlant,
+  RadioMessage,
 } from '../types/game';
-import { DEFAULT_C_SHARP_SCRIPT, DEFAULT_POWER_PLANT_C_SHARP_SCRIPT, SKU_CATALOG } from '../constants/skus';
+import { DEFAULT_C_SHARP_SCRIPT, DEFAULT_POWER_PLANT_C_SHARP_SCRIPT, DEFAULT_TRANSPORTER_C_SHARP_SCRIPT, SKU_CATALOG } from '../constants/skus';
 import { compileAndRunCSharp, compileAndRunPowerPlantCSharp } from '../services/wasmRunner';
 import { soundService } from '../services/soundService';
 import { BIOME_CATALOG } from '../constants/biomes';
@@ -99,6 +101,13 @@ interface GameState {
   collectProcessedProduct: (robotId: string) => boolean;
   burnPowerPlantFuel: (plantId: string, fuelSku: string) => boolean;
 
+  // Phase 7/8: Transporter Carrier & Radio Swarm Actions
+  radioMessages: RadioMessage[];
+  buyTransporterRobot: (name: string, color: string) => boolean;
+  sendRadioMessage: (robotId: string, messageType: string, x: number, y: number, payload?: string) => void;
+  collectCargoFromRobot: (transporterId: string, targetMinerId?: string) => boolean;
+  transferCargoToRobot: (minerId: string, targetTransporterId?: string) => boolean;
+
   // Game Mechanics Actions
   moveRobot: (robotId: string, direction: Direction) => void;
   mineResource: (robotId: string, targetX?: number, targetY?: number) => void;
@@ -172,7 +181,22 @@ public class RobotScript
     // Rover Beta - Özel Bakır Toplayıcı & Akıllı Batarya Algoritması
     public void Execute(IRobot robot)
     {
-        // 1. Batarya Sorgulama: Batarya %25 altına düşerse Şarj İstasyonuna dön!
+        // 1. Kargo Kontrolü: Kargo dolunca Kargocu Transporter robotunu radyo ile çağır!
+        int currentCargo = robot.GetCargo();
+        int maxCargo = robot.GetMaxCargo();
+
+        if (currentCargo >= maxCargo - 10)
+        {
+            robot.SendRadioMessage("CARGO_FULL", robot.GetX(), robot.GetY(), robot.GetId());
+            if (currentCargo >= maxCargo)
+            {
+                BuildingInfo depot = robot.GetNearestBuilding("DEPOT");
+                robot.GoTo(depot.X, depot.Y);
+                return;
+            }
+        }
+
+        // 2. Batarya Sorgulama: Batarya %25 altına düşerse Şarj İstasyonuna dön!
         int currentEnergy = robot.GetEnergy();
         int neededEnergy = robot.GetEnergyToNearestStation();
 
@@ -311,8 +335,10 @@ const updateMapDataForBiome = (
   }
 };
 
-export const useGameStore = create<GameState>((set, get) => ({
-  gridSize: INITIAL_GRID_SIZE,
+export const useGameStore = create<GameState>()(
+  persist(
+    (set, get) => ({
+      gridSize: INITIAL_GRID_SIZE,
   credits: 99999, // Starting sandbox cash for testing
   robots: INITIAL_ROBOTS,
   resources: INITIAL_RESOURCES,
@@ -321,6 +347,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   smelters: [],
   refineries: [],
   powerPlants: [],
+  radioMessages: [],
   inventory: INITIAL_INVENTORY,
   selectedRobotId: 'robot-1',
   scriptCode: DEFAULT_C_SHARP_SCRIPT,
@@ -772,6 +799,139 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     get().addLog('success', `Yeni robot '${name}' $${price.toLocaleString()} karşılığında satın alındı!`);
     return true;
+  },
+
+  buyTransporterRobot: (name, color) => {
+    const { credits, robots, currentBiome } = get();
+    const price = 4000;
+    if (credits < price) {
+      get().addLog('error', `Yetersiz bakiye! ${name} Lojistik Transporter satın almak için $${price.toLocaleString()} gerekiyor.`);
+      return false;
+    }
+
+    const newRobotId = `transporter-${robots.length + 1}`;
+    const newRobot: Robot = {
+      id: newRobotId,
+      name,
+      x: 0,
+      y: 0,
+      direction: 'EAST',
+      status: 'IDLE',
+      color,
+      energy: 120,
+      maxEnergy: 120,
+      minedCount: 0,
+      miningSpeed: 1,
+      miningLevel: 1,
+      batteryLevel: 1,
+      radarRange: 7,
+      radarLevel: 1,
+      cargoAmount: 0,
+      maxCargo: 200, // 200kg high capacity!
+      cargoLevel: 1,
+      role: 'TRANSPORTER',
+      canMine: false, // Cannot mine
+      moveSpeed: 2, // 2x speed!
+      scriptName: `${name.replace(/\s+/g, '')}.cs`,
+      scriptCode: DEFAULT_TRANSPORTER_C_SHARP_SCRIPT,
+      biomeId: currentBiome,
+    };
+
+    set((state) => ({
+      credits: state.credits - price,
+      robots: [...state.robots, newRobot],
+      selectedRobotId: newRobotId,
+      scriptCode: DEFAULT_TRANSPORTER_C_SHARP_SCRIPT,
+    }));
+
+    soundService.playPurchase();
+    get().addLog('success', `🚚 [LOJİSTİK TRANSPORT ER]: Yeni Kargocu Robot '${name}' (200kg Kargo, 2x Hız) $${price.toLocaleString()} ile filoya katıldı!`);
+    return true;
+  },
+
+  sendRadioMessage: (robotId, messageType, x, y, payload) => {
+    const { robots } = get();
+    const sender = robots.find((r) => r.id === robotId);
+    if (!sender) return;
+
+    const newMsg: RadioMessage = {
+      id: `msg-${Date.now()}-${Math.random()}`,
+      senderId: robotId,
+      senderName: sender.name,
+      messageType,
+      x,
+      y,
+      payload,
+      timestamp: Date.now(),
+    };
+
+    set((state) => ({
+      radioMessages: [newMsg, ...(state.radioMessages || [])].slice(0, 30),
+    }));
+
+    get().addLog('info', `📡 [RADYO YAYINI]: ${sender.name} şebekeye '${messageType}' radyo sinyali yaydı! (${x}, ${y})`);
+  },
+
+  collectCargoFromRobot: (transporterId, targetMinerId) => {
+    const { robots } = get();
+    const transporter = robots.find((r) => r.id === transporterId);
+    if (!transporter) return false;
+
+    const miner = targetMinerId
+      ? robots.find((r) => r.id === targetMinerId)
+      : robots.find(
+          (r) =>
+            r.id !== transporterId &&
+            r.cargoAmount > 0 &&
+            Math.abs(r.x - transporter.x) <= 1 &&
+            Math.abs(r.y - transporter.y) <= 1
+        );
+
+    if (!miner || miner.cargoAmount <= 0) {
+      get().addLog('warn', `${transporter.name} etrafında kargosu dolu madenci bulunamadı.`);
+      return false;
+    }
+
+    const availableSpace = transporter.maxCargo - transporter.cargoAmount;
+    if (availableSpace <= 0) {
+      get().addLog('warn', `${transporter.name} kargo haznesi tamamen dolu (${transporter.cargoAmount}/${transporter.maxCargo} kg).`);
+      return false;
+    }
+
+    const amountTransferred = Math.min(miner.cargoAmount, availableSpace);
+    const cargoSku = miner.cargoSku || 'FE_ORE';
+    const newMinerCargo = miner.cargoAmount - amountTransferred;
+
+    set((state) => ({
+      robots: state.robots.map((r) => {
+        if (r.id === miner.id) {
+          return {
+            ...r,
+            cargoAmount: newMinerCargo,
+            cargoSku: newMinerCargo > 0 ? r.cargoSku : undefined,
+          };
+        }
+        if (r.id === transporter.id) {
+          return {
+            ...r,
+            cargoAmount: r.cargoAmount + amountTransferred,
+            cargoSku: cargoSku,
+          };
+        }
+        return r;
+      }),
+    }));
+
+    soundService.playUnload();
+    get().addLog(
+      'success',
+      `🚚 [SAHADA KARGO DEVRİ]: ${transporter.name}, ${miner.name} robottan ${amountTransferred} kg ${cargoSku} devraldı! Madenci kesintisiz kazıya devam ediyor.`
+    );
+    return true;
+  },
+
+  transferCargoToRobot: (minerId, targetTransporterId) => {
+    return get().collectCargoFromRobot(targetTransporterId || '', minerId);
   },
 
   buyChargingStation: (name, x, y, price) => {
@@ -1806,20 +1966,20 @@ export const useGameStore = create<GameState>((set, get) => ({
       );
 
       if (stationOnTile && robot.energy < robot.maxEnergy) {
-        const linkedPlant = powerPlants.find((p) => p.linkedStationId === stationOnTile.id);
-        let chargeBoost = 30;
+        const activePlants = powerPlants.filter((p) => !p.isOverheated && p.powerBuffer > 0);
+        const linkedPlant = activePlants.find((p) => p.linkedStationId === stationOnTile.id) || activePlants[0];
+        let chargeBoost = 2; // Default backup emergency solar trickle (+2 Energy) when no power plant exists!
 
-        if (linkedPlant) {
-          if (linkedPlant.powerBuffer > 0) {
-            chargeBoost = Math.min(30, linkedPlant.powerBuffer);
-            const updatedPlants = powerPlants.map((p) =>
-              p.id === linkedPlant.id ? { ...p, powerBuffer: Math.max(0, p.powerBuffer - chargeBoost) } : p
-            );
-            set((prev) => updateMapDataForBiome(prev, robotBiome, () => ({ powerPlants: updatedPlants })));
-          } else {
-            chargeBoost = 2; // Emergency trickle when grid power is empty!
-            get().addLog('warn', `⚠️ [ŞEBEKE DEPODAN HIZLI ŞARJ KESİLDİ]: ${robot.name} ${stationOnTile.name} istasyonunda (0 kWh Depo) acil durum sızıntısıyla yavaş şarj oluyor (+2 Enerji).`);
-          }
+        if (linkedPlant && linkedPlant.powerBuffer > 0) {
+          chargeBoost = Math.min(30, linkedPlant.powerBuffer);
+          const updatedPlants = powerPlants.map((p) =>
+            p.id === linkedPlant.id ? { ...p, powerBuffer: Math.max(0, p.powerBuffer - chargeBoost) } : p
+          );
+          set((prev) => updateMapDataForBiome(prev, robotBiome, () => ({ powerPlants: updatedPlants })));
+        } else if (powerPlants.length === 0) {
+          get().addLog('warn', `⚠️ [SANTRAL YOK - YAVAŞ ŞARJ]: ${robot.name} istasyonda şarj oluyor ancak haritada Enerji Santrali yok! Dahili acil durum güneş paneliyle yavaş şarj oluyor (+2 Enerji). Mağazadan Enerji Santrali inşa edin!`);
+        } else {
+          get().addLog('warn', `⚠️ [ŞEBEKE DEPODAN HIZLI ŞARJ KESİLDİ]: ${robot.name} ${stationOnTile.name} istasyonunda (0 kWh Depo) acil durum sızıntısıyla yavaş şarj oluyor (+2 Enerji).`);
         }
 
         const newEnergy = Math.min(robot.maxEnergy, robot.energy + chargeBoost);
@@ -1871,13 +2031,15 @@ export const useGameStore = create<GameState>((set, get) => ({
           maxEnergy: robot.maxEnergy,
           cargoAmount: robot.cargoAmount,
           maxCargo: robot.maxCargo,
+          canMine: robot.canMine,
         },
         resources,
         gridSize,
         chargingStations,
         depots,
         smelters,
-        refineries
+        refineries,
+        state.radioMessages || []
       );
 
       if (!result.success) {
@@ -1890,7 +2052,18 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
 
       result.logs.forEach((log) => {
-        if (log.action === 'DEPOSIT_RAW_MATERIAL') {
+        if (log.action === 'SEND_RADIO_MESSAGE') {
+          try {
+            const parsed = JSON.parse(log.payload);
+            get().sendRadioMessage(robot.id, parsed.messageType, parsed.x, parsed.y);
+          } catch {
+            get().sendRadioMessage(robot.id, 'CARGO_FULL', robot.x, robot.y);
+          }
+        } else if (log.action === 'COLLECT_CARGO_FROM_ROBOT') {
+          get().collectCargoFromRobot(robot.id, log.payload);
+        } else if (log.action === 'TRANSFER_CARGO_TO_ROBOT') {
+          get().transferCargoToRobot(robot.id, log.payload);
+        } else if (log.action === 'DEPOSIT_RAW_MATERIAL') {
           get().depositRawMaterial(robot.id);
         } else if (log.action === 'PROCESS_MATERIAL') {
           get().processMaterial(robot.id);
@@ -1909,6 +2082,9 @@ export const useGameStore = create<GameState>((set, get) => ({
           get().mineResource(robot.id, tx, ty);
         } else if (log.action === 'MOVE') {
           get().moveRobot(robot.id, log.payload as Direction);
+          if (robot.moveSpeed === 2 || robot.role === 'TRANSPORTER') {
+            get().moveRobot(robot.id, log.payload as Direction);
+          }
         }
       });
     }
@@ -1934,4 +2110,25 @@ export const useGameStore = create<GameState>((set, get) => ({
       ],
     });
   },
-}));
+}),
+    {
+      name: 'coding_tycoon_game_save_v2',
+      partialize: (state) => ({
+        credits: state.credits,
+        robots: state.robots,
+        resources: state.resources,
+        chargingStations: state.chargingStations,
+        depots: state.depots,
+        smelters: state.smelters,
+        refineries: state.refineries,
+        powerPlants: state.powerPlants,
+        inventory: state.inventory,
+        unlockedBiomes: state.unlockedBiomes,
+        currentBiome: state.currentBiome,
+        biomeMaps: state.biomeMaps,
+        scriptCode: state.scriptCode,
+        powerPlantScriptCode: state.powerPlantScriptCode,
+      }),
+    }
+  )
+);

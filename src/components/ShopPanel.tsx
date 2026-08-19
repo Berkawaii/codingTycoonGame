@@ -2,7 +2,7 @@ import React from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { BIOME_CATALOG } from '../constants/biomes';
 import { BiomeType } from '../types/game';
-import { Bot, Zap, Pickaxe, PlusCircle, Radio, Building2, BatteryCharging, Package, Globe, Compass, Lock, CheckCircle2, Maximize2, Send } from 'lucide-react';
+import { Bot, Zap, Pickaxe, PlusCircle, Radio, Building2, BatteryCharging, Package, Globe, Compass, Lock, CheckCircle2, Maximize2, Send, Truck } from 'lucide-react';
 
 interface ShopRobotTemplate {
   name: string;
@@ -44,6 +44,7 @@ export const ShopPanel: React.FC = () => {
     depots,
     selectedRobotId,
     buyRobot,
+    buyTransporterRobot,
     buyChargingStation,
     buyDepot,
     buySmelter,
@@ -130,7 +131,7 @@ export const ShopPanel: React.FC = () => {
           </span>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
           {AVAILABLE_ROBOTS.map((template) => {
             const currentPrice = getRobotPurchasePrice(template.basePrice);
             const canAfford = credits >= currentPrice;
@@ -167,6 +168,54 @@ export const ShopPanel: React.FC = () => {
               </div>
             );
           })}
+
+          {/* Dedicated Transporter Robot Card */}
+          <div
+            className="sku-card"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              gap: '0.5rem',
+              background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%)',
+              border: '1px solid rgba(249, 115, 22, 0.4)',
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                <Truck className="w-4 h-4 text-orange-400" />
+                <h4 style={{ fontWeight: 800, color: '#f97316', fontSize: '0.8rem' }}>Carrier Transporter</h4>
+                <span style={{ fontSize: '0.62rem', background: 'rgba(249, 115, 22, 0.3)', color: '#fdba74', padding: '1px 5px', borderRadius: '4px', border: '1px solid rgba(249, 115, 22, 0.5)', fontWeight: 800 }}>
+                  200KG KARGO
+                </span>
+              </div>
+              <p style={{ fontSize: '0.68rem', color: '#cbd5e1', lineHeight: '1.3' }}>
+                Kazı yapamaz. 200kg dev kargo kapasitesi ve 2x hızlı hareket ile madencilerden ürünleri radyo ile toplayıp depoya taşır.
+              </p>
+            </div>
+
+            <div style={{ paddingTop: '0.5rem', borderTop: '1px solid rgba(249, 115, 22, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontFamily: 'Fira Code, monospace', fontWeight: 800, color: '#fbbf24', fontSize: '0.8rem' }}>
+                $4,000
+              </span>
+              <button
+                onClick={() => buyTransporterRobot(`Transporter-${robots.length + 1}`, '#f97316')}
+                disabled={credits < 4000}
+                className="ui-btn"
+                style={{
+                  padding: '0.25rem 0.6rem',
+                  fontSize: '0.72rem',
+                  opacity: credits < 4000 ? 0.4 : 1,
+                  background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                  color: '#fff',
+                  fontWeight: 700,
+                  border: 'none',
+                }}
+              >
+                <span>Lojistik Satın Al</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 

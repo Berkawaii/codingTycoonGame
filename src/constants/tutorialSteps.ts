@@ -261,4 +261,47 @@ public class PowerPlantScript
     }
 }`,
   },
+  {
+    id: 8,
+    title: 'Bölüm 8: Lojistik Transporter & Sürü Radyo Şebekesi',
+    subtitle: 'Madenciler sahada kesintisiz kazar, Kargocu robotlar radyo ile kargoları toplayıp depoya taşır!',
+    description: 'Madenci robot kargosu dolunca SendRadioMessage("CARGO_FULL", x, y, id) yayını yapar. Lojistik Transporter robotu (200kg kargo, 2x hız) radyo sinyalini okur, madencinin yanına gidip CollectCargoFromRobot(id) ile kargoyu devralır!',
+    taskText: 'Sürü mantığı yazın: Madenciniz depoya yürümeden radyo yayınlasın, Transporter robotu kargoyu sahadan toplasın!',
+    conceptsText: 'robot.SendRadioMessage(), robot.ReadRadioMessages(), robot.CollectCargoFromRobot()',
+    targetObjectiveText: 'Canlı Hedef: Madenci kargosunu sahada Lojistik Transporter robota devredin.',
+    starterCode: `using System;
+using System.Collections.Generic;
+
+public class TransporterScript
+{
+    public void Execute(IRobot robot)
+    {
+        // 1. Kargocu Depoya Dolu Kargoyu Boşaltır
+        if (robot.GetCargo() >= robot.GetMaxCargo() - 20)
+        {
+            BuildingInfo depot = robot.GetNearestBuilding("DEPOT");
+            robot.GoTo(depot.X, depot.Y);
+            return;
+        }
+
+        // 2. Sürü Şebekesindeki "CARGO_FULL" Çağrılarını Dinle
+        List<RadioMessage> radioMsgs = robot.ReadRadioMessages();
+        foreach (var msg in radioMsgs)
+        {
+            if (msg.MessageType == "CARGO_FULL")
+            {
+                robot.GoTo(msg.X, msg.Y);
+
+                if (Math.Abs(msg.X - robot.GetX()) <= 1 && Math.Abs(msg.Y - robot.GetY()) <= 1)
+                {
+                    robot.CollectCargoFromRobot(msg.SenderId);
+                }
+                return;
+            }
+        }
+
+        robot.Move(Direction.Forward);
+    }
+}`,
+  },
 ];

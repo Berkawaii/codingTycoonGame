@@ -771,6 +771,27 @@ export const CanvasGrid: React.FC = () => {
         ctx.restore();
       }
 
+      // Transporter Carrier Special Chassis Drawing
+      if (robot.role === 'TRANSPORTER') {
+        ctx.save();
+        ctx.fillStyle = 'rgba(249, 115, 22, 0.25)';
+        ctx.strokeStyle = '#f97316';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.roundRect(centerX - radius * 1.25, centerY - radius * 1.1, radius * 2.5, radius * 2.2, 6);
+        ctx.fill();
+        ctx.stroke();
+
+        // Radio Wave Signals Animation
+        const waveRadius = radius * (1.4 + Math.sin(time * 0.15) * 0.3);
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, waveRadius, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0, 242, 254, 0.6)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.restore();
+      }
+
       // Robot Body
       ctx.save();
       ctx.shadowColor = robot.color;

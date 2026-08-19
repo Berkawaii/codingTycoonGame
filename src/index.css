@@ -508,7 +508,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.6rem 1rem;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  padding: 0.45rem 0.85rem;
   background: rgba(10, 15, 29, 0.95);
   border-bottom: 1px solid var(--border-color);
 }

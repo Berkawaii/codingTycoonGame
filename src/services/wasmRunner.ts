@@ -1,7 +1,7 @@
-import { Direction, ResourceNode, ChargingStation, Depot, Smelter, Refinery } from '../types/game';
+import { Direction, ResourceNode, ChargingStation, Depot, Smelter, Refinery, RadioMessage } from '../types/game';
 
 export interface CompilationLog {
-  action: 'MOVE' | 'MINE' | 'ROTATE' | 'IDLE' | 'ERROR' | 'DEPOSIT_RAW_MATERIAL' | 'PROCESS_MATERIAL' | 'COLLECT_PROCESSED';
+  action: 'MOVE' | 'MINE' | 'ROTATE' | 'IDLE' | 'ERROR' | 'DEPOSIT_RAW_MATERIAL' | 'PROCESS_MATERIAL' | 'COLLECT_PROCESSED' | 'SEND_RADIO_MESSAGE' | 'READ_RADIO_MESSAGES' | 'COLLECT_CARGO_FROM_ROBOT' | 'TRANSFER_CARGO_TO_ROBOT';
   payload: string;
   message: string;
 }
@@ -22,11 +22,12 @@ interface RobotState {
   maxEnergy?: number;
   cargoAmount?: number;
   maxCargo?: number;
+  canMine?: boolean;
 }
 
 /**
  * Intelligent C# Script Evaluator & WASM Bridge
- * Dynamic radar pathfinding, charging station auto-recharge, depot cargo unloading, smelter/refinery processing, and GoTo(x, y) target navigation.
+ * Dynamic radar pathfinding, charging station auto-recharge, depot cargo unloading, smelter/refinery processing, swarm radio network navigation, and GoTo(x, y) target navigation.
  */
 export async function compileAndRunCSharp(
   code: string,
@@ -36,7 +37,8 @@ export async function compileAndRunCSharp(
   chargingStations: ChargingStation[] = [{ id: 'cs1', name: 'Ana Şarj İstasyonu', x: 0, y: 0, chargeRate: 25 }],
   depots: Depot[] = [{ id: 'depot1', name: 'Ana Lojistik Deposu', x: 0, y: 19 }],
   _smelters: Smelter[] = [],
-  _refineries: Refinery[] = []
+  _refineries: Refinery[] = [],
+  radioMessages: RadioMessage[] = []
 ): Promise<ScriptExecutionResult> {
   const diagnostics: string[] = [];
   const logs: CompilationLog[] = [];
@@ -143,29 +145,36 @@ export async function compileAndRunCSharp(
   const globalHasMove = /robot\s*\.\s*Move\s*\(/i.test(code);
   const globalHasGoTo = /robot\s*\.\s*GoTo\s*\(/i.test(code);
 
-  const isCargoFull = cargoAmount > 0 && cargoAmount >= maxCargo - 10;
+  const scriptMentionsDepot = /DEPOT|depot|GetCargo|GetMaxCargo/i.test(code);
+  const scriptMentionsStation = /CHARGING_PAD|station|charging|GetEnergy/i.test(code);
+  const scriptMentionsRadio = /ReadRadioMessages|CARGO_FULL/i.test(code);
+  const scriptEmitsRadio = /SendRadioMessage/i.test(code);
+  const activeCargoFullMsg = radioMessages.find((m) => m.messageType === 'CARGO_FULL');
+
+  const isCargo100Percent = cargoAmount > 0 && cargoAmount >= maxCargo;
+  const isCargoAlmostFull = cargoAmount > 0 && cargoAmount >= maxCargo - 10;
   const isEnergyLow = currentEnergy <= 35 || currentEnergy <= (minStationDist + 5);
 
   let shouldMine = false;
   let shouldMove = false;
   let moveDir: Direction = robotState.direction;
 
-  // Inspect whether C# code explicitly handles Depot or Charging Station logic
-  const scriptMentionsDepot = /DEPOT|depot|GetCargo|GetMaxCargo/i.test(code);
-  const scriptMentionsStation = /CHARGING_PAD|station|charging|GetEnergy/i.test(code);
-
   // Extract GoTo target coordinates
   let goToTarget: { x: number; y: number } | null = null;
 
-  // PRIORITY A: Cargo is full AND script explicitly manages Depot logic
-  if (isCargoFull && scriptMentionsDepot) {
-    goToTarget = { x: nearestDepot.x, y: nearestDepot.y };
-  }
-  // PRIORITY B: Battery is low AND script explicitly manages Station logic
-  else if (isEnergyLow && scriptMentionsStation) {
+  // PRIORITY A: Battery is low -> Nearest Station
+  if (isEnergyLow && scriptMentionsStation) {
     goToTarget = { x: nearestStation.x, y: nearestStation.y };
   }
-  // PRIORITY C: General GoTo target parsing from C# code
+  // PRIORITY B: Cargo is 100% full (or almost full without radio) -> Nearest Depot
+  else if ((isCargo100Percent || (isCargoAlmostFull && !scriptEmitsRadio)) && scriptMentionsDepot) {
+    goToTarget = { x: nearestDepot.x, y: nearestDepot.y };
+  }
+  // PRIORITY C: Swarm Radio Call from Miner (for Transporter)
+  else if (activeCargoFullMsg && scriptMentionsRadio && robotState.canMine === false) {
+    goToTarget = { x: activeCargoFullMsg.x, y: activeCargoFullMsg.y };
+  }
+  // PRIORITY D: General GoTo target parsing from C# code
   else {
     const goToMatch = code.match(/robot\s*\.\s*GoTo\s*\(\s*(\d+|\w+\.X)\s*,\s*(\d+|\w+\.Y)\s*\)/i);
     if (goToMatch) {
@@ -179,15 +188,11 @@ export async function compileAndRunCSharp(
 
         if (isStation && isEnergyLow) {
           goToTarget = { x: parsedX, y: parsedY };
-        } else if (isDepot && isCargoFull) {
+        } else if (isDepot && isCargoAlmostFull) {
           goToTarget = { x: parsedX, y: parsedY };
         } else if (!isStation && !isDepot) {
           goToTarget = { x: parsedX, y: parsedY };
         }
-      } else if (/depot/i.test(code) && isCargoFull && scriptMentionsDepot) {
-        goToTarget = { x: nearestDepot.x, y: nearestDepot.y };
-      } else if (/station|charging/i.test(code) && isEnergyLow && scriptMentionsStation) {
-        goToTarget = { x: nearestStation.x, y: nearestStation.y };
       }
     }
   }
@@ -195,9 +200,9 @@ export async function compileAndRunCSharp(
   const scriptUsesRadar = /GetRadarInfo|RadarTileInfo/i.test(code);
 
   // Determine Navigation vs Mining
-  if (adjacentResourceTile && globalHasMine && !goToTarget) {
+  if (robotState.canMine !== false && adjacentResourceTile && globalHasMine && !goToTarget) {
     shouldMine = true;
-  } else if (globalHasMove || globalHasGoTo || goToTarget) {
+  } else if (globalHasMove || globalHasGoTo || goToTarget || robotState.canMine === false) {
     shouldMove = true;
 
     // Pick target: GoTo target > Radar Target > Explicit Direction / Straight Forward
@@ -246,9 +251,48 @@ export async function compileAndRunCSharp(
   const hasDepositRaw = /DepositRawMaterial/i.test(code);
   const hasProcess = /ProcessMaterial/i.test(code);
   const hasCollectProcessed = /CollectProcessedProduct/i.test(code);
+  const hasSendRadio = /SendRadioMessage/i.test(code);
+  const hasCollectFromRobot = /CollectCargoFromRobot/i.test(code);
+  const hasTransferToRobot = /TransferCargoToRobot/i.test(code);
 
   // 5. Generate Actions & Logs
-  if (hasDepositRaw) {
+  // Send Radio Message as side-effect action if C# script calls SendRadioMessage
+  if (hasSendRadio && (isCargoAlmostFull || activeCargoFullMsg)) {
+    const match = code.match(/SendRadioMessage\s*\(\s*"([^"]+)"/i);
+    const msgType = match ? match[1] : 'CARGO_FULL';
+    logs.push({
+      action: 'SEND_RADIO_MESSAGE',
+      payload: JSON.stringify({ messageType: msgType, x: robotState.x, y: robotState.y }),
+      message: `📡 ${robotState.name} radyo şebekesine '${msgType}' yayını yapıyor ('SendRadioMessage').`,
+    });
+  }
+
+  // Check if Transporter is close enough to collect cargo (adjacent tile <= 2 dist)
+  let isAdjacentToMiner = false;
+  let targetMinerId = '';
+  if (activeCargoFullMsg && robotState.canMine === false) {
+    const dist = Math.abs(activeCargoFullMsg.x - robotState.x) + Math.abs(activeCargoFullMsg.y - robotState.y);
+    if (dist <= 2) {
+      isAdjacentToMiner = true;
+      targetMinerId = activeCargoFullMsg.senderId || '';
+    }
+  }
+
+  if (isAdjacentToMiner && hasCollectFromRobot) {
+    logs.push({
+      action: 'COLLECT_CARGO_FROM_ROBOT',
+      payload: targetMinerId,
+      message: `🚚 ${robotState.name} madenci robottan kargoyu devralıyor ('CollectCargoFromRobot').`,
+    });
+  } else if (hasTransferToRobot) {
+    const match = code.match(/TransferCargoToRobot\s*\(\s*"([^"]+)"/i);
+    const targetId = match ? match[1] : '';
+    logs.push({
+      action: 'TRANSFER_CARGO_TO_ROBOT',
+      payload: targetId,
+      message: `📦 ${robotState.name} kargosunu kargocu robota devrediyor ('TransferCargoToRobot').`,
+    });
+  } else if (hasDepositRaw) {
     logs.push({
       action: 'DEPOSIT_RAW_MATERIAL',
       payload: 'DEPOSIT',

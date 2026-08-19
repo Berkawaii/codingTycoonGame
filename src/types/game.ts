@@ -27,6 +27,20 @@ export interface Robot {
   cargoLevel: number;
   cargoSku?: string;
   biomeId?: BiomeType;
+  role?: 'MINER' | 'TRANSPORTER';
+  canMine?: boolean;
+  moveSpeed?: number; // 1 = normal, 2 = 2x speed
+}
+
+export interface RadioMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  messageType: string; // e.g. 'CARGO_FULL', 'NEED_CHARGE'
+  x: number;
+  y: number;
+  payload?: string;
+  timestamp: number;
 }
 
 export interface ChargingStation {
@@ -150,6 +164,7 @@ export interface BiomeMapState {
   smelters?: Smelter[];
   refineries?: Refinery[];
   powerPlants?: PowerPlant[];
+  radioMessages?: RadioMessage[];
 }
 
 export interface GameLog {

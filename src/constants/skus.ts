@@ -172,15 +172,22 @@ public class RobotScript
     // Her Oyun Tick'inde çağrılan tam otonom C# algoritması
     public void Execute(IRobot robot)
     {
-        // 1. Kargo Kontrolü: Kargo haznesi dolmak üzereyse (%80+) en yakın DEPOYA git ve boşalt!
+        // 1. Kargo Kontrolü: Kargo dolunca Kargocu Transporter robotunu radyo ile çağır!
         int currentCargo = robot.GetCargo();
         int maxCargo = robot.GetMaxCargo();
 
         if (currentCargo >= maxCargo - 10)
         {
-            BuildingInfo depot = robot.GetNearestBuilding("DEPOT");
-            robot.GoTo(depot.X, depot.Y);
-            return;
+            // Sürü Şebekesine radyo sinyali at (Lojistik Transporter robotu yanımıza gelecek!)
+            robot.SendRadioMessage("CARGO_FULL", robot.GetX(), robot.GetY(), robot.GetId());
+
+            // Kargo tamamen dolduysa (100%) güvenlik için Depoya adımla
+            if (currentCargo >= maxCargo)
+            {
+                BuildingInfo depot = robot.GetNearestBuilding("DEPOT");
+                robot.GoTo(depot.X, depot.Y);
+                return;
+            }
         }
 
         // 2. Batarya Kontrolü: Enerji kritik seviyedeyse en yakın ŞARJ İSTASYONUNA dön!
@@ -259,5 +266,51 @@ public class PowerPlantScript
             // Şebeke doluysa yakıt tasarrufu sağla
             plant.SetOverclockRate(0.7);
         }
+    }
+}`;
+
+export const DEFAULT_TRANSPORTER_C_SHARP_SCRIPT = `using System;
+using System.Collections.Generic;
+
+public class TransporterScript
+{
+    public void Execute(IRobot robot)
+    {
+        // 1. Kargo Haznesi Dolduysa En Yakın DEPOYA git ve boşalt
+        if (robot.GetCargo() >= robot.GetMaxCargo() - 20)
+        {
+            BuildingInfo depot = robot.GetNearestBuilding("DEPOT");
+            robot.GoTo(depot.X, depot.Y);
+            return;
+        }
+
+        // 2. Batarya Düşükse Şarj İstasyonuna Dön
+        if (robot.GetEnergy() <= 30)
+        {
+            BuildingInfo station = robot.GetNearestBuilding("CHARGING_PAD");
+            robot.GoTo(station.X, station.Y);
+            return;
+        }
+
+        // 3. Sürü Radyo Şebekesindeki "CARGO_FULL" Yardım Mesajlarını Dinle
+        List<RadioMessage> radioMsgs = robot.ReadRadioMessages();
+        foreach (var msg in radioMsgs)
+        {
+            if (msg.MessageType == "CARGO_FULL")
+            {
+                // Madencinin konumuna hızlıca adımla (2x Hız)
+                robot.GoTo(msg.X, msg.Y);
+
+                // Madencinin yanındaysa kargoyu devral!
+                if (Math.Abs(msg.X - robot.GetX()) <= 1 && Math.Abs(msg.Y - robot.GetY()) <= 1)
+                {
+                    robot.CollectCargoFromRobot(msg.SenderId);
+                }
+                return;
+            }
+        }
+
+        // 4. Şebekede çağrı yoksa devriye gez veya bekle
+        robot.Move(Direction.Forward);
     }
 }`;
