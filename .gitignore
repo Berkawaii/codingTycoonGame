@@ -13,3 +13,10 @@ build
 Library/
 .idea
 .vscode
+
+# Agent skills & local agent configs
+.agents/
+3d-web-experience/
+frontend-expert/
+uiux-designer/
+
