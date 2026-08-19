@@ -125,6 +125,12 @@ interface GameState {
   // Admin & Simulation Testing Console Actions
   isAdminModalOpen: boolean;
   setAdminModalOpen: (open: boolean) => void;
+  isLeaderboardOpen: boolean;
+  setLeaderboardOpen: (open: boolean) => void;
+  isMarketplaceOpen: boolean;
+  setMarketplaceOpen: (open: boolean) => void;
+  isWelcomeOpen: boolean;
+  setWelcomeOpen: (open: boolean) => void;
   addCredits: (amount: number) => void;
   spawnBandit: (x?: number, y?: number) => void;
   clearBandits: () => void;
@@ -271,6 +277,9 @@ export const useGameStore = create<GameState>()(
   tickCount: 0,
   isApiModalOpen: false,
   isAdminModalOpen: false,
+  isLeaderboardOpen: false,
+  isMarketplaceOpen: false,
+  isWelcomeOpen: true,
   logs: [
     {
       id: 'log-1',
@@ -1863,6 +1872,9 @@ export const useGameStore = create<GameState>()(
 
   // Admin & Simulation Testing Console Implementations
   setAdminModalOpen: (open) => set({ isAdminModalOpen: open }),
+  setLeaderboardOpen: (open) => set({ isLeaderboardOpen: open }),
+  setMarketplaceOpen: (open) => set({ isMarketplaceOpen: open }),
+  setWelcomeOpen: (open) => set({ isWelcomeOpen: open }),
 
   addCredits: (amount) => {
     set((prev) => ({ credits: Math.max(0, prev.credits + amount) }));

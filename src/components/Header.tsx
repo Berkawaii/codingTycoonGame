@@ -6,7 +6,7 @@ import { BiomeType } from '../types/game';
 import { soundService } from '../services/soundService';
 import { TutorialModal } from './TutorialModal';
 import { AdminConsoleModal } from './AdminConsoleModal';
-import { Play, Pause, RotateCcw, FastForward, Cpu, DollarSign, Volume2, VolumeX, Package, Terminal, Globe, RefreshCw, Bot, Zap, ShieldAlert } from 'lucide-react';
+import { Play, Pause, RotateCcw, FastForward, DollarSign, Volume2, VolumeX, Package, Terminal, Globe, RefreshCw, Bot, Zap, ShieldAlert, Trophy, Code2, Sparkles } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const [isMuted, setMuted] = useState(soundService.isMuted);
@@ -28,6 +28,9 @@ export const Header: React.FC = () => {
     switchBiome,
     generateNewSeedMap,
     setAdminModalOpen,
+    setLeaderboardOpen,
+    setMarketplaceOpen,
+    setWelcomeOpen,
   } = useGameStore();
 
   // Calculate total inventory value
@@ -49,12 +52,10 @@ export const Header: React.FC = () => {
     <>
       <header className="header-container">
         {/* Brand & Title */}
-        <div className="brand-group">
-          <div className="logo-icon">
-            <Cpu className="w-5 h-5 text-cyan-400" />
-          </div>
+        <div className="brand-group" style={{ cursor: 'pointer' }}>
+          <img src="/logo_only.svg" alt="Syntax Factory Logo" style={{ width: '38px', height: '38px', objectFit: 'contain' }} />
           <div>
-            <h1 className="brand-title">
+            <h1 className="brand-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               SYNTAX <span style={{ color: 'var(--cyan-accent)' }}>FACTORY</span>
             </h1>
             <div className="brand-badge">
@@ -199,6 +200,35 @@ export const Header: React.FC = () => {
             style={{ padding: '0.35rem 0.5rem' }}
           >
             {isMuted ? <VolumeX className="w-3.5 h-3.5 text-slate-400" /> : <Volume2 className="w-3.5 h-3.5 text-purple-300" />}
+          </button>
+
+          <button
+            onClick={() => setLeaderboardOpen(true)}
+            className="ui-btn ui-btn-secondary"
+            title="Global Liderlik Tablosu"
+            style={{ padding: '0.35rem 0.55rem' }}
+          >
+            <Trophy className="w-3.5 h-3.5 text-amber-400" />
+            <span>Liderlik</span>
+          </button>
+
+          <button
+            onClick={() => setMarketplaceOpen(true)}
+            className="ui-btn ui-btn-secondary"
+            title="Topluluk C# Script Pazarı"
+            style={{ padding: '0.35rem 0.55rem' }}
+          >
+            <Code2 className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Scriptler</span>
+          </button>
+
+          <button
+            onClick={() => setWelcomeOpen(true)}
+            className="ui-btn ui-btn-secondary"
+            title="Karşılama Portalı"
+            style={{ padding: '0.35rem 0.55rem' }}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
           </button>
 
           <button

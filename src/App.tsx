@@ -7,6 +7,9 @@ import { CodeEditor } from './components/CodeEditor';
 import { InventoryPanel } from './components/InventoryPanel';
 import { TutorialModal } from './components/TutorialModal';
 import { ApiReferencePanel } from './components/ApiReferencePanel';
+import { LeaderboardModal } from './components/LeaderboardModal';
+import { ScriptMarketplaceModal } from './components/ScriptMarketplaceModal';
+import { WelcomePortalModal } from './components/WelcomePortalModal';
 
 import { Code2, Maximize2 } from 'lucide-react';
 
@@ -19,6 +22,12 @@ export const App: React.FC = () => {
     setApiModalOpen,
     isAcademyModalOpen,
     setAcademyModalOpen,
+    isLeaderboardOpen,
+    setLeaderboardOpen,
+    isMarketplaceOpen,
+    setMarketplaceOpen,
+    isWelcomeOpen,
+    setWelcomeOpen,
     editorSizeMode,
     setEditorSizeMode,
     scriptCode,
@@ -209,6 +218,27 @@ export const App: React.FC = () => {
       <TutorialModal
         isOpen={isAcademyModalOpen}
         onClose={() => setAcademyModalOpen(false)}
+      />
+
+      {/* Phase 10 Welcome Portal Modal */}
+      <WelcomePortalModal
+        isOpen={isWelcomeOpen}
+        onClose={() => setWelcomeOpen(false)}
+        onOpenLeaderboard={() => setLeaderboardOpen(true)}
+        onOpenMarketplace={() => setMarketplaceOpen(true)}
+        onOpenTutorial={() => setAcademyModalOpen(true)}
+      />
+
+      {/* Phase 10 Global Leaderboard Modal */}
+      <LeaderboardModal
+        isOpen={isLeaderboardOpen}
+        onClose={() => setLeaderboardOpen(false)}
+      />
+
+      {/* Phase 10 Community C# Script Marketplace Modal */}
+      <ScriptMarketplaceModal
+        isOpen={isMarketplaceOpen}
+        onClose={() => setMarketplaceOpen(false)}
       />
     </div>
   );
