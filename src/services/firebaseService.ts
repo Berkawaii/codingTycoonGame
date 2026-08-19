@@ -23,7 +23,6 @@ import {
   updateDoc,
   increment,
   deleteDoc,
-  where,
 } from 'firebase/firestore';
 
 // Default Firebase Configuration for playsyntaxfactory
@@ -142,13 +141,11 @@ export const deletePersonalScriptFromFirestore = async (userId: string, scriptId
 // Auth Helpers
 export const checkDisplayNameExists = async (displayName: string): Promise<boolean> => {
   if (!displayName || !displayName.trim()) return false;
+  const cleanName = displayName.trim().toLowerCase();
   try {
-    const q = query(
-      collection(db, 'users'),
-      where('displayName', '==', displayName.trim())
-    );
-    const snap = await getDocs(q);
-    return !snap.empty;
+    const docRef = doc(db, 'display_names', cleanName);
+    const snap = await getDoc(docRef);
+    return snap.exists();
   } catch (e) {
     console.warn('Error checking display name uniqueness:', e);
     return false;
@@ -164,24 +161,48 @@ export const resendVerificationEmailToUser = async (user: User): Promise<void> =
 export const loginWithEmail = async (email: string, pass: string) => {
   const res = await signInWithEmailAndPassword(auth, email, pass);
   if (res.user) {
+    if (!res.user.emailVerified) {
+      const unverifiedUser = res.user;
+      await signOut(auth);
+      throw { code: 'auth/email-not-verified', user: unverifiedUser };
+    }
     await syncUserToFirestore(res.user);
   }
   return res;
 };
 
 export const registerWithEmail = async (email: string, pass: string, displayName: string) => {
+  const cleanName = displayName.trim().toLowerCase();
+  const nameExists = await checkDisplayNameExists(displayName);
+  if (nameExists) {
+    throw { code: 'auth/display-name-taken' };
+  }
+
   const res = await createUserWithEmailAndPassword(auth, email, pass);
   if (res.user) {
+    const userObj = res.user;
     if (displayName) {
-      await updateProfile(res.user, { displayName });
+      await updateProfile(userObj, { displayName: displayName.trim() });
     }
-    // Send email verification link
+    // Save display name to global lookup table
     try {
-      await sendEmailVerification(res.user);
+      await setDoc(doc(db, 'display_names', cleanName), {
+        uid: userObj.uid,
+        displayName: displayName.trim(),
+        createdAt: new Date().toISOString(),
+      });
     } catch (e) {
-      console.warn('Email verification send error:', e);
+      console.warn('Display name save error:', e);
     }
-    await syncUserToFirestore(res.user, displayName);
+
+    await syncUserToFirestore(userObj, displayName.trim());
+
+    // Send email verification link
+    await sendEmailVerification(userObj);
+
+    // Sign out immediately so user cannot log into game until email is verified!
+    await signOut(auth);
+    return { user: userObj };
   }
   return res;
 };
@@ -194,6 +215,10 @@ export const logoutUser = () => signOut(auth);
 
 export const subscribeToAuth = (callback: (user: User | null) => void) =>
   onAuthStateChanged(auth, async (user) => {
+    if (user && !user.isAnonymous && !user.emailVerified) {
+      callback(null);
+      return;
+    }
     if (user) {
       await syncUserToFirestore(user);
     }

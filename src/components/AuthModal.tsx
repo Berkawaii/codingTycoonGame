@@ -85,7 +85,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
       }
     } catch (err: any) {
       setLoading(false);
-      if (
+      if (err.code === 'auth/display-name-taken') {
+        setErrorMsg(t('name_already_taken'));
+      } else if (err.code === 'auth/email-not-verified') {
+        setUnverifiedUserObj(err.user);
+        setErrorMsg(t('email_not_verified_error', { email: email.trim() }));
+      } else if (
         err.code === 'auth/invalid-credential' ||
         err.code === 'auth/wrong-password' ||
         err.code === 'auth/user-not-found'

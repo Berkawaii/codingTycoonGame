@@ -11,7 +11,13 @@ service cloud.firestore {
       }
     }
 
-    // 2. Public Community C# Scripts Marketplace
+    // 2. Unique Display Names (Callsigns)
+    match /display_names/{name} {
+      allow read: if true;
+      allow create: if request.auth != null;
+    }
+
+    // 3. Public Community C# Scripts Marketplace
     match /community_scripts/{scriptId} {
       allow read: if true;
       allow create, update: if request.auth != null;
@@ -21,7 +27,7 @@ service cloud.firestore {
       );
     }
 
-    // 3. Global Leaderboard Scores
+    // 4. Global Leaderboard Scores
     match /leaderboards/{userId} {
       allow read: if true;
       allow write: if request.auth != null && request.auth.uid == userId;
