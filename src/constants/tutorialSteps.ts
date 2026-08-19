@@ -235,30 +235,7 @@ public class RobotScript
 public class PowerPlantScript
 {
     public void Execute(IPowerPlant plant)
-    {
-        double temp = plant.GetTemperature();
-        double gridRatio = plant.GetGridEnergyRatio();
-
-        // 1. Isınma Kontrolü (85°C Üstünde Soğutma Moduna Geç)
-        if (temp > 85.0)
-        {
-            plant.SetOverclockRate(0.5); // Soğutma Modu
-            return;
-        }
-
-        // 2. Yakıt Seçimi ve Enerji Üretimi
-        // Kullanılabilir Yakıt Kodları: "COAL_ORE" (+50 kWh), "FE_ORE" (+30 kWh), "RUBY_GEM" (+200 kWh), "PLASMA_CORE" (+1500 kWh)
-        if (gridRatio < 0.4 && temp < 65.0)
-        {
-            plant.SetOverclockRate(1.6); // %160 Hızlı Yakım
-            plant.BurnFuel("COAL_ORE");  // Kömür Cevheri Yak
-        }
-        else
-        {
-            plant.SetOverclockRate(1.0);
-            plant.BurnFuel("FE_ORE");    // Demir Cevheri Yak
-        }
-    }
+    {    }
 }`,
   },
   {
