@@ -94,14 +94,15 @@ export const CodeEditor: React.FC = () => {
                 background: activeEditorTab === 'ROBOT' ? '#0284c7' : 'transparent',
                 color: activeEditorTab === 'ROBOT' ? '#fff' : '#94a3b8',
                 border: 'none',
-                padding: '2px 8px',
-                borderRadius: '4px',
+                padding: '3px 10px',
+                borderRadius: '5px',
                 fontSize: '0.72rem',
                 fontWeight: 700,
+                fontFamily: 'var(--font-hud)',
                 cursor: 'pointer',
               }}
             >
-              🤖 ROBOT KODU
+              ROBOT KODU
             </button>
             <button
               onClick={() => setActiveEditorTab('POWER_PLANT')}
@@ -109,14 +110,15 @@ export const CodeEditor: React.FC = () => {
                 background: activeEditorTab === 'POWER_PLANT' ? '#10b981' : 'transparent',
                 color: activeEditorTab === 'POWER_PLANT' ? '#fff' : '#94a3b8',
                 border: 'none',
-                padding: '2px 8px',
-                borderRadius: '4px',
+                padding: '3px 10px',
+                borderRadius: '5px',
                 fontSize: '0.72rem',
                 fontWeight: 700,
+                fontFamily: 'var(--font-hud)',
                 cursor: 'pointer',
               }}
             >
-              ⚡ SANTRAL KODU
+              SANTRAL KODU
             </button>
           </div>
           <span style={{ background: 'rgba(168, 85, 247, 0.2)', color: '#c084fc', fontSize: '0.68rem', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(168, 85, 247, 0.4)', fontFamily: 'Fira Code, monospace' }}>
