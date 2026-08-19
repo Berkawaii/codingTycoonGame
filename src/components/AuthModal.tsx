@@ -112,10 +112,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
             justifyContent: 'space-between',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <img src="/logo_only.svg" alt="Syntax Factory Logo" style={{ width: '28px', height: '28px' }} />
-            <h3 style={{ fontWeight: 800, color: '#f1f5f9', fontSize: '0.95rem' }}>
-              {mode === 'register' ? 'HESAP OLUŞTUR' : mode === 'reset' ? 'ŞİFRE SIFIRLA' : 'SYNTAX FACTORY GİRİŞ'}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <img src="/logo_only.svg" alt="Syntax Factory Logo" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
+            <h3 style={{ fontFamily: 'var(--font-hud)', fontWeight: 700, color: '#ffffff', fontSize: '1rem', letterSpacing: '0.75px' }}>
+              SYNTAX <span style={{ color: 'var(--brand-red)' }}>FACTORY</span>
             </h3>
           </div>
 

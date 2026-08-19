@@ -63,12 +63,15 @@ export const WelcomePortalModal: React.FC<WelcomePortalModalProps> = ({
           </button>
 
           {/* Brand Logo Header */}
-          <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
+          <div style={{ textAlign: 'center', marginBottom: '1.25rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <img
-              src="/logowithname.svg"
+              src="/logo_only.svg"
               alt="Syntax Factory Logo"
-              style={{ width: '220px', height: 'auto', objectFit: 'contain', margin: '0 auto 0.75rem auto' }}
+              style={{ width: '64px', height: '64px', objectFit: 'contain', marginBottom: '0.75rem' }}
             />
+            <h2 style={{ fontFamily: 'var(--font-hud)', fontWeight: 800, fontSize: '1.6rem', letterSpacing: '1px', color: '#ffffff', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+              SYNTAX <span style={{ color: 'var(--brand-red)' }}>FACTORY</span>
+            </h2>
             <p style={{ fontSize: '0.82rem', color: '#94a3b8', maxWidth: '420px', margin: '0 auto' }}>
               Otonom C# robot filosu yönetimi, madencilik lojistiği, güç şebekeleri ve çetin gezegen atmosfer simülasyonu.
             </p>
