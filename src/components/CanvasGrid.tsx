@@ -927,10 +927,10 @@ export const CanvasGrid: React.FC = () => {
       ctx.stroke();
 
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 11px Inter, sans-serif';
+      ctx.font = '800 10px Fira Code, monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('💀', bx, by);
+      ctx.fillText('BAD', bx, by);
       ctx.restore();
 
       // Bandit HP bar
@@ -954,7 +954,6 @@ export const CanvasGrid: React.FC = () => {
       let strokeColor = 'rgba(251, 146, 60, 0.4)';
       let hudBorder = 'rgba(249, 115, 22, 0.8)';
       let hudText = '#f97316';
-      let hudEmoji = '🌪️';
       let moveVX = 4;
       let moveVY = 0.5;
 
@@ -965,7 +964,6 @@ export const CanvasGrid: React.FC = () => {
         strokeColor = 'rgba(239, 68, 68, 0.5)';
         hudBorder = 'rgba(239, 68, 68, 0.8)';
         hudText = '#f87171';
-        hudEmoji = '🌋';
         moveVX = 1.5;
         moveVY = -3.5; // Embers floating upwards!
       } else if (currentHazard.type === 'QUANTUM_FLARE') {
@@ -975,7 +973,6 @@ export const CanvasGrid: React.FC = () => {
         strokeColor = 'rgba(168, 85, 247, 0.5)';
         hudBorder = 'rgba(6, 182, 212, 0.8)';
         hudText = '#38bdf8';
-        hudEmoji = '⚛️';
         moveVX = 5.0;
         moveVY = 1.0;
       } else if (currentHazard.type === 'BLIZZARD') {
@@ -985,7 +982,6 @@ export const CanvasGrid: React.FC = () => {
         strokeColor = 'rgba(224, 242, 254, 0.6)';
         hudBorder = 'rgba(56, 189, 248, 0.8)';
         hudText = '#7dd3fc';
-        hudEmoji = '❄️';
         moveVX = 6.0;
         moveVY = 2.0;
       }
@@ -1074,7 +1070,7 @@ export const CanvasGrid: React.FC = () => {
       ctx.textBaseline = 'middle';
       ctx.shadowBlur = 0;
       ctx.fillText(
-        `${hudEmoji} ${currentHazard.name.toUpperCase()} (Kalan: ${currentHazard.remainingTicks} Tick)`,
+        `[UYARI] ${currentHazard.name.toUpperCase()} (Kalan: ${currentHazard.remainingTicks} Tick)`,
         canvas.width / 2,
         by + badgeHeight / 2
       );

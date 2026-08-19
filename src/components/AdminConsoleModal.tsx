@@ -96,7 +96,7 @@ export const AdminConsoleModal: React.FC = () => {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h3 style={{ fontWeight: 800, color: '#ffffff', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
-                  🛠️ Geliştirici & Admin Test Konsolu
+                  Geliştirici & Admin Test Konsolu
                 </h3>
                 <span style={{ fontSize: '0.62rem', background: 'rgba(239, 68, 68, 0.3)', color: '#f87171', padding: '1px 6px', borderRadius: '4px', border: '1px solid rgba(239, 68, 68, 0.5)', fontWeight: 800 }}>
                   ROOT ACCESS
@@ -211,7 +211,7 @@ export const AdminConsoleModal: React.FC = () => {
                 style={{ padding: '0.4rem 0.85rem', fontSize: '0.75rem', fontWeight: 700, background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: '#fff', border: 'none' }}
               >
                 <PlusCircle className="w-3.5 h-3.5" />
-                <span>Korsan Robot Doğur 💀</span>
+                <span>Korsan Robot Doğur</span>
               </button>
 
               <button
@@ -234,7 +234,7 @@ export const AdminConsoleModal: React.FC = () => {
                 <span>3. BİYOM ÇEVRE TEHLİKELERİ & HAVA OLAYLARI</span>
               </div>
               <span style={{ fontSize: '0.75rem', color: activeHazard ? '#f97316' : '#64748b', fontWeight: 700 }}>
-                {activeHazard ? `🚨 ${activeHazard.name} (${activeHazard.remainingTicks} tick)` : '☀️ Hava Açık'}
+                {activeHazard ? `[AKTIF] ${activeHazard.name} (${activeHazard.remainingTicks} tick)` : 'Hava Açık'}
               </span>
             </div>
 
@@ -244,7 +244,7 @@ export const AdminConsoleModal: React.FC = () => {
                 className="ui-btn"
                 style={{ padding: '0.4rem 0.75rem', fontSize: '0.73rem', fontWeight: 700, background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)', color: '#fff', border: 'none' }}
               >
-                🌪️ Mars Kum Fırtınası
+                Mars Kum Fırtınası
               </button>
 
               <button
@@ -252,7 +252,7 @@ export const AdminConsoleModal: React.FC = () => {
                 className="ui-btn"
                 style={{ padding: '0.4rem 0.75rem', fontSize: '0.73rem', fontWeight: 700, background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)', color: '#fff', border: 'none' }}
               >
-                🌋 Volkanik Magma & Asit Yağmuru
+                Volkanik Magma & Asit Yağmuru
               </button>
 
               <button
@@ -260,7 +260,7 @@ export const AdminConsoleModal: React.FC = () => {
                 className="ui-btn"
                 style={{ padding: '0.4rem 0.75rem', fontSize: '0.73rem', fontWeight: 700, background: 'linear-gradient(135deg, #06b6d4 0%, #a855f7 100%)', color: '#fff', border: 'none' }}
               >
-                ⚛️ Kuantum EMP Dalgası
+                Kuantum EMP Dalgası
               </button>
 
               <button
@@ -268,7 +268,7 @@ export const AdminConsoleModal: React.FC = () => {
                 className="ui-btn"
                 style={{ padding: '0.4rem 0.75rem', fontSize: '0.73rem', fontWeight: 700, background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)', color: '#fff', border: 'none' }}
               >
-                ❄️ Sıfır Altı Kutup Tipi
+                Sıfır Altı Kutup Tipi
               </button>
 
               <button
@@ -277,7 +277,7 @@ export const AdminConsoleModal: React.FC = () => {
                 className="ui-btn ui-btn-secondary"
                 style={{ padding: '0.4rem 0.75rem', fontSize: '0.73rem', opacity: !activeHazard ? 0.4 : 1 }}
               >
-                ☀️ Hava Durumunu Temizle
+                Hava Durumunu Temizle
               </button>
             </div>
           </div>

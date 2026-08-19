@@ -2423,12 +2423,12 @@ export const useGameStore = create<GameState>()(
         if (targetBandit) {
           const newHp = targetBandit.health - turret.damage;
           soundService.playMining();
-          get().addLog('success', `🛡️ [LAZER ATISI]: ${turret.name} Korsan Robota lazer ateşi açtı! (-${turret.damage} HP)`);
+          get().addLog('success', `[LAZER ATISI]: ${turret.name} Korsan Robota lazer ateşi açtı! (-${turret.damage} HP)`);
 
           if (newHp <= 0) {
             updatedBanditsList = updatedBanditsList.filter((b) => b.id !== targetBandit!.id);
             set((prev) => ({ credits: prev.credits + 300 }));
-            get().addLog('success', `💥 [KORSAN İMHA EDİLDİ]: Lazer Savunma Kulesi Korsan Robotu yok etti! +$300 Ödül Ödendi.`);
+            get().addLog('success', `[KORSAN IMHA EDILDI]: Lazer Savunma Kulesi Korsan Robotu yok etti! +$300 Ödül Ödendi.`);
           } else {
             updatedBanditsList = updatedBanditsList.map((b) => (b.id === targetBandit!.id ? { ...b, health: newHp } : b));
           }
@@ -2447,20 +2447,20 @@ export const useGameStore = create<GameState>()(
       const currentBiome = get().currentBiome;
       let hazardType: 'DUST_STORM' | 'VOLCANIC_ERUPTION' | 'QUANTUM_FLARE' | 'BLIZZARD' = 'DUST_STORM';
       let hazardName = 'Mars Kum Fırtınası';
-      let logMessage = '🌪️ [KUM FIRTINASI BAŞLADI]: Şiddetli Mars kum fırtınası başladı! Sahadaki robotlar aşınıyor (-2 HP/tick).';
+      let logMessage = '[KUM FIRTINASI BAŞLADI]: Şiddetli Mars kum fırtınası başladı! Sahadaki robotlar aşınıyor (-2 HP/tick).';
 
       if (currentBiome === 'VOLCANIC') {
         hazardType = 'VOLCANIC_ERUPTION';
         hazardName = 'Volkanik Magma & Kül Yağmuru';
-        logMessage = '🌋 [VOLKANİK PATLAMA]: Volkanik vadide lav püskürmesi ve asit külleri başladı! (-3 HP, -5 Enerji/tick).';
+        logMessage = '[VOLKANİK PATLAMA]: Volkanik vadide lav püskürmesi ve asit külleri başladı! (-3 HP, -5 Enerji/tick).';
       } else if (currentBiome === 'QUANTUM_CAVERN') {
         hazardType = 'QUANTUM_FLARE';
         hazardName = 'Kuantum EMP Radyasyon Fırtınası';
-        logMessage = '⚛️ [KUANTUM EMP DALGASI]: Kuantum magmasında EMP ışınması tetiklendi! Sensörler parazitlendi (-4 Enerji/tick).';
+        logMessage = '[KUANTUM EMP DALGASI]: Kuantum magmasında EMP ışınması tetiklendi! Sensörler parazitlendi (-4 Enerji/tick).';
       } else if (currentBiome === 'GLACIER') {
         hazardType = 'BLIZZARD';
         hazardName = 'Sıfır Altı Kutup Kar Tipi';
-        logMessage = '❄️ [KUTUP TİPİSİ BAŞLADI]: Sıfırın altında kar fırtınası dondurucu rüzgarlarla bastırdı! Bataryalar donuyor (-3 Enerji/tick).';
+        logMessage = '[KUTUP TİPİSİ BAŞLADI]: Sıfırın altında kar fırtınası dondurucu rüzgarlarla bastırdı! Bataryalar donuyor (-3 Enerji/tick).';
       }
 
       set({
@@ -2481,7 +2481,7 @@ export const useGameStore = create<GameState>()(
       const rem = currentHazard.remainingTicks - 1;
       if (rem <= 0) {
         set({ activeHazard: null });
-        get().addLog('info', `☀️ [TEHLİKE DİNDİ]: ${currentHazard.name} sona erdi. Hava koşulları normale döndü.`);
+        get().addLog('info', `[TEHLİKE DİNDİ]: ${currentHazard.name} sona erdi. Hava koşulları normale döndü.`);
       } else {
         set({ activeHazard: { ...currentHazard, remainingTicks: rem } });
         // Apply specific hazard penalties to open field robots
