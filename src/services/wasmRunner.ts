@@ -190,7 +190,7 @@ export function compileAndRunCSharp(
   // PRIORITY B: Repair Drone -> Go to Damaged Robot
   else if ((robotState.role === 'REPAIR_DRONE' || hasRepairRobot) && nearestDamagedRobot) {
     const distToDamaged = Math.abs(nearestDamagedRobot.x - robotState.x) + Math.abs(nearestDamagedRobot.y - robotState.y);
-    if (distToDamaged > 1) {
+    if (distToDamaged > 2) {
       goToTarget = { x: nearestDamagedRobot.x, y: nearestDamagedRobot.y };
     }
   }
@@ -219,17 +219,25 @@ export function compileAndRunCSharp(
       // Handle variable names e.g. GoTo(depot.X, depot.Y), GoTo(station.X, station.Y), GoTo(msg.X, msg.Y)
       if (isNaN(parsedX) || isNaN(parsedY)) {
         if (/depot/i.test(rawX)) {
-          parsedX = nearestDepot.x;
-          parsedY = nearestDepot.y;
+          if (isCargoAlmostFull || isCargo100Percent) {
+            parsedX = nearestDepot.x;
+            parsedY = nearestDepot.y;
+          }
         } else if (/station|pad/i.test(rawX)) {
-          parsedX = nearestStation.x;
-          parsedY = nearestStation.y;
+          if (isEnergyLow) {
+            parsedX = nearestStation.x;
+            parsedY = nearestStation.y;
+          }
         } else if (/msg/i.test(rawX) && activeCargoFullMsg) {
           parsedX = activeCargoFullMsg.x;
           parsedY = activeCargoFullMsg.y;
         } else if (/target/i.test(rawX) && nearestDamagedRobot) {
           parsedX = nearestDamagedRobot.x;
           parsedY = nearestDamagedRobot.y;
+        } else if ((/resource|ore/i.test(rawX) || /targetResource/i.test(rawX)) && nearestResource) {
+          const resObj = nearestResource as ResourceNode;
+          parsedX = resObj.x;
+          parsedY = resObj.y;
         }
       }
 
@@ -240,9 +248,16 @@ export function compileAndRunCSharp(
   }
 
   const scriptUsesRadar = /GetRadarInfo|RadarTileInfo/i.test(code);
+  const distToDamaged = nearestDamagedRobot
+    ? Math.abs(nearestDamagedRobot.x - robotState.x) + Math.abs(nearestDamagedRobot.y - robotState.y)
+    : 999;
+  const isRepairingTarget = (hasRepairRobot || robotState.role === 'REPAIR_DRONE') && nearestDamagedRobot && distToDamaged <= 2;
 
-  // Determine Navigation vs Mining
-  if (robotState.canMine !== false && adjacentResourceTile && globalHasMine && !goToTarget) {
+  // Determine Navigation vs Mining vs Repairing
+  if (isRepairingTarget) {
+    shouldMove = false;
+    shouldMine = false;
+  } else if (robotState.canMine !== false && adjacentResourceTile && globalHasMine && (!goToTarget || (goToTarget.x === adjacentResourceTile.x && goToTarget.y === adjacentResourceTile.y))) {
     shouldMine = true;
   } else if (globalHasMove || globalHasGoTo || goToTarget || robotState.canMine === false) {
     shouldMove = true;
@@ -299,7 +314,7 @@ export function compileAndRunCSharp(
     });
   }
 
-  if (hasRepairRobot && nearestDamagedRobot && (Math.abs(nearestDamagedRobot.x - robotState.x) + Math.abs(nearestDamagedRobot.y - robotState.y) <= 1)) {
+  if (isRepairingTarget && nearestDamagedRobot) {
     logs.push({
       action: 'REPAIR_ROBOT',
       payload: nearestDamagedRobot.id,
