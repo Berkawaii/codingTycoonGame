@@ -20,7 +20,6 @@ import {
   query,
   orderBy,
   limit,
-  addDoc,
   updateDoc,
   increment,
 } from 'firebase/firestore';
@@ -344,11 +343,12 @@ export const publishCommunityScript = async (
   authorName: string,
   authorId: string
 ): Promise<CommunityScript> => {
+  const scriptId = `script-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
   const newScript: CommunityScript = {
-    id: `script-${Date.now()}`,
+    id: scriptId,
     title,
-    authorName: authorName || 'Mühendis',
-    authorId,
+    authorName: authorName || 'Mühendis Oyuncu',
+    authorId: auth.currentUser?.uid || authorId,
     description,
     category,
     code,
@@ -358,10 +358,11 @@ export const publishCommunityScript = async (
   };
 
   try {
-    const docRef = await addDoc(collection(db, 'community_scripts'), newScript);
-    newScript.id = docRef.id;
+    const docRef = doc(db, 'community_scripts', scriptId);
+    await setDoc(docRef, newScript);
+    console.log('[FIRESTORE SINK]: Script document published to Firestore:', scriptId);
   } catch (e) {
-    console.warn('Firebase Firestore publish script fallback:', e);
+    console.error('[FIRESTORE SINK SCRIPT ERROR]:', e);
   }
 
   const local = getLocalCommunityScripts();

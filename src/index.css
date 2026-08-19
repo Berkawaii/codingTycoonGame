@@ -2,15 +2,11 @@
 
 :root {
   --bg-dark: #070a11;
-  --bg-grid: rgba(255, 255, 255, 0.025);
-  --panel-bg: rgba(13, 18, 28, 0.88);
+  --panel-bg: rgba(13, 18, 28, 0.95);
   --panel-border: rgba(255, 255, 255, 0.08);
-  --panel-border-glow: rgba(255, 49, 49, 0.25);
 
   --brand-red: #ff3131;
-  --brand-red-glow: rgba(255, 49, 49, 0.4);
   --cyan-accent: #38bdf8;
-  --cyan-glow: rgba(56, 189, 248, 0.3);
   --emerald-accent: #10b981;
   --purple-accent: #c084fc;
   --amber-accent: #fbbf24;
@@ -49,20 +45,16 @@ body {
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--brand-red);
+  background: #334155;
 }
 
-/* App Master Layout */
+/* App Master Layout - Clean Dark Industrial Backdrop */
 .app-layout {
   display: flex;
   flex-direction: column;
   height: 100vh;
   width: 100vw;
-  background: 
-    radial-gradient(circle at 50% 0%, rgba(255, 49, 49, 0.08) 0%, rgba(7, 10, 17, 0.98) 70%),
-    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-  background-size: 100% 100%, 32px 32px, 32px 32px;
+  background: #070a11;
 }
 
 /* Header Navbar */
@@ -72,11 +64,11 @@ body {
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.5rem 1.25rem;
-  background: rgba(9, 13, 22, 0.92);
+  background: rgba(10, 14, 22, 0.96);
   border-bottom: 1px solid var(--panel-border);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(16px);
   z-index: 20;
-  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
   overflow-x: auto;
   white-space: nowrap;
 }
@@ -91,17 +83,16 @@ body {
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: rgba(255, 49, 49, 0.12);
-  border: 1px solid rgba(255, 49, 49, 0.4);
+  background: rgba(255, 49, 49, 0.08);
+  border: 1px solid rgba(255, 49, 49, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 15px var(--brand-red-glow);
-  transition: all 0.2s ease-out;
+  transition: all 0.15s ease-out;
 }
 
 .logo-icon:hover {
-  transform: scale(1.05);
+  transform: scale(1.03);
   border-color: var(--brand-red);
 }
 
@@ -121,7 +112,7 @@ body {
   font-family: var(--font-hud);
   font-size: 0.65rem;
   font-weight: 600;
-  color: #94a3b8;
+  color: #64748b;
   letter-spacing: 1px;
   text-transform: uppercase;
 }
@@ -135,7 +126,6 @@ body {
 
 .dot-active {
   background: var(--brand-red);
-  box-shadow: 0 0 8px var(--brand-red);
 }
 
 /* Telemetry Status Pills */
@@ -143,7 +133,7 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(15, 22, 35, 0.85);
+  background: rgba(14, 19, 29, 0.9);
   padding: 0.25rem 0.6rem;
   border-radius: 8px;
   border: 1px solid var(--panel-border);
@@ -209,7 +199,7 @@ body {
   padding: 3px 8px;
   border-radius: 5px;
   cursor: pointer;
-  transition: all 0.18s ease-out;
+  transition: all 0.15s ease-out;
 }
 
 .speed-btn:hover {
@@ -217,13 +207,12 @@ body {
 }
 
 .speed-btn.active {
-  background: rgba(255, 49, 49, 0.2);
-  color: var(--brand-red);
-  border: 1px solid rgba(255, 49, 49, 0.4);
-  box-shadow: 0 0 10px rgba(255, 49, 49, 0.3);
+  background: #1e293b;
+  color: #ffffff;
+  border: 1px solid #334155;
 }
 
-/* Tactile Modern UI Buttons */
+/* Clean Matte Buttons */
 .ui-btn {
   display: inline-flex;
   align-items: center;
@@ -236,7 +225,7 @@ body {
   font-weight: 600;
   letter-spacing: 0.5px;
   cursor: pointer;
-  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.15s ease-out;
   border: 1px solid transparent;
   white-space: nowrap;
   user-select: none;
@@ -247,28 +236,24 @@ body {
 }
 
 .ui-btn-primary {
-  background: linear-gradient(135deg, #e11d48 0%, #ff3131 100%);
+  background: #ff3131;
   color: #ffffff;
-  border-color: rgba(255, 49, 49, 0.5);
-  box-shadow: 0 4px 15px rgba(255, 49, 49, 0.35);
+  border-color: rgba(255, 49, 49, 0.4);
 }
 
 .ui-btn-primary:hover {
-  filter: brightness(1.1);
-  box-shadow: 0 6px 20px rgba(255, 49, 49, 0.5);
-  transform: translateY(-1px);
+  background: #e02828;
 }
 
 .ui-btn-cyan {
   background: rgba(56, 189, 248, 0.12);
   color: #38bdf8;
-  border-color: rgba(56, 189, 248, 0.35);
+  border-color: rgba(56, 189, 248, 0.3);
 }
 
 .ui-btn-cyan:hover {
-  background: rgba(56, 189, 248, 0.22);
-  border-color: var(--cyan-accent);
-  box-shadow: 0 0 12px var(--cyan-glow);
+  background: rgba(56, 189, 248, 0.2);
+  border-color: rgba(56, 189, 248, 0.5);
 }
 
 .ui-btn-secondary {
@@ -284,13 +269,13 @@ body {
 }
 
 .ui-btn-danger {
-  background: rgba(255, 49, 49, 0.15);
+  background: rgba(255, 49, 49, 0.12);
   color: #ff4757;
-  border-color: rgba(255, 49, 49, 0.4);
+  border-color: rgba(255, 49, 49, 0.3);
 }
 
 .ui-btn-danger:hover {
-  background: rgba(255, 49, 49, 0.3);
+  background: rgba(255, 49, 49, 0.25);
   color: #ffffff;
 }
 
@@ -316,12 +301,11 @@ body {
   font-family: var(--font-code);
   font-size: 0.76rem;
   outline: none;
-  transition: all 0.18s ease-out;
+  transition: all 0.15s ease-out;
 }
 
 .ui-input:focus {
-  border-color: var(--brand-red);
-  box-shadow: 0 0 10px var(--brand-red-glow);
+  border-color: rgba(255, 49, 49, 0.5);
 }
 
 .ui-select {
@@ -334,12 +318,11 @@ body {
   font-size: 0.76rem;
   outline: none;
   cursor: pointer;
-  transition: all 0.18s ease-out;
+  transition: all 0.15s ease-out;
 }
 
 .ui-select:focus {
-  border-color: var(--brand-red);
-  box-shadow: 0 0 10px var(--brand-red-glow);
+  border-color: rgba(255, 49, 49, 0.5);
 }
 
 /* Split View Main Layout */
@@ -363,23 +346,23 @@ body {
   display: flex;
   flex-direction: column;
   background: var(--panel-bg);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(16px);
   border: 1px solid var(--panel-border);
-  border-radius: 14px;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
 }
 
 /* Canvas Container */
 .canvas-container {
   background: var(--panel-bg);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(16px);
   border: 1px solid var(--panel-border);
-  border-radius: 14px;
+  border-radius: 12px;
   padding: 0.75rem;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 .canvas-header {
@@ -406,8 +389,7 @@ body {
   background: #05080e;
   border-radius: 10px;
   overflow: hidden;
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .canvas-element {
@@ -425,12 +407,12 @@ body {
   backdrop-filter: blur(10px);
   padding: 6px 12px;
   border-radius: 7px;
-  border: 1px solid rgba(56, 189, 248, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   font-family: var(--font-code);
   font-size: 0.72rem;
   color: #e2e8f0;
   pointer-events: none;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 /* Tab Management Hub */
@@ -441,14 +423,14 @@ body {
 
 .panel-container {
   background: var(--panel-bg);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(16px);
   border: 1px solid var(--panel-border);
-  border-radius: 14px;
+  border-radius: 12px;
   height: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 .panel-tabs {
@@ -474,7 +456,7 @@ body {
   font-weight: 600;
   letter-spacing: 0.5px;
   cursor: pointer;
-  transition: all 0.18s ease-out;
+  transition: all 0.15s ease-out;
   white-space: nowrap;
 }
 
@@ -485,7 +467,7 @@ body {
 .tab-btn.active {
   color: var(--brand-red);
   border-bottom-color: var(--brand-red);
-  background: rgba(255, 49, 49, 0.08);
+  background: rgba(255, 49, 49, 0.05);
 }
 
 .panel-content {
@@ -501,12 +483,12 @@ body {
   border-left-width: 4px;
   border-radius: 10px;
   padding: 0.8rem;
-  transition: transform 0.18s ease-out, border-color 0.18s ease-out;
+  transition: transform 0.15s ease-out, border-color 0.15s ease-out;
 }
 
 .sku-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .sku-dot {
@@ -522,18 +504,16 @@ body {
   border-radius: 10px;
   padding: 0.8rem;
   cursor: pointer;
-  transition: all 0.18s ease-out;
+  transition: all 0.15s ease-out;
 }
 
 .robot-card:hover {
-  border-color: rgba(56, 189, 248, 0.4);
-  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 .robot-card.selected {
   border-color: var(--brand-red);
-  background: rgba(255, 49, 49, 0.08);
-  box-shadow: 0 0 15px rgba(255, 49, 49, 0.2);
+  background: rgba(255, 49, 49, 0.06);
 }
 
 /* Monaco Code Editor Header & Footer */

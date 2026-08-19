@@ -41,9 +41,9 @@ export const WelcomePortalModal: React.FC<WelcomePortalModalProps> = ({
           className="sku-card"
           style={{
             background: 'rgba(9, 13, 22, 0.96)',
-            border: '1px solid rgba(255, 49, 49, 0.45)',
-            boxShadow: '0 25px 60px -10px rgba(255, 49, 49, 0.35)',
-            borderRadius: '18px',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)',
+            borderRadius: '16px',
             width: '100%',
             maxWidth: '620px',
             display: 'flex',

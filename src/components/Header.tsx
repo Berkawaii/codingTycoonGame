@@ -255,11 +255,10 @@ export const Header: React.FC = () => {
                 style={{
                   padding: '0.35rem 0.6rem',
                   fontSize: '0.72rem',
-                  background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.35) 0%, rgba(168, 85, 247, 0.35) 100%)',
-                  border: '1px solid rgba(239, 68, 68, 0.7)',
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid rgba(239, 68, 68, 0.4)',
                   color: '#f87171',
                   fontWeight: 800,
-                  boxShadow: '0 0 12px rgba(239, 68, 68, 0.4)',
                 }}
                 title="Geliştirici & Admin Test Konsolu"
               >
