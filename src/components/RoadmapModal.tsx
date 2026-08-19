@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Map, Clock, Sparkles, ExternalLink, GitBranch, Terminal, Shield, Zap } from 'lucide-react';
+import { X, Map, ExternalLink, GitBranch, Terminal, Shield, Zap, Cpu, Bot, Factory, Crosshair, Orbit } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
 
 interface RoadmapModalProps {
@@ -107,44 +107,110 @@ export const RoadmapModal: React.FC<RoadmapModalProps> = ({ isOpen, onClose }) =
       id: 'phase-5',
       number: 'PHASE 05',
       status: 'IN PROGRESS',
-      title: isEn ? 'Advanced Automation & Factory Warfare' : 'İleri Otomasyon & Fabrika Savaşları',
+      title: isEn ? 'Industrial Processing & Refineries' : 'Endüstriyel İşleme & Rafineriler',
       date: 'Q4 2026',
       badgeColor: '#fbbf24',
-      icon: Clock,
+      icon: Factory,
       items: isEn
         ? [
-            'Cooperative Guild mega-factories and shared supply chain automation',
-            'PvP factory defense: Automated defensive turrets, code warfare, and raids',
-            'User-defined custom C# helper assemblies and dynamic class importing',
-            'Smelter & Refinery multi-tier crafting recipe automation pipelines',
+            'Multi-tier Smelter & Refinery crafting recipes (Iron Ingots, Gold Bars, Ruby Lenses)',
+            'Automated Conveyor Belts & Sorting Junctions for continuous material transport',
+            'Storage Silos and automated inventory logistics nodes',
+            'Advanced C# IBuilding and IRefinery control APIs',
           ]
         : [
-            'Lonca/Klan ortak dev fabrikaları ve paylaşımlı tedarik zinciri otomasyonu',
-            'PvP fabrika savunması: Otomatik savunma kuleleri, kod savaşları ve baskınlar',
-            'Kullanıcı tanımlı özel C# yardımcı sınıfları ve dinamik montaj yükleme',
-            'Dökümhane ve Rafineri çok aşamalı üretim tarifi boru hatları',
+            'Çok aşamalı Dökümhane ve Rafineri işleme tarifleri (Demir Külçe, Altın Külçe, Yakut Mercek)',
+            'Sürekli malzeme taşıması için Otomatik Taşıyıcı Bantlar ve Ayırıcı Kavşaklar',
+            'Depolama Siloları ve otonom envanter lojistik düğümleri',
+            'Gelişmiş C# IBuilding ve IRefinery kontrol API arayüzleri',
           ],
     },
     {
       id: 'phase-6',
       number: 'PHASE 06',
-      status: 'PLANNED',
-      title: isEn ? 'Deep Space Station & AI Copilot System' : 'Derin Uzay İstasyonu & Yapay Zeka Asistanı',
-      date: 'Q1 2027',
-      badgeColor: '#38bdf8',
-      icon: Sparkles,
+      status: 'IN PROGRESS',
+      title: isEn ? 'Automated Base Defense & Rogue Raids' : 'Otomatik Üs Savunması & Haydut Baskınları',
+      date: 'Q4 2026',
+      badgeColor: '#fbbf24',
+      icon: Crosshair,
       items: isEn
         ? [
-            'AI-assisted C# code optimizer and automated bug resolution agent',
-            'Orbital Space Station biomes with zero-gravity logistics challenges',
-            'Interstellar resource trade networks and planetary defense satellites',
-            'Custom programmable drone visual logic editor and block-code bridge',
+            'Defensive Turret networks with programmable targeting algorithms (ITurret API)',
+            'Dynamic Rogue Bandit waves and automated defense response protocols',
+            'Security alarms, perimeter sensors, and automated lockdown modes',
+            'Repair Drone threat priority dispatching during base attacks',
           ]
         : [
-            'Yapay zeka destekli C# kod optimize edici ve otomatik hata giderici ajan',
-            'Yerçekimsiz ortam lojistiği sunan Yörünge Uzay İstasyonu biyomları',
+            'Programlanabilir hedefleme algoritmalarına sahip Savunma Kulesi ağları (ITurret API)',
+            'Dinamik Haydut dalgaları ve otomatik savunma müdahale protokolleri',
+            'Güvenlik alarmları, çevre sensörleri ve otomatik kilitlenme modları',
+            'Üs saldırıları sırasında Tamir Dronlarının öncelikli müdahale sevkiyatı',
+          ],
+    },
+    {
+      id: 'phase-7',
+      number: 'PHASE 07',
+      status: 'PLANNED',
+      title: isEn ? 'Custom Assemblies & Script Profiler' : 'Özel C# Montajları & Performans Profili',
+      date: 'Q1 2027',
+      badgeColor: '#38bdf8',
+      icon: Cpu,
+      items: isEn
+        ? [
+            'User-defined C# helper classes and custom namespace imports (using MyCustomLib)',
+            'Multi-file C# workspace management inside integrated Monaco Editor',
+            'Script version history, diff inspector, and single-click rollback',
+            'CPU tick execution profiler and memory usage telemetry inspector',
+          ]
+        : [
+            'Kullanıcı tanımlı özel C# yardımcı sınıfları ve namespace yükleme (using MyCustomLib)',
+            'Monaco Editörü içinde çoklu dosya C# proje ve alan yönetimi',
+            'Script sürüm geçmişi, fark denetleyicisi (diff inspector) ve tek tıkla geri alma',
+            'İşlemci tick yürütme süresi ve bellek kullanımı performans metriği',
+          ],
+    },
+    {
+      id: 'phase-8',
+      number: 'PHASE 08',
+      status: 'PLANNED',
+      title: isEn ? 'Orbital Stations & Zero-Gravity Logistics' : 'Yörünge İstasyonları & Sıfır Yerçekimi',
+      date: 'Q2 2027',
+      badgeColor: '#38bdf8',
+      icon: Orbit,
+      items: isEn
+        ? [
+            'Orbital Space Station biomes featuring zero-gravity physical momentum',
+            'Automated surface-to-orbit launch pads and cargo shuttles',
+            'Orbital Solar Arrays and wireless energy beam transmitters',
+            'Micro-meteorite defense fields and vacuum logistics pipelines',
+          ]
+        : [
+            'Sıfır yerçekimi fiziksel ivmelenmesi sunan Yörünge Uzay İstasyonu biyomları',
+            'Otomatik yüzeyden yörüngeye fırlatma pedleri ve kargo mekikleri',
+            'Yörünge Güneş Paneli dizilimleri ve kablosuz enerji ışınlayıcıları',
+            'Mikro-göktaşı savunma alanları ve vakum lojistik hatları',
+          ],
+    },
+    {
+      id: 'phase-9',
+      number: 'PHASE 09',
+      status: 'FUTURE VISION',
+      title: isEn ? 'AI Copilot Agent & Visual Logic Builder' : 'Yapay Zeka Asistanı & Görsel Mantık Editörü',
+      date: 'Q3 2027',
+      badgeColor: '#a855f7',
+      icon: Bot,
+      items: isEn
+        ? [
+            'Integrated AI C# Copilot agent for real-time syntax and logic diagnostics',
+            'Automated code optimizer suggesting vector pathfinding improvements',
+            'Visual Block-Code bridge for converting C# code to visual node graphs',
+            'Interstellar resource trade networks and planetary defense satellites',
+          ]
+        : [
+            'Gerçek zamanlı sözdizimi ve mantık hataları için entegre AI C# Copilot ajanı',
+            'Vektör yol bulma iyileştirmeleri öneren otomatik kod optimize edici',
+            'C# kodunu görsel düğüm grafiklerine dönüştüren Görsel Blok-Kod köprüsü',
             'Yıldızlararası kaynak ticaret ağları ve gezegen savunma uyduları',
-            'Özel programlanabilir görsel dron mantık editörü ve blok-kod köprüsü',
           ],
     },
   ];

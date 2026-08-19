@@ -71,17 +71,20 @@ flowchart LR
 
 ---
 
-## Development Roadmap & Milestones
+## Development Roadmap & Engineering Phases
 
-The platform follows a multi-phase engineering trajectory:
+The platform follows an extended 9-phase engineering trajectory:
 
 ```mermaid
 graph LR
-    P1[Phase 01: Core WASM Engine] --> P2[Phase 02: Swarm Mesh Network]
-    P2 --> P3[Phase 03: Multi-Biome & Power Grid]
-    P3 --> P4[Phase 04: Cloud Sync & Script Market]
-    P4 --> P5[Phase 05: Guilds & PvP Warfare]
-    P5 --> P6[Phase 06: Deep Space & AI Copilot]
+    P1[Phase 01: WASM Engine] --> P2[Phase 02: Swarm Mesh]
+    P2 --> P3[Phase 03: Biomes & Power]
+    P3 --> P4[Phase 04: Cloud & Market]
+    P4 --> P5[Phase 05: Refineries]
+    P5 --> P6[Phase 06: Base Defense]
+    P6 --> P7[Phase 07: Assemblies]
+    P7 --> P8[Phase 08: Orbital Stations]
+    P8 --> P9[Phase 09: AI Copilot]
 ```
 
 ### Phase Details
@@ -110,17 +113,35 @@ graph LR
 - Global Competitions Leaderboard with automated net-worth score calculation.
 - Community C# Script Marketplace for sharing and downloading autonomous scripts.
 
-#### Phase 05: Advanced Automation & Factory Warfare (In Progress)
-- Cooperative Guild mega-factories and shared supply chain automation.
-- PvP factory defense: Automated defensive turrets, code warfare, and raids.
-- User-defined custom C# helper assemblies and dynamic class importing.
-- Smelter & Refinery multi-tier crafting recipe automation pipelines.
+#### Phase 05: Industrial Processing & Refineries (In Progress)
+- Multi-tier Smelter & Refinery crafting recipes (Iron Ingots, Gold Bars, Ruby Lenses).
+- Automated Conveyor Belts & Sorting Junctions for continuous material transport.
+- Storage Silos and automated inventory logistics nodes.
+- Advanced C# IBuilding and IRefinery control APIs.
 
-#### Phase 06: Deep Space Station & AI Copilot System (Planned)
-- AI-assisted C# code optimizer and automated bug resolution agent.
-- Orbital Space Station biomes with zero-gravity logistics challenges.
+#### Phase 06: Automated Base Defense & Rogue Raids (In Progress)
+- Defensive Turret networks with programmable targeting algorithms (ITurret API).
+- Dynamic Rogue Bandit waves and automated defense response protocols.
+- Security alarms, perimeter sensors, and automated lockdown modes.
+- Repair Drone threat priority dispatching during base attacks.
+
+#### Phase 07: Custom Assemblies & Script Profiler (Planned)
+- User-defined C# helper classes and custom namespace imports (using MyCustomLib).
+- Multi-file C# workspace management inside integrated Monaco Editor.
+- Script version history, diff inspector, and single-click rollback.
+- CPU tick execution profiler and memory usage telemetry inspector.
+
+#### Phase 08: Orbital Stations & Zero-Gravity Logistics (Planned)
+- Orbital Space Station biomes featuring zero-gravity physical momentum.
+- Automated surface-to-orbit launch pads and cargo shuttles.
+- Orbital Solar Arrays and wireless energy beam transmitters.
+- Micro-meteorite defense fields and vacuum logistics pipelines.
+
+#### Phase 09: AI Copilot Agent & Visual Logic Builder (Future Vision)
+- Integrated AI C# Copilot agent for real-time syntax and logic diagnostics.
+- Automated code optimizer suggesting vector pathfinding improvements.
+- Visual Block-Code bridge for converting C# code to visual node graphs.
 - Interstellar resource trade networks and planetary defense satellites.
-- Custom programmable drone visual logic editor and block-code bridge.
 
 ---
 
