@@ -24,14 +24,14 @@ import {
   increment,
 } from 'firebase/firestore';
 
-// Default Firebase Configuration (Fallback gracefully if env vars not provided)
+// Default Firebase Configuration for playsyntaxfactory
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDummyKeyForSyntaxFactory012345",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyBYiwXYTbi_WLPBprRSuROoo64kadO5STc",
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "playsyntaxfactory.firebaseapp.com",
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "playsyntaxfactory",
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "playsyntaxfactory.firebasestorage.app",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "1234567890",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:1234567890:web:abcdef123456",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "486804386345",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:486804386345:web:6fa6c1264428fd72032238",
 };
 
 // Initialize Firebase App
