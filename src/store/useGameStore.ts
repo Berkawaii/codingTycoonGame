@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import {
   Direction,
   Robot,
@@ -267,11 +266,9 @@ const updateMapDataForBiome = (
   }
 };
 
-export const useGameStore = create<GameState>()(
-  persist(
-    (set, get) => ({
-      gridSize: INITIAL_GRID_SIZE,
-  credits: 99999, // Starting sandbox cash for testing
+export const useGameStore = create<GameState>()((set, get) => ({
+  gridSize: INITIAL_GRID_SIZE,
+  credits: 1500,
   robots: INITIAL_ROBOTS,
   resources: INITIAL_RESOURCES,
   chargingStations: INITIAL_CHARGING_STATIONS,
@@ -360,12 +357,17 @@ export const useGameStore = create<GameState>()(
       smelters: state.smelters,
       refineries: state.refineries,
       powerPlants: state.powerPlants,
+      turrets: state.turrets,
       inventory: state.inventory,
       unlockedBiomes: state.unlockedBiomes,
       currentBiome: state.currentBiome,
       biomeMaps: state.biomeMaps,
       scriptCode: state.scriptCode,
       powerPlantScriptCode: state.powerPlantScriptCode,
+      isTutorialModeActive: state.isTutorialModeActive,
+      tutorialStepIndex: state.tutorialStepIndex,
+      tutorialCompleted: state.tutorialCompleted,
+      tutorialProgress: state.tutorialProgress,
     };
 
     await saveGameStateToFirestore(userId, stateToSave);
@@ -384,14 +386,19 @@ export const useGameStore = create<GameState>()(
         smelters: Array.isArray(cloudData.smelters) ? cloudData.smelters : state.smelters,
         refineries: Array.isArray(cloudData.refineries) ? cloudData.refineries : state.refineries,
         powerPlants: Array.isArray(cloudData.powerPlants) ? cloudData.powerPlants : state.powerPlants,
+        turrets: Array.isArray(cloudData.turrets) ? cloudData.turrets : state.turrets,
         inventory: cloudData.inventory || state.inventory,
         unlockedBiomes: Array.isArray(cloudData.unlockedBiomes) ? cloudData.unlockedBiomes : state.unlockedBiomes,
         currentBiome: cloudData.currentBiome || state.currentBiome,
         biomeMaps: cloudData.biomeMaps || state.biomeMaps,
         scriptCode: cloudData.scriptCode || state.scriptCode,
         powerPlantScriptCode: cloudData.powerPlantScriptCode || state.powerPlantScriptCode,
+        isTutorialModeActive: typeof cloudData.isTutorialModeActive === 'boolean' ? cloudData.isTutorialModeActive : state.isTutorialModeActive,
+        tutorialStepIndex: typeof cloudData.tutorialStepIndex === 'number' ? cloudData.tutorialStepIndex : state.tutorialStepIndex,
+        tutorialCompleted: Array.isArray(cloudData.tutorialCompleted) ? cloudData.tutorialCompleted : state.tutorialCompleted,
+        tutorialProgress: cloudData.tutorialProgress || state.tutorialProgress,
       }));
-      get().addLog('success', '☁️ [CLOUD SYNCRONIZED]: Oyun durumu ve robot C# betikleri Cloud Firestore sunucusundan senkronize edildi.');
+      get().addLog('success', '☁️ [CLOUD SYNCRONIZED]: Tüm fabrika durumu, madenler, C# Akademi ilerlemesi ve betikler Cloud Firestore sunucusundan senkronize edildi.');
     }
   },
 
@@ -2645,7 +2652,7 @@ export const useGameStore = create<GameState>()(
 
   resetGame: () => {
     set({
-      credits: 1000,
+      credits: 1500,
       robots: [],
       resources: INITIAL_RESOURCES,
       chargingStations: [],
@@ -2667,25 +2674,4 @@ export const useGameStore = create<GameState>()(
       ],
     });
   },
-}),
-    {
-      name: 'coding_tycoon_game_save_v2',
-      partialize: (state) => ({
-        credits: state.credits,
-        robots: state.robots,
-        resources: state.resources,
-        chargingStations: state.chargingStations,
-        depots: state.depots,
-        smelters: state.smelters,
-        refineries: state.refineries,
-        powerPlants: state.powerPlants,
-        inventory: state.inventory,
-        unlockedBiomes: state.unlockedBiomes,
-        currentBiome: state.currentBiome,
-        biomeMaps: state.biomeMaps,
-        scriptCode: state.scriptCode,
-        powerPlantScriptCode: state.powerPlantScriptCode,
-      }),
-    }
-  )
-);
+}));
