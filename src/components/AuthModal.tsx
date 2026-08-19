@@ -52,21 +52,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
         }
 
         const res = await registerWithEmail(email.trim(), password, displayName.trim());
-        localStorage.setItem('syntax_factory_user_name', displayName.trim());
+        if (res.user?.displayName) {
+          localStorage.setItem('syntax_factory_user_name', res.user.displayName);
+        }
         setLoading(false);
-        setInfoMsg(t('registration_success_verify', { email: email.trim() }));
-        setUnverifiedUserObj(res.user);
+        if (onSuccess) onSuccess();
+        onClose();
       } else if (mode === 'login') {
         const res = await loginWithEmail(email.trim(), password);
-
-        // Check mandatory email verification
-        if (res.user && !res.user.emailVerified) {
-          setUnverifiedUserObj(res.user);
-          setErrorMsg(t('email_not_verified_error', { email: email.trim() }));
-          setLoading(false);
-          return;
-        }
-
         if (res.user?.displayName) {
           localStorage.setItem('syntax_factory_user_name', res.user.displayName);
         }

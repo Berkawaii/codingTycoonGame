@@ -180,11 +180,6 @@ export const resendVerificationEmailToUser = async (user: User): Promise<void> =
 export const loginWithEmail = async (email: string, pass: string) => {
   const res = await signInWithEmailAndPassword(auth, email, pass);
   if (res.user) {
-    if (!res.user.emailVerified) {
-      const unverifiedUser = res.user;
-      await signOut(auth);
-      throw { code: 'auth/email-not-verified', user: unverifiedUser };
-    }
     await syncUserToFirestore(res.user);
   }
   return res;
@@ -216,41 +211,24 @@ export const registerWithEmail = async (email: string, pass: string, displayName
 
     await syncUserToFirestore(userObj, displayName.trim());
 
-    // Send email verification link
+    // Optional background email verification link
     try {
-      await sendEmailVerification(userObj, getActionCodeSettings());
+      await sendEmailVerification(userObj);
     } catch (e) {
-      console.warn('Primary email verification send error, retrying without action code settings:', e);
-      try {
-        await sendEmailVerification(userObj);
-      } catch (err2) {
-        console.error('Failed to send verification email:', err2);
-      }
+      console.warn('Email verification send error:', e);
     }
-
-    // Sign out immediately so user cannot log into game until email is verified!
-    await signOut(auth);
-    return { user: userObj };
   }
   return res;
 };
 
 export const sendResetPassword = async (email: string) => {
-  try {
-    return await sendPasswordResetEmail(auth, email.trim(), getActionCodeSettings());
-  } catch {
-    return await sendPasswordResetEmail(auth, email.trim());
-  }
+  return sendPasswordResetEmail(auth, email.trim());
 };
 
 export const logoutUser = () => signOut(auth);
 
 export const subscribeToAuth = (callback: (user: User | null) => void) =>
   onAuthStateChanged(auth, async (user) => {
-    if (user && !user.isAnonymous && !user.emailVerified) {
-      callback(null);
-      return;
-    }
     if (user) {
       await syncUserToFirestore(user);
     }
