@@ -32,6 +32,16 @@ interface FloatingText {
   maxLife: number;
 }
 
+interface DustParticle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  size: number;
+  alpha: number;
+  color: string;
+}
+
 export const CanvasGrid: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -70,6 +80,7 @@ export const CanvasGrid: React.FC = () => {
   // Animation Engine Refs
   const smoothPosRef = useRef<Record<string, SmoothPos>>({});
   const particlesRef = useRef<Particle[]>([]);
+  const dustStormParticlesRef = useRef<DustParticle[]>([]);
   const floatingTextsRef = useRef<FloatingText[]>([]);
   const prevRobotStatesRef = useRef<Record<string, { status: string; energy: number; cargo: number; x: number; y: number }>>({});
   const animTimeRef = useRef<number>(0);
@@ -931,13 +942,108 @@ export const CanvasGrid: React.FC = () => {
       ctx.fillRect(bx - barWidth / 2, by - radius - 8, barWidth * hpRatio, 3.5);
     });
 
-    // 8. Draw Dust Storm Fog Overlay (Mars Orange Fog)
+    // 8. Draw Mars Dust Storm FX Engine (Dynamic Sand Particles, Wind Gusts & Pulsing Banner)
     const currentHazard = biomeMaps[currentBiome]?.activeHazard || activeHazard;
     if (currentHazard?.type === 'DUST_STORM') {
       ctx.save();
-      ctx.fillStyle = 'rgba(249, 115, 22, 0.15)';
+
+      // A. Pulsing Mars Orange Fog Overlay
+      const fogAlpha = 0.14 + Math.sin(animTimeRef.current * 0.04) * 0.04;
+      ctx.fillStyle = `rgba(249, 115, 22, ${fogAlpha})`;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // B. Maintain 150 Sand & Dust Particle System
+      if (dustStormParticlesRef.current.length < 150) {
+        const needed = 150 - dustStormParticlesRef.current.length;
+        const colors = ['#f97316', '#ea580c', '#fbbf24', '#d97706', '#fdba74'];
+        for (let i = 0; i < needed; i++) {
+          dustStormParticlesRef.current.push({
+            x: Math.random() * (canvas.width + 100) - 50,
+            y: Math.random() * canvas.height,
+            vx: 3.5 + Math.random() * 5.5,
+            vy: (Math.random() - 0.5) * 1.2,
+            size: 1 + Math.random() * 3,
+            alpha: 0.2 + Math.random() * 0.6,
+            color: colors[Math.floor(Math.random() * colors.length)],
+          });
+        }
+      }
+
+      // C. Update & Render Swirling Dust Particles
+      dustStormParticlesRef.current.forEach((p) => {
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (p.x > canvas.width + 50) {
+          p.x = -30;
+          p.y = Math.random() * canvas.height;
+        }
+        if (p.y < 0) p.y = canvas.height;
+        if (p.y > canvas.height) p.y = 0;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = '#f97316';
+        ctx.shadowBlur = p.size > 2 ? 6 : 0;
+        ctx.globalAlpha = p.alpha;
+        ctx.fill();
+        ctx.restore();
+      });
+
+      // D. Render Diagonal High-Speed Wind Gust Lines
+      const time = animTimeRef.current;
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i < 12; i++) {
+        const lineX = ((time * (12 + (i % 5) * 3) + i * 130) % (canvas.width + 400)) - 200;
+        const lineY = (i * 55 + Math.sin(time * 0.05 + i) * 15) % canvas.height;
+        const lineLen = 80 + (i % 4) * 40;
+
+        const windGrad = ctx.createLinearGradient(lineX, lineY, lineX + lineLen, lineY + 15);
+        windGrad.addColorStop(0, 'rgba(251, 146, 60, 0)');
+        windGrad.addColorStop(0.5, 'rgba(251, 146, 60, 0.4)');
+        windGrad.addColorStop(1, 'rgba(251, 146, 60, 0)');
+
+        ctx.strokeStyle = windGrad;
+        ctx.beginPath();
+        ctx.moveTo(lineX, lineY);
+        ctx.lineTo(lineX + lineLen, lineY + 15);
+        ctx.stroke();
+      }
+
+      // E. Canvas Top Warning Badge HUD
+      const badgeWidth = 320;
+      const badgeHeight = 28;
+      const bx = (canvas.width - badgeWidth) / 2;
+      const by = 12;
+
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      ctx.strokeStyle = 'rgba(249, 115, 22, 0.8)';
+      ctx.lineWidth = 1.5;
+      ctx.shadowColor = 'rgba(249, 115, 22, 0.5)';
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.roundRect(bx, by, badgeWidth, badgeHeight, 6);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#f97316';
+      ctx.font = 'bold 11px Fira Code, monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowBlur = 0;
+      ctx.fillText(
+        `🌪️ MARS KUM FIRTINASI AKTİF (Kalan: ${currentHazard.remainingTicks} Tick)`,
+        canvas.width / 2,
+        by + badgeHeight / 2
+      );
+
       ctx.restore();
+    } else {
+      if (dustStormParticlesRef.current.length > 0) {
+        dustStormParticlesRef.current = [];
+      }
     }
 
     // 7. Update & Draw Spark / Flame Particles
