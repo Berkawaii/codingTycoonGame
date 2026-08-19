@@ -6,7 +6,7 @@ import { BiomeType } from '../types/game';
 import { soundService } from '../services/soundService';
 import { TutorialModal } from './TutorialModal';
 import { AdminConsoleModal } from './AdminConsoleModal';
-import { Play, Pause, RotateCcw, FastForward, DollarSign, Volume2, VolumeX, Package, Terminal, Globe, RefreshCw, Bot, Zap, ShieldAlert, Trophy, Code2, Sparkles } from 'lucide-react';
+import { Play, Pause, RotateCcw, FastForward, DollarSign, Volume2, VolumeX, Package, Terminal, Globe, RefreshCw, Bot, Zap, ShieldAlert, Trophy, Code2, LogOut, LogIn } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const [isMuted, setMuted] = useState(soundService.isMuted);
@@ -32,6 +32,8 @@ export const Header: React.FC = () => {
     setMarketplaceOpen,
     setWelcomeOpen,
     userRole,
+    authUser,
+    logout,
   } = useGameStore();
 
   // Calculate total inventory value
@@ -223,57 +225,58 @@ export const Header: React.FC = () => {
             <span>Scriptler</span>
           </button>
 
-          <button
-            onClick={() => setWelcomeOpen(true)}
-            className="ui-btn ui-btn-secondary"
-            title="Karşılama Portalı"
-            style={{ padding: '0.35rem 0.55rem' }}
-          >
-            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-          </button>
-
-          {userRole === 'admin' ? (
+          {authUser ? (
             <button
-              onClick={() => setAdminModalOpen(true)}
-              className="ui-btn"
-              style={{
-                padding: '0.35rem 0.6rem',
-                fontSize: '0.72rem',
-                background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.35) 0%, rgba(168, 85, 247, 0.35) 100%)',
-                border: '1px solid rgba(239, 68, 68, 0.7)',
-                color: '#f87171',
-                fontWeight: 800,
-                boxShadow: '0 0 12px rgba(239, 68, 68, 0.4)',
-              }}
-              title="Geliştirici & Admin Test Konsolu"
+              onClick={logout}
+              className="ui-btn ui-btn-secondary"
+              title="Oturumu Kapat"
+              style={{ padding: '0.35rem 0.65rem', fontSize: '0.72rem', color: '#f87171', borderColor: 'rgba(239, 68, 68, 0.4)' }}
             >
-              <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
-              <span>ADMIN PANEL</span>
+              <LogOut className="w-3.5 h-3.5 text-rose-400" />
+              <span>Çıkış Yap</span>
             </button>
           ) : (
-            <div
-              style={{
-                fontSize: '0.68rem',
-                fontWeight: 700,
-                color: '#64748b',
-                background: 'rgba(30, 41, 59, 0.5)',
-                border: '1px solid #334155',
-                padding: '0.25rem 0.5rem',
-                borderRadius: '6px',
-              }}
-              title="Standart Mühendis Hesabı"
+            <button
+              onClick={() => setWelcomeOpen(true)}
+              className="ui-btn ui-btn-primary"
+              title="Oturum Aç / Kaydol"
+              style={{ padding: '0.35rem 0.65rem', fontSize: '0.72rem' }}
             >
-              USER ROLE
-            </div>
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Giriş Yap</span>
+            </button>
           )}
 
-          <button
-            onClick={resetGame}
-            className="ui-btn ui-btn-icon"
-            title="Sıfırla"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-          </button>
+          {userRole === 'admin' && (
+            <>
+              <button
+                onClick={() => setAdminModalOpen(true)}
+                className="ui-btn"
+                style={{
+                  padding: '0.35rem 0.6rem',
+                  fontSize: '0.72rem',
+                  background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.35) 0%, rgba(168, 85, 247, 0.35) 100%)',
+                  border: '1px solid rgba(239, 68, 68, 0.7)',
+                  color: '#f87171',
+                  fontWeight: 800,
+                  boxShadow: '0 0 12px rgba(239, 68, 68, 0.4)',
+                }}
+                title="Geliştirici & Admin Test Konsolu"
+              >
+                <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+                <span>ADMIN PANEL</span>
+              </button>
+
+              <button
+                onClick={resetGame}
+                className="ui-btn ui-btn-icon"
+                title="Fabrikayı Sıfırla (Admin Yetkisi)"
+                style={{ border: '1px solid rgba(239, 68, 68, 0.5)' }}
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
+              </button>
+            </>
+          )}
         </div>
       </header>
       
