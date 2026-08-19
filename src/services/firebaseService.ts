@@ -1,5 +1,15 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
+  signOut,
+  onAuthStateChanged,
+  User,
+  updateProfile,
+} from 'firebase/auth';
 import {
   getFirestore,
   collection,
@@ -28,6 +38,26 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+const googleProvider = new GoogleAuthProvider();
+
+// Auth Helpers
+export const loginWithEmail = (email: string, pass: string) =>
+  signInWithEmailAndPassword(auth, email, pass);
+
+export const registerWithEmail = async (email: string, pass: string, displayName: string) => {
+  const res = await createUserWithEmailAndPassword(auth, email, pass);
+  if (res.user && displayName) {
+    await updateProfile(res.user, { displayName });
+  }
+  return res;
+};
+
+export const loginWithGoogle = () => signInWithPopup(auth, googleProvider);
+
+export const logoutUser = () => signOut(auth);
+
+export const subscribeToAuth = (callback: (user: User | null) => void) =>
+  onAuthStateChanged(auth, callback);
 
 // Data Interfaces
 export interface LeaderboardEntry {
