@@ -43,21 +43,66 @@ export const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
+// Firestore User & Leaderboard Sync
+export const syncUserToFirestore = async (user: User, customDisplayName?: string) => {
+  if (!user) return;
+  const displayName = customDisplayName || user.displayName || user.email?.split('@')[0] || 'Mühendis Oyuncu';
+
+  const userData = {
+    uid: user.uid,
+    displayName,
+    email: user.email || '',
+    photoURL: user.photoURL || '',
+    updatedAt: new Date().toISOString(),
+  };
+
+  const leaderboardData = {
+    id: user.uid,
+    userId: user.uid,
+    displayName,
+    netWorth: 99999,
+    robotCount: 0,
+    energyKwh: 0,
+    biomeUnlockedCount: 1,
+    updatedAt: new Date().toISOString().split('T')[0],
+  };
+
+  try {
+    await setDoc(doc(db, 'users', user.uid), userData, { merge: true });
+    await setDoc(doc(db, 'leaderboards', user.uid), leaderboardData, { merge: true });
+    console.log('[FIRESTORE SINK]: User and Leaderboard documents created for', user.uid);
+  } catch (e) {
+    console.error('[FIRESTORE SINK ERROR]:', e);
+  }
+};
+
 // Auth Helpers
-export const loginWithEmail = (email: string, pass: string) =>
-  signInWithEmailAndPassword(auth, email, pass);
+export const loginWithEmail = async (email: string, pass: string) => {
+  const res = await signInWithEmailAndPassword(auth, email, pass);
+  if (res.user) {
+    await syncUserToFirestore(res.user);
+  }
+  return res;
+};
 
 export const registerWithEmail = async (email: string, pass: string, displayName: string) => {
   const res = await createUserWithEmailAndPassword(auth, email, pass);
-  if (res.user && displayName) {
-    await updateProfile(res.user, { displayName });
+  if (res.user) {
+    if (displayName) {
+      await updateProfile(res.user, { displayName });
+    }
+    await syncUserToFirestore(res.user, displayName);
   }
   return res;
 };
 
 export const loginWithGoogle = async () => {
   try {
-    return await signInWithPopup(auth, googleProvider);
+    const res = await signInWithPopup(auth, googleProvider);
+    if (res && res.user) {
+      await syncUserToFirestore(res.user);
+    }
+    return res;
   } catch (err: any) {
     if (
       err.code === 'auth/popup-blocked' ||
@@ -71,12 +116,23 @@ export const loginWithGoogle = async () => {
   }
 };
 
-export const checkRedirectResult = () => getRedirectResult(auth);
+export const checkRedirectResult = async () => {
+  const res = await getRedirectResult(auth);
+  if (res && res.user) {
+    await syncUserToFirestore(res.user);
+  }
+  return res;
+};
 
 export const logoutUser = () => signOut(auth);
 
 export const subscribeToAuth = (callback: (user: User | null) => void) =>
-  onAuthStateChanged(auth, callback);
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      await syncUserToFirestore(user);
+    }
+    callback(user);
+  });
 
 // Data Interfaces
 export interface LeaderboardEntry {

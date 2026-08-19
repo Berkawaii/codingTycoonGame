@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, Trophy, Code2, GraduationCap, User, Check, X, LogIn, LogOut, ShieldCheck } from 'lucide-react';
+import { Play, Trophy, Code2, GraduationCap, User, X, LogIn, LogOut, ShieldCheck } from 'lucide-react';
 import { AuthModal } from './AuthModal';
 import { useGameStore } from '../store/useGameStore';
 
@@ -20,21 +20,9 @@ export const WelcomePortalModal: React.FC<WelcomePortalModalProps> = ({
 }) => {
   const { authUser, userDisplayName, startAnonymousSession, logout } = useGameStore();
 
-  const [userName, setUserName] = useState<string>(
-    () => localStorage.getItem('syntax_factory_user_name') || userDisplayName || 'Mühendis Oyuncu'
-  );
-  const [savedNameSuccess, setSavedNameSuccess] = useState<boolean>(false);
   const [isAuthOpen, setIsAuthOpen] = useState<boolean>(false);
 
   if (!isOpen) return null;
-
-  const handleSaveName = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!userName.trim()) return;
-    localStorage.setItem('syntax_factory_user_name', userName.trim());
-    setSavedNameSuccess(true);
-    setTimeout(() => setSavedNameSuccess(false), 1500);
-  };
 
   return (
     <>
@@ -88,37 +76,7 @@ export const WelcomePortalModal: React.FC<WelcomePortalModalProps> = ({
             </p>
           </div>
 
-          {/* Engineer Call-sign Card */}
-          <form
-            onSubmit={handleSaveName}
-            style={{
-              width: '100%',
-              background: 'rgba(15, 23, 42, 0.7)',
-              border: '1px solid #1e293b',
-              borderRadius: '10px',
-              padding: '0.75rem 1rem',
-              marginBottom: '1.25rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '10px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-              <User className="w-4 h-4 text-cyan-400" />
-              <input
-                type="text"
-                value={userName}
-                onChange={(e) => setUserName(e.target.value)}
-                placeholder="Mühendis Çağrı Adınız (örn: CyberCoder)"
-                className="ui-input"
-                style={{ width: '100%', fontSize: '0.78rem' }}
-              />
-            </div>
-            <button type="submit" className="ui-btn ui-btn-cyan" style={{ padding: '0.35rem 0.75rem', fontSize: '0.73rem', fontWeight: 700 }}>
-              {savedNameSuccess ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : 'Kaydet'}
-            </button>
-          </form>
+
 
           {/* Account Status Badge */}
           <div style={{ width: '100%', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(15, 23, 42, 0.6)', padding: '6px 12px', borderRadius: '8px', border: '1px solid #1e293b' }}>
@@ -250,9 +208,6 @@ export const WelcomePortalModal: React.FC<WelcomePortalModalProps> = ({
       <AuthModal
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
-        onSuccess={() => {
-          setUserName(localStorage.getItem('syntax_factory_user_name') || 'Mühendis Oyuncu');
-        }}
       />
     </>
   );

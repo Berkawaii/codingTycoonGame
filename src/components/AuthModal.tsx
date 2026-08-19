@@ -60,8 +60,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
     setLoading(true);
     try {
       const res = await loginWithGoogle();
-      if (res && res.user?.displayName) {
-        localStorage.setItem('syntax_factory_user_name', res.user.displayName);
+      if (res && res.user) {
+        const name = res.user.displayName || res.user.email?.split('@')[0] || 'Mühendis';
+        localStorage.setItem('syntax_factory_user_name', name);
         setLoading(false);
         if (onSuccess) onSuccess();
         onClose();
