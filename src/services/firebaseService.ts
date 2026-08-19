@@ -321,18 +321,246 @@ export const submitPlayerScore = async (
   localStorage.setItem(LOCAL_LEADERBOARD_KEY, JSON.stringify(local.slice(0, 50)));
 };
 
+export const CREATOR_SCRIPTS: CommunityScript[] = [
+  {
+    id: 'script-creator-mining-01',
+    title: 'Gelişmiş Otonom Maden & Şarj Algoritması',
+    authorName: 'TheCreator',
+    authorId: 'the-creator',
+    description: 'Şarjı kritik seviyeye inince en yakın şarj istasyonuna giden, kargosu dolunca depoya boşaltan ve çevredeki madenleri radarla tarayan otonom madenci betiği.',
+    category: 'MINING',
+    code: `using System;
+using System.Collections.Generic;
+
+public class RobotScript
+{
+    public void Execute(IRobot robot)
+    {
+        int currentCargo = robot.GetCargo();
+        int maxCargo = robot.GetMaxCargo();
+
+        if (currentCargo >= maxCargo - 10)
+        {
+            robot.SendRadioMessage("CARGO_FULL", robot.GetX(), robot.GetY(), robot.GetId());
+
+            if (currentCargo >= maxCargo)
+            {
+                BuildingInfo depot = robot.GetNearestBuilding("DEPOT");
+                robot.GoTo(depot.X, depot.Y);
+                return;
+            }
+        }
+
+        int currentEnergy = robot.GetEnergy();
+        int energyNeeded = robot.GetEnergyToNearestStation();
+
+        if (currentEnergy <= 25 || currentEnergy <= energyNeeded + 2)
+        {
+            BuildingInfo station = robot.GetNearestBuilding("CHARGING_PAD");
+            robot.GoTo(station.X, station.Y);
+            return;
+        }
+
+        List<RadarTileInfo> radarData = robot.GetRadarInfo();
+        RadarTileInfo targetResource = null;
+        foreach (var info in radarData)
+        {
+            if (info.TileType == "RESOURCE" && info.Amount > 0)
+            {
+                targetResource = info;
+                break;
+            }
+        }
+
+        Tile frontTile = robot.GetTileInfo(Direction.Forward);
+        if (frontTile.HasResource && frontTile.Amount > 0)
+        {
+            robot.Mine();
+        }
+        else if (targetResource != null)
+        {
+            robot.GoTo(targetResource.X, targetResource.Y);
+        }
+        else
+        {
+            robot.Move(Direction.Forward);
+        }
+    }
+}`,
+    likes: 99,
+    downloads: 450,
+    createdAt: '2026-08-19',
+  },
+  {
+    id: 'script-creator-powerplant-01',
+    title: 'Termal Dengeleyici Santral Betiği',
+    authorName: 'TheCreator',
+    authorId: 'the-creator',
+    description: 'Santral sıcaklığı 85°C üzerine çıktığında otomatik soğutan, şebeke yüküne göre otonom kömür yakan santral yönetimi.',
+    category: 'MINING',
+    code: `using System;
+using System.Collections.Generic;
+
+public class PowerPlantScript
+{
+    public void Execute(IPowerPlant plant)
+    {
+        double temp = plant.GetTemperature();
+        double gridRatio = plant.GetGridEnergyRatio();
+
+        if (temp > 85.0)
+        {
+            plant.SetOverclockRate(0.5);
+            return;
+        }
+
+        if (gridRatio < 0.3 && temp < 65.0)
+        {
+            plant.SetOverclockRate(1.6);
+            plant.BurnFuel("COAL_ORE");
+        }
+        else if (gridRatio < 0.7)
+        {
+            plant.SetOverclockRate(1.0);
+            plant.BurnFuel("COAL_ORE");
+        }
+        else
+        {
+            plant.SetOverclockRate(0.7);
+        }
+    }
+}`,
+    likes: 88,
+    downloads: 320,
+    createdAt: '2026-08-19',
+  },
+  {
+    id: 'script-creator-transporter-01',
+    title: 'Lojistik Transporter Sürü Betiği',
+    authorName: 'TheCreator',
+    authorId: 'the-creator',
+    description: 'Sürü radyo şebekesindeki CARGO_FULL sinyallerini dinleyip madencilerin yanına giden ve kargoyu depoya taşıyan lojistik betiği.',
+    category: 'MINING',
+    code: `using System;
+using System.Collections.Generic;
+
+public class TransporterScript
+{
+    public void Execute(IRobot robot)
+    {
+        if (robot.GetCargo() >= robot.GetMaxCargo() - 20)
+        {
+            BuildingInfo depot = robot.GetNearestBuilding("DEPOT");
+            robot.GoTo(depot.X, depot.Y);
+            return;
+        }
+
+        if (robot.GetEnergy() <= 30)
+        {
+            BuildingInfo station = robot.GetNearestBuilding("CHARGING_PAD");
+            robot.GoTo(station.X, station.Y);
+            return;
+        }
+
+        List<RadioMessage> radioMsgs = robot.ReadRadioMessages();
+        foreach (var msg in radioMsgs)
+        {
+            if (msg.MessageType == "CARGO_FULL")
+            {
+                robot.GoTo(msg.X, msg.Y);
+                if (Math.Abs(msg.X - robot.GetX()) <= 1 && Math.Abs(msg.Y - robot.GetY()) <= 1)
+                {
+                    robot.CollectCargoFromRobot(msg.SenderId);
+                }
+                return;
+            }
+        }
+
+        robot.Move(Direction.Forward);
+    }
+}`,
+    likes: 76,
+    downloads: 290,
+    createdAt: '2026-08-19',
+  },
+  {
+    id: 'script-creator-repair-01',
+    title: 'Otonom Tamir Drone Betiği',
+    authorName: 'TheCreator',
+    authorId: 'the-creator',
+    description: 'Sahadaki hasarlı robotları otomatik tespit edip tamir ışınıyla yanlarına giderek onaran savunma ve destek betiği.',
+    category: 'REPAIR',
+    code: `using System;
+using System.Collections.Generic;
+
+public class RepairDroneScript
+{
+    public void Execute(IRobot robot)
+    {
+        if (robot.GetEnergy() <= 25)
+        {
+            BuildingInfo station = robot.GetNearestBuilding("CHARGING_PAD");
+            robot.GoTo(station.X, station.Y);
+            return;
+        }
+
+        List<RobotInfo> damagedRobots = robot.GetDamagedRobots();
+        if (damagedRobots.Count > 0)
+        {
+            RobotInfo target = damagedRobots[0];
+            int dist = Math.Abs(target.X - robot.GetX()) + Math.Abs(target.Y - robot.GetY());
+            
+            if (dist <= 1)
+            {
+                robot.RepairRobot(target.Id);
+            }
+            else
+            {
+                robot.GoTo(target.X, target.Y);
+            }
+            return;
+        }
+
+        robot.Move(Direction.Forward);
+    }
+}`,
+    likes: 95,
+    downloads: 410,
+    createdAt: '2026-08-19',
+  },
+];
+
+export const seedCreatorScriptsToFirestore = async (): Promise<void> => {
+  try {
+    for (const script of CREATOR_SCRIPTS) {
+      const docRef = doc(db, 'community_scripts', script.id);
+      await setDoc(docRef, script, { merge: true });
+    }
+    console.log('[FIRESTORE SEED]: 4 Creator scripts successfully seeded to Cloud Firestore under community_scripts collection!');
+  } catch (e) {
+    console.warn('Firebase Firestore seedCreatorScriptsToFirestore failed (check rules):', e);
+  }
+};
+
 // --- COMMUNITY SCRIPT MARKETPLACE SERVICES ---
 export const fetchCommunityScripts = async (): Promise<CommunityScript[]> => {
   try {
     const q = query(collection(db, 'community_scripts'), orderBy('createdAt', 'desc'), limit(50));
-    const snapshot = await getDocs(q);
+    let snapshot = await getDocs(q);
+
+    // If Firestore collection is empty, automatically seed TheCreator scripts directly into Firestore
+    if (snapshot.empty) {
+      await seedCreatorScriptsToFirestore();
+      snapshot = await getDocs(q);
+    }
+
     if (!snapshot.empty) {
       return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as CommunityScript));
     }
   } catch (e) {
     console.error('Firebase Firestore fetchCommunityScripts error:', e);
   }
-  return [];
+  return CREATOR_SCRIPTS;
 };
 
 export const publishCommunityScript = async (
