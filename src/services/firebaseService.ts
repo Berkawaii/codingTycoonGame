@@ -23,6 +23,7 @@ import {
   updateDoc,
   increment,
   deleteDoc,
+  where,
 } from 'firebase/firestore';
 
 // Default Firebase Configuration for playsyntaxfactory
@@ -138,23 +139,41 @@ export const deletePersonalScriptFromFirestore = async (userId: string, scriptId
   }
 };
 
-// Auth Helpers
+// Auth Helpers & Action Code Settings
+export const getActionCodeSettings = () => ({
+  url: window.location.origin,
+  handleCodeInApp: true,
+});
+
 export const checkDisplayNameExists = async (displayName: string): Promise<boolean> => {
   if (!displayName || !displayName.trim()) return false;
   const cleanName = displayName.trim().toLowerCase();
   try {
+    // Tier 1: Check display_names lookup collection
     const docRef = doc(db, 'display_names', cleanName);
     const snap = await getDoc(docRef);
-    return snap.exists();
+    if (snap.exists()) return true;
+
+    // Tier 2: Check leaderboards collection
+    const q = query(
+      collection(db, 'leaderboards'),
+      where('displayName', '==', displayName.trim())
+    );
+    const lSnap = await getDocs(q);
+    if (!lSnap.empty) return true;
   } catch (e) {
     console.warn('Error checking display name uniqueness:', e);
-    return false;
   }
+  return false;
 };
 
 export const resendVerificationEmailToUser = async (user: User): Promise<void> => {
   if (user) {
-    await sendEmailVerification(user);
+    try {
+      await sendEmailVerification(user, getActionCodeSettings());
+    } catch {
+      await sendEmailVerification(user);
+    }
   }
 };
 
@@ -198,7 +217,16 @@ export const registerWithEmail = async (email: string, pass: string, displayName
     await syncUserToFirestore(userObj, displayName.trim());
 
     // Send email verification link
-    await sendEmailVerification(userObj);
+    try {
+      await sendEmailVerification(userObj, getActionCodeSettings());
+    } catch (e) {
+      console.warn('Primary email verification send error, retrying without action code settings:', e);
+      try {
+        await sendEmailVerification(userObj);
+      } catch (err2) {
+        console.error('Failed to send verification email:', err2);
+      }
+    }
 
     // Sign out immediately so user cannot log into game until email is verified!
     await signOut(auth);
@@ -208,7 +236,11 @@ export const registerWithEmail = async (email: string, pass: string, displayName
 };
 
 export const sendResetPassword = async (email: string) => {
-  return sendPasswordResetEmail(auth, email);
+  try {
+    return await sendPasswordResetEmail(auth, email.trim(), getActionCodeSettings());
+  } catch {
+    return await sendPasswordResetEmail(auth, email.trim());
+  }
 };
 
 export const logoutUser = () => signOut(auth);
