@@ -69,6 +69,7 @@ export const CanvasGrid: React.FC = () => {
     turrets = [],
     activeBandits = [],
     activeHazard = null,
+    language,
     t,
   } = useGameStore();
 
@@ -1050,12 +1051,27 @@ export const CanvasGrid: React.FC = () => {
       }
 
       // E. Canvas Top Warning Badge HUD
-      const badgeWidth = 360;
+      const isEn = language === 'en';
+      let hazardTitle = currentHazard.name;
+      if (isEn) {
+        if (currentHazard.type === 'DUST_STORM') hazardTitle = 'Mars Dust Storm';
+        else if (currentHazard.type === 'VOLCANIC_ERUPTION') hazardTitle = 'Volcanic Magma & Ash Rain';
+        else if (currentHazard.type === 'QUANTUM_FLARE') hazardTitle = 'Quantum EMP Radiation Wave';
+        else if (currentHazard.type === 'BLIZZARD') hazardTitle = 'Sub-Zero Polar Blizzard';
+      }
+
+      const warningPrefix = isEn ? '[WARNING]' : '[TEHLİKE UYARISI]';
+      const ticksText = isEn ? `(Remaining: ${currentHazard.remainingTicks} Ticks)` : `(Kalan: ${currentHazard.remainingTicks} Tick)`;
+      const fullLabel = `${warningPrefix} ${hazardTitle.toUpperCase()} ${ticksText}`;
+
       const badgeHeight = 28;
+      ctx.font = 'bold 11px Fira Code, monospace';
+      const textWidth = ctx.measureText(fullLabel).width;
+      const badgeWidth = Math.max(320, Math.min(canvas.width - 24, textWidth + 36));
       const bx = (canvas.width - badgeWidth) / 2;
       const by = 12;
 
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
       ctx.strokeStyle = hudBorder;
       ctx.lineWidth = 1.5;
       ctx.shadowColor = hudBorder;
@@ -1066,15 +1082,10 @@ export const CanvasGrid: React.FC = () => {
       ctx.stroke();
 
       ctx.fillStyle = hudText;
-      ctx.font = 'bold 11px Fira Code, monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.shadowBlur = 0;
-      ctx.fillText(
-        `[UYARI] ${currentHazard.name.toUpperCase()} (Kalan: ${currentHazard.remainingTicks} Tick)`,
-        canvas.width / 2,
-        by + badgeHeight / 2
-      );
+      ctx.fillText(fullLabel, canvas.width / 2, by + badgeHeight / 2);
 
       ctx.restore();
     } else {
