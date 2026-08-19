@@ -38,18 +38,24 @@ export function initFirebase() {
   }
 }
 
-export async function saveScriptToFirebase(name: string, code: string, robotId?: string): Promise<FirebaseScriptDoc> {
+async function ensureAuthUser(): Promise<string> {
   initFirebase();
-
-  if (!auth?.currentUser && auth) {
+  if (auth?.currentUser) {
+    return auth.currentUser.uid;
+  }
+  if (auth) {
     try {
-      await signInAnonymously(auth);
+      const res = await signInAnonymously(auth);
+      return res.user.uid;
     } catch (e) {
-      console.warn('Anonymous sign-in warning:', e);
+      console.warn('Anonymous sign-in error:', e);
     }
   }
+  return localStorage.getItem('syntax_factory_user_id') || 'guest-user';
+}
 
-  const userId = auth?.currentUser?.uid || 'guest-user';
+export async function saveScriptToFirebase(name: string, code: string, robotId?: string): Promise<FirebaseScriptDoc> {
+  const userId = await ensureAuthUser();
   const cleanId = name.replace(/[^a-zA-Z0-9_-]/g, '_');
   const docRef = doc(db!, 'users', userId, 'personal_scripts', cleanId);
 
@@ -66,19 +72,10 @@ export async function saveScriptToFirebase(name: string, code: string, robotId?:
 }
 
 export async function fetchFirebaseScripts(): Promise<FirebaseScriptDoc[]> {
-  initFirebase();
+  const userId = await ensureAuthUser();
 
-  if (!auth?.currentUser && auth) {
+  if (db && userId) {
     try {
-      await signInAnonymously(auth);
-    } catch (e) {
-      console.warn('Anonymous sign-in warning:', e);
-    }
-  }
-
-  if (db && auth?.currentUser) {
-    try {
-      const userId = auth.currentUser.uid;
       const q = query(collection(db, 'users', userId, 'personal_scripts'), orderBy('updated_at', 'desc'));
       const snapshot = await getDocs(q);
       const docs: FirebaseScriptDoc[] = [];
