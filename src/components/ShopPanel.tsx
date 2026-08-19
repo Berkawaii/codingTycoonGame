@@ -4,34 +4,6 @@ import { BIOME_CATALOG } from '../constants/biomes';
 import { BiomeType } from '../types/game';
 import { Bot, Zap, Pickaxe, PlusCircle, Radio, Building2, BatteryCharging, Package, Globe, Compass, Lock, CheckCircle2, Maximize2, Send, Truck } from 'lucide-react';
 
-interface ShopRobotTemplate {
-  name: string;
-  color: string;
-  basePrice: number;
-  description: string;
-}
-
-const AVAILABLE_ROBOTS: ShopRobotTemplate[] = [
-  {
-    name: 'Rover Gamma',
-    color: '#a855f7',
-    basePrice: 750,
-    description: 'Yüksek batarya verimliliğine sahip keşif robotu.',
-  },
-  {
-    name: 'Heavy Digger-01',
-    color: '#f97316',
-    basePrice: 1500,
-    description: 'Ağır maden damarlarını parçalamak için tasarlanmış yüksek güçlü ünite.',
-  },
-  {
-    name: 'Quantum Rover X',
-    color: '#ec4899',
-    basePrice: 3500,
-    description: 'Kuantum kristalleri ve değerli madenler için özel tasarlanmış son teknoloji bot.',
-  },
-];
-
 const getStatUpgradePrice = (currentLevel: number, basePrice: number): number => {
   return Math.round(basePrice * Math.pow(1.35, Math.max(0, currentLevel - 1)));
 };
@@ -65,6 +37,8 @@ export const ShopPanel: React.FC = () => {
     transferRobotToBiome,
     gridSize,
     biomeMaps,
+    language,
+    t,
   } = useGameStore();
 
   const selectedRobot = robots.find((r) => r.id === selectedRobotId);
@@ -122,6 +96,27 @@ export const ShopPanel: React.FC = () => {
     }
   };
 
+  const availableRobots = [
+    {
+      name: 'Rover Gamma',
+      color: '#a855f7',
+      basePrice: 750,
+      description: language === 'tr' ? 'Yüksek batarya verimliliğine sahip keşif robotu.' : 'High battery efficiency scouting robot.',
+    },
+    {
+      name: 'Heavy Digger-01',
+      color: '#f97316',
+      basePrice: 1500,
+      description: language === 'tr' ? 'Ağır maden damarlarını parçalamak için tasarlanmış yüksek güçlü ünite.' : 'High power unit engineered for crushing heavy ore veins.',
+    },
+    {
+      name: 'Quantum Rover X',
+      color: '#ec4899',
+      basePrice: 3500,
+      description: language === 'tr' ? 'Kuantum kristalleri ve değerli madenler için özel tasarlanmış son teknoloji bot.' : 'State-of-the-art bot designed for quantum crystals & rare ores.',
+    },
+  ];
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       {/* 1. Robot Purchase Section */}
@@ -129,15 +124,15 @@ export const ShopPanel: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
           <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Bot className="w-4 h-4 text-cyan-400" />
-            <span>Robot Mağazası (Filo Büyüdükçe Fiyat Artar)</span>
+            <span>{t('robot_shop_title')}</span>
           </span>
           <span style={{ color: '#34d399', fontFamily: 'Fira Code, monospace', fontWeight: 800, fontSize: '0.85rem' }}>
-            Bakiye: ${credits.toLocaleString()}
+            {t('balance')}: ${credits.toLocaleString()}
           </span>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
-          {AVAILABLE_ROBOTS.map((template) => {
+          {availableRobots.map((template) => {
             const currentPrice = getRobotPurchasePrice(template.basePrice);
             const canAfford = credits >= currentPrice;
 
@@ -167,7 +162,7 @@ export const ShopPanel: React.FC = () => {
                     className="ui-btn ui-btn-primary"
                     style={{ padding: '0.25rem 0.6rem', fontSize: '0.72rem', opacity: !canAfford ? 0.4 : 1 }}
                   >
-                    <span>Satın Al</span>
+                    <span>{t('buy')}</span>
                   </button>
                 </div>
               </div>
@@ -191,11 +186,13 @@ export const ShopPanel: React.FC = () => {
                 <Truck className="w-4 h-4 text-orange-400" />
                 <h4 style={{ fontWeight: 800, color: '#f97316', fontSize: '0.8rem' }}>Carrier Transporter</h4>
                 <span style={{ fontSize: '0.62rem', background: 'rgba(249, 115, 22, 0.3)', color: '#fdba74', padding: '1px 5px', borderRadius: '4px', border: '1px solid rgba(249, 115, 22, 0.5)', fontWeight: 800 }}>
-                  200KG KARGO
+                  200KG CARGO
                 </span>
               </div>
               <p style={{ fontSize: '0.68rem', color: '#cbd5e1', lineHeight: '1.3' }}>
-                Kazı yapamaz. 200kg dev kargo kapasitesi ve 2x hızlı hareket ile madencilerden ürünleri radyo ile toplayıp depoya taşır.
+                {language === 'tr'
+                  ? 'Kazı yapamaz. 200kg dev kargo kapasitesi ve 2x hızlı hareket ile madencilerden ürünleri radyo ile toplayıp depoya taşır.'
+                  : 'Cannot mine. 200kg massive cargo hold & 2x speed. Collects ores from miners via radio and deposits at depot.'}
               </p>
             </div>
 
@@ -217,7 +214,7 @@ export const ShopPanel: React.FC = () => {
                   border: 'none',
                 }}
               >
-                <span>Lojistik Satın Al</span>
+                <span>{t('buy_transporter')}</span>
               </button>
             </div>
           </div>
@@ -237,13 +234,15 @@ export const ShopPanel: React.FC = () => {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
                 <Bot className="w-4 h-4 text-emerald-400" />
-                <h4 style={{ fontWeight: 800, color: '#10b981', fontSize: '0.8rem' }}>Tamir Drone (Repair)</h4>
+                <h4 style={{ fontWeight: 800, color: '#10b981', fontSize: '0.8rem' }}>Repair Drone</h4>
                 <span style={{ fontSize: '0.62rem', background: 'rgba(16, 185, 129, 0.3)', color: '#6ee7b7', padding: '1px 5px', borderRadius: '4px', border: '1px solid rgba(16, 185, 129, 0.5)', fontWeight: 800 }}>
-                  2X HIZ / ONARIM
+                  2X SPEED / REPAIR
                 </span>
               </div>
               <p style={{ fontSize: '0.68rem', color: '#cbd5e1', lineHeight: '1.3' }}>
-                Hasarlı robotları ve ısınan santralleri otonom tespit edip yeşil lazer tamir ışını ile onarır (`RepairRobot`).
+                {language === 'tr'
+                  ? 'Hasarlı robotları ve ısınan santralleri otonom tespit edip yeşil lazer tamir ışını ile onarır (RepairRobot).'
+                  : 'Autonomously targets damaged bots & power plants, healing units with a green laser repair beam (RepairRobot).'}
               </p>
             </div>
 
@@ -265,7 +264,7 @@ export const ShopPanel: React.FC = () => {
                   border: 'none',
                 }}
               >
-                <span>Tamir Drone Satın Al</span>
+                <span>{t('buy_repair_drone')}</span>
               </button>
             </div>
           </div>
@@ -276,7 +275,7 @@ export const ShopPanel: React.FC = () => {
       <div>
         <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '0.5rem' }}>
           <Building2 className="w-4 h-4 text-cyan-400" />
-          <span>Sanayi Binaları & Fabrika Otomasyonu (2x2 Altyapı)</span>
+          <span>{t('industrial_buildings_title')}</span>
         </span>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.75rem' }}>
@@ -285,15 +284,15 @@ export const ShopPanel: React.FC = () => {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
                 <Zap className="w-4 h-4 text-amber-400" />
-                <h4 style={{ fontWeight: 700, color: '#f1f5f9', fontSize: '0.8rem' }}>Şarj İstasyonu İnşa Et</h4>
+                <h4 style={{ fontWeight: 700, color: '#f1f5f9', fontSize: '0.8rem' }}>{t('build_station_title')}</h4>
               </div>
               <p style={{ fontSize: '0.7rem', color: '#94a3b8', lineHeight: '1.3' }}>
-                Robotların yolda kalmaması için (X, Y) konumuna yeni istasyon kurar.
+                {t('build_station_desc')}
               </p>
             </div>
             <div style={{ paddingTop: '0.5rem', borderTop: '1px solid #1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontFamily: 'Fira Code, monospace', fontWeight: 700, color: stationPrice === 0 ? '#34d399' : '#fbbf24', fontSize: '0.8rem' }}>
-                {stationPrice === 0 ? '[ÜCRETSİZ]' : `$${stationPrice.toLocaleString()}`}
+                {stationPrice === 0 ? t('free_tag') : `$${stationPrice.toLocaleString()}`}
               </span>
               <button
                 onClick={() => handleBuyBuilding('station')}
@@ -302,7 +301,7 @@ export const ShopPanel: React.FC = () => {
                 style={{ padding: '0.25rem 0.6rem', fontSize: '0.72rem', opacity: credits < stationPrice ? 0.4 : 1 }}
               >
                 <PlusCircle className="w-3.5 h-3.5" />
-                <span>İnşa Et</span>
+                <span>{t('build_btn')}</span>
               </button>
             </div>
           </div>
@@ -312,15 +311,15 @@ export const ShopPanel: React.FC = () => {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
                 <Building2 className="w-4 h-4 text-cyan-400" />
-                <h4 style={{ fontWeight: 700, color: '#f1f5f9', fontSize: '0.8rem' }}>Lojistik Deposu İnşa Et</h4>
+                <h4 style={{ fontWeight: 700, color: '#f1f5f9', fontSize: '0.8rem' }}>{t('build_depot_title')}</h4>
               </div>
               <p style={{ fontSize: '0.7rem', color: '#94a3b8', lineHeight: '1.3' }}>
-                Robotların maden kargolarını otomatik boşaltması için (X, Y) konumuna depo kurar.
+                {t('build_depot_desc')}
               </p>
             </div>
             <div style={{ paddingTop: '0.5rem', borderTop: '1px solid #1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontFamily: 'Fira Code, monospace', fontWeight: 700, color: depotPrice === 0 ? '#34d399' : '#38bdf8', fontSize: '0.8rem' }}>
-                {depotPrice === 0 ? '[ÜCRETSİZ]' : `$${depotPrice.toLocaleString()}`}
+              <span style={{ fontFamily: 'Fira Code, monospace', fontWeight: 700, color: depotPrice === 0 ? '#34d399' : '#fbbf24', fontSize: '0.8rem' }}>
+                {depotPrice === 0 ? t('free_tag') : `$${depotPrice.toLocaleString()}`}
               </span>
               <button
                 onClick={() => handleBuyBuilding('depot')}
@@ -329,7 +328,7 @@ export const ShopPanel: React.FC = () => {
                 style={{ padding: '0.25rem 0.6rem', fontSize: '0.72rem', opacity: credits < depotPrice ? 0.4 : 1 }}
               >
                 <PlusCircle className="w-3.5 h-3.5" />
-                <span>İnşa Et</span>
+                <span>{t('build_btn')}</span>
               </button>
             </div>
           </div>
@@ -339,10 +338,10 @@ export const ShopPanel: React.FC = () => {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
                 <Pickaxe className="w-4 h-4 text-orange-400" />
-                <h4 style={{ fontWeight: 700, color: '#ffedd5', fontSize: '0.8rem' }}>Dökümhane (2x2)</h4>
+                <h4 style={{ fontWeight: 700, color: '#ffedd5', fontSize: '0.8rem' }}>{t('smelter_title')}</h4>
               </div>
               <p style={{ fontSize: '0.68rem', color: '#94a3b8', lineHeight: '1.3' }}>
-                Ham cevherleri (Demir, Obsidyen) 10x değerli Çelik Külçe ve Alaşıma dönüştürür.
+                {t('smelter_desc')}
               </p>
             </div>
             <div style={{ paddingTop: '0.5rem', borderTop: '1px solid #1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -356,7 +355,7 @@ export const ShopPanel: React.FC = () => {
                 style={{ padding: '0.25rem 0.6rem', fontSize: '0.72rem', opacity: credits < 5000 ? 0.4 : 1 }}
               >
                 <PlusCircle className="w-3.5 h-3.5" />
-                <span>2x2 Kur</span>
+                <span>{t('build_2x2')}</span>
               </button>
             </div>
           </div>
@@ -366,10 +365,10 @@ export const ShopPanel: React.FC = () => {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
                 <Radio className="w-4 h-4 text-purple-400" />
-                <h4 style={{ fontWeight: 700, color: '#f3e8ff', fontSize: '0.8rem' }}>Rafineri (2x2)</h4>
+                <h4 style={{ fontWeight: 700, color: '#f3e8ff', fontSize: '0.8rem' }}>{t('refinery_title')}</h4>
               </div>
               <p style={{ fontSize: '0.68rem', color: '#94a3b8', lineHeight: '1.3' }}>
-                Değerli madenleri (Altın, Kristal) Kuantum Çiplerine ($2,500) ve Plazma Çekirdeklerine ($4,800) işler.
+                {t('refinery_desc')}
               </p>
             </div>
             <div style={{ paddingTop: '0.5rem', borderTop: '1px solid #1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -383,7 +382,7 @@ export const ShopPanel: React.FC = () => {
                 style={{ padding: '0.25rem 0.6rem', fontSize: '0.72rem', opacity: credits < 12000 ? 0.4 : 1, color: '#c084fc', borderColor: 'rgba(192,132,252,0.4)' }}
               >
                 <PlusCircle className="w-3.5 h-3.5" />
-                <span>2x2 Kur</span>
+                <span>{t('build_2x2')}</span>
               </button>
             </div>
           </div>
@@ -393,10 +392,10 @@ export const ShopPanel: React.FC = () => {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
                 <BatteryCharging className="w-4 h-4 text-emerald-400" />
-                <h4 style={{ fontWeight: 700, color: '#a7f3d0', fontSize: '0.8rem' }}>Enerji Santrali</h4>
+                <h4 style={{ fontWeight: 700, color: '#a7f3d0', fontSize: '0.8rem' }}>{t('powerplant_title')}</h4>
               </div>
               <p style={{ fontSize: '0.68rem', color: '#94a3b8', lineHeight: '1.3' }}>
-                SADECE Şarj İstasyonu bitişiğine kurulabilir. Depodaki cevherleri otomatik yakarak şebekeyi besler.
+                {t('powerplant_desc')}
               </p>
             </div>
             <div style={{ paddingTop: '0.5rem', borderTop: '1px solid #1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -410,7 +409,7 @@ export const ShopPanel: React.FC = () => {
                 style={{ padding: '0.25rem 0.6rem', fontSize: '0.72rem', opacity: credits < 8000 ? 0.4 : 1, background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none' }}
               >
                 <PlusCircle className="w-3.5 h-3.5" />
-                <span>Bitişiğe Kur</span>
+                <span>{t('build_adj')}</span>
               </button>
             </div>
           </div>
@@ -420,19 +419,19 @@ export const ShopPanel: React.FC = () => {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
                 <Zap className="w-4 h-4 text-rose-500" />
-                <h4 style={{ fontWeight: 800, color: '#f87171', fontSize: '0.8rem' }}>Lazer Savunma Kulesi (2x2)</h4>
+                <h4 style={{ fontWeight: 800, color: '#f87171', fontSize: '0.8rem' }}>{t('turret_title')}</h4>
               </div>
               <p style={{ fontSize: '0.68rem', color: '#cbd5e1', lineHeight: '1.3' }}>
-                Korsan robotlara ve `BANDIT_SPOTTED` radyo çağrılarına otonom kilitlenip kızıl lazer ateşi açar.
+                {t('turret_desc')}
               </p>
             </div>
             <div style={{ paddingTop: '0.5rem', borderTop: '1px solid rgba(239, 68, 68, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontFamily: 'Fira Code, monospace', fontWeight: 800, color: '#fbbf24', fontSize: '0.8rem' }}>
+              <span style={{ fontFamily: 'Fira Code, monospace', fontWeight: 700, color: '#fbbf24', fontSize: '0.8rem' }}>
                 $6,000
               </span>
               <button
                 onClick={() => {
-                  const coordStr = prompt('Lazer Savunma Kulesi (2x2) için (X, Y) koordinatını girin:', '8, 8');
+                  const coordStr = prompt(language === 'tr' ? 'Lazer Savunma Kulesi (2x2) için (X, Y) koordinatını girin:' : 'Enter (X, Y) coordinates for Defense Turret (2x2):', '8, 8');
                   if (!coordStr) return;
                   const parts = coordStr.split(',').map((p) => parseInt(p.trim(), 10));
                   if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
@@ -444,7 +443,7 @@ export const ShopPanel: React.FC = () => {
                 style={{ padding: '0.25rem 0.6rem', fontSize: '0.72rem', opacity: credits < 6000 ? 0.4 : 1, background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: '#fff', fontWeight: 700, border: 'none' }}
               >
                 <PlusCircle className="w-3.5 h-3.5" />
-                <span>Kule İnşa Et</span>
+                <span>{t('build_turret')}</span>
               </button>
             </div>
           </div>
@@ -454,29 +453,29 @@ export const ShopPanel: React.FC = () => {
         {turrets && turrets.length > 0 && (
           <div style={{ marginTop: '0.75rem', padding: '0.6rem', background: 'rgba(15,23,42,0.6)', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.3)' }}>
             <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#f87171', marginBottom: '6px', textTransform: 'uppercase' }}>
-              🛡️ Aktif Savunma Kuleleri Yükseltmeleri
+              🛡️ {language === 'tr' ? 'Aktif Savunma Kuleleri Yükseltmeleri' : 'Active Defense Turret Upgrades'}
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-              {turrets.map((t) => (
-                <div key={t.id} style={{ background: '#090e17', padding: '6px 10px', borderRadius: '6px', border: '1px solid #1e293b', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.72rem' }}>
-                  <span style={{ fontWeight: 700, color: '#f1f5f9' }}>{t.name} ({t.x}, {t.y})</span>
-                  <span style={{ color: '#94a3b8' }}>Menzil: <strong style={{ color: '#38bdf8' }}>{t.range} Karo</strong> (Lvl {t.rangeLevel})</span>
+              {turrets.map((tItem) => (
+                <div key={tItem.id} style={{ background: '#090e17', padding: '6px 10px', borderRadius: '6px', border: '1px solid #1e293b', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.72rem' }}>
+                  <span style={{ fontWeight: 700, color: '#f1f5f9' }}>{tItem.name} ({tItem.x}, {tItem.y})</span>
+                  <span style={{ color: '#94a3b8' }}>{language === 'tr' ? 'Menzil:' : 'Range:'} <strong style={{ color: '#38bdf8' }}>{tItem.range} {language === 'tr' ? 'Karo' : 'Tiles'}</strong> (Lvl {tItem.rangeLevel})</span>
                   <button
-                    onClick={() => upgradeTurretRange(t.id)}
-                    disabled={credits < 1500 || t.rangeLevel >= 5}
+                    onClick={() => upgradeTurretRange(tItem.id)}
+                    disabled={credits < 1500 || tItem.rangeLevel >= 5}
                     className="ui-btn ui-btn-cyan"
                     style={{ padding: '2px 6px', fontSize: '0.68rem' }}
                   >
-                    +1 Menzil ($1,500)
+                    +1 {language === 'tr' ? 'Menzil' : 'Range'} ($1,500)
                   </button>
-                  <span style={{ color: '#94a3b8' }}>Lazer: <strong style={{ color: '#f43f5e' }}>{t.damage} DPS</strong> (Lvl {t.damageLevel})</span>
+                  <span style={{ color: '#94a3b8' }}>{language === 'tr' ? 'Lazer:' : 'Laser:'} <strong style={{ color: '#f43f5e' }}>{tItem.damage} DPS</strong> (Lvl {tItem.damageLevel})</span>
                   <button
-                    onClick={() => upgradeTurretDamage(t.id)}
-                    disabled={credits < 2000 || t.damageLevel >= 5}
+                    onClick={() => upgradeTurretDamage(tItem.id)}
+                    disabled={credits < 2000 || tItem.damageLevel >= 5}
                     className="ui-btn"
                     style={{ padding: '2px 6px', fontSize: '0.68rem', background: '#ef4444', color: '#fff', border: 'none' }}
                   >
-                    +20 Lazer ($2,000)
+                    +20 {language === 'tr' ? 'Lazer' : 'Laser'} ($2,000)
                   </button>
                 </div>
               ))}
@@ -490,7 +489,7 @@ export const ShopPanel: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
           <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Globe className="w-4 h-4 text-emerald-400" />
-            <span>Harita Keşfi & Biyom Satın Alma (Nadir Madenler & Tehlikeler)</span>
+            <span>{t('map_discovery_title')}</span>
           </span>
 
           {(() => {
@@ -505,13 +504,13 @@ export const ShopPanel: React.FC = () => {
                 disabled={isMax || credits < expCost}
                 className="ui-btn ui-btn-primary"
                 style={{ padding: '0.25rem 0.65rem', fontSize: '0.72rem', opacity: isMax || credits < expCost ? 0.5 : 1 }}
-                title={isMax ? 'Harita maksimum boyutta' : `Aktif haritanın alanını ${curSize}x${curSize}'den ${nextSize}x${nextSize}'e büyüt ($${expCost.toLocaleString()})`}
+                title={isMax ? (language === 'tr' ? 'Harita maksimum boyutta' : 'Map at maximum size') : `Expand grid from ${curSize}x${curSize} to ${nextSize}x${nextSize}`}
               >
                 <Maximize2 className="w-3.5 h-3.5 text-cyan-400" />
                 <span>
                   {isMax
-                    ? 'Harita Max (50x50)'
-                    : `Haritayı Genişlet (${curSize}x${curSize} -> ${nextSize}x${nextSize}) ($${expCost.toLocaleString()})`}
+                    ? (language === 'tr' ? 'Harita Max (50x50)' : 'Map Max (50x50)')
+                    : `${language === 'tr' ? 'Haritayı Genişlet' : 'Expand Map'} (${curSize}x${curSize} -> ${nextSize}x${nextSize}) ($${expCost.toLocaleString()})`}
                 </span>
               </button>
             );
@@ -525,6 +524,18 @@ export const ShopPanel: React.FC = () => {
             const isCurrent = currentBiome === biomeKey;
             const canAfford = credits >= def.unlockPrice;
             const bSize = biomeMaps[biomeKey]?.gridSize?.width || 20;
+
+            const biomeName = language === 'en'
+              ? biomeKey === 'MARS_BASIN' ? 'Mars Basin Desert' : biomeKey === 'VOLCANIC' ? 'Volcanic Magma Basin' : biomeKey === 'QUANTUM_CAVERN' ? 'Quantum Crystal Cavern' : 'Glacial Permafrost Wastes'
+              : def.name;
+
+            const biomeSubtitle = language === 'en'
+              ? biomeKey === 'MARS_BASIN' ? 'Default Base Mining Grounds' : biomeKey === 'VOLCANIC' ? 'Molten Lava Rivers & Ruby Crystals' : biomeKey === 'QUANTUM_CAVERN' ? 'Nuclear Radiation & Quantum Particles' : 'Slippery Ice Layer & Diamond Crystals'
+              : def.subtitle;
+
+            const hazardName = language === 'en'
+              ? def.hazardType === 'NONE' ? 'None' : def.hazardType === 'LAVA' ? 'Extreme Lava Heat' : def.hazardType === 'RADIATION' ? 'Nuclear Radiation' : 'Sub-Zero Freezing'
+              : def.hazardName;
 
             return (
               <div
@@ -541,7 +552,7 @@ export const ShopPanel: React.FC = () => {
               >
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <h4 style={{ fontWeight: 800, color: '#f1f5f9', fontSize: '0.78rem' }}>{def.name}</h4>
+                    <h4 style={{ fontWeight: 800, color: '#f1f5f9', fontSize: '0.78rem' }}>{biomeName}</h4>
                     {isCurrent ? (
                       <span style={{ fontSize: '0.62rem', color: '#00f2fe', fontWeight: 800 }}>[{bSize}x{bSize}]</span>
                     ) : isUnlocked ? (
@@ -551,16 +562,16 @@ export const ShopPanel: React.FC = () => {
                     )}
                   </div>
                   <p style={{ fontSize: '0.68rem', color: '#94a3b8', lineHeight: '1.25', marginBottom: '4px' }}>
-                    {def.subtitle}
+                    {biomeSubtitle}
                   </p>
                   <span style={{ fontSize: '0.65rem', color: '#e2e8f0', background: 'rgba(255,255,255,0.05)', padding: '2px 4px', borderRadius: '4px', display: 'inline-block' }}>
-                    Tehlike: {def.hazardName}
+                    {language === 'tr' ? 'Tehlike:' : 'Hazard:'} {hazardName}
                   </span>
                 </div>
 
                 <div style={{ paddingTop: '0.5rem', borderTop: '1px solid #1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{ fontFamily: 'Fira Code, monospace', fontWeight: 700, color: def.unlockPrice === 0 ? '#34d399' : '#fbbf24', fontSize: '0.75rem' }}>
-                    {def.unlockPrice === 0 ? 'AÇIK' : `$${def.unlockPrice.toLocaleString()}`}
+                    {def.unlockPrice === 0 ? (language === 'tr' ? 'AÇIK' : 'UNLOCKED') : `$${def.unlockPrice.toLocaleString()}`}
                   </span>
 
                   {isUnlocked ? (
@@ -571,7 +582,7 @@ export const ShopPanel: React.FC = () => {
                       style={{ padding: '0.2rem 0.5rem', fontSize: '0.68rem', opacity: isCurrent ? 0.4 : 1 }}
                     >
                       <Compass className="w-3 h-3" />
-                      <span>{isCurrent ? 'Aktif' : 'Seyahat Et'}</span>
+                      <span>{isCurrent ? (language === 'tr' ? 'Aktif' : 'Active') : (language === 'tr' ? 'Seyahat Et' : 'Travel')}</span>
                     </button>
                   ) : (
                     <button
@@ -580,7 +591,7 @@ export const ShopPanel: React.FC = () => {
                       className="ui-btn ui-btn-primary"
                       style={{ padding: '0.2rem 0.5rem', fontSize: '0.68rem', opacity: !canAfford ? 0.4 : 1 }}
                     >
-                      <span>Aç ($)</span>
+                      <span>{language === 'tr' ? 'Aç ($)' : 'Unlock ($)'}</span>
                     </button>
                   )}
                 </div>

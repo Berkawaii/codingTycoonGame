@@ -20,6 +20,7 @@ export const InventoryPanel: React.FC = () => {
     scriptCode,
     setScriptCode,
     addLog,
+    language,
     t,
   } = useGameStore();
 
@@ -108,17 +109,17 @@ export const InventoryPanel: React.FC = () => {
           onClick={() => setIsMaximized(!isMaximized)}
           className="ui-btn ui-btn-icon"
           style={{ margin: '4px 8px', padding: '0.35rem 0.6rem', fontSize: '0.72rem' }}
-          title={isMaximized ? 'Küçült' : 'Tam Ekran Büyüt'}
+          title={isMaximized ? (language === 'tr' ? 'Küçült' : 'Minimize') : (language === 'tr' ? 'Tam Ekran Büyüt' : 'Maximize')}
         >
           {isMaximized ? (
             <>
               <Minimize2 className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Küçült</span>
+              <span>{language === 'tr' ? 'Küçült' : 'Minimize'}</span>
             </>
           ) : (
             <>
               <Maximize2 className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Büyüt</span>
+              <span>{language === 'tr' ? 'Büyüt' : 'Maximize'}</span>
             </>
           )}
         </button>
@@ -129,11 +130,11 @@ export const InventoryPanel: React.FC = () => {
         <div className="panel-content" style={{ padding: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
             <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Stok Tutma Birimleri (SKU Envanteri)
+              {language === 'tr' ? 'Stok Tutma Birimleri (SKU Envanteri)' : 'Stock Keeping Units (SKU Inventory)'}
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: '#fbbf24', fontWeight: 600, background: 'rgba(245, 158, 11, 0.15)', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
               <Coins className="w-3.5 h-3.5" />
-              <span>Canlı Stok Takibi</span>
+              <span>{language === 'tr' ? 'Canlı Stok Takibi' : 'Live Inventory Tracking'}</span>
             </div>
           </div>
 
@@ -141,6 +142,14 @@ export const InventoryPanel: React.FC = () => {
             {Object.values(SKU_CATALOG).map((skuItem) => {
               const count = inventory[skuItem.sku] || 0;
               const totalVal = count * skuItem.baseValue;
+
+              const skuName = language === 'en'
+                ? skuItem.sku === 'SKU-IRON-01' || skuItem.sku === 'FE_ORE' ? 'Raw Iron Ore' : skuItem.sku === 'COAL_ORE' ? 'Coal Ore' : skuItem.sku === 'SKU-COPPER-01' ? 'Raw Copper Ore' : 'Raw Gold Ore'
+                : skuItem.name;
+
+              const skuDesc = language === 'en'
+                ? skuItem.sku === 'SKU-IRON-01' || skuItem.sku === 'FE_ORE' ? 'Essential industrial metal. Used for construction and robotics.' : skuItem.sku === 'COAL_ORE' ? 'High thermal coal burned in power plants for energy.' : skuItem.sku === 'SKU-COPPER-01' ? 'High conductivity metal required for electrical circuits.' : 'Precious rare metal for microchips and automation.'
+                : skuItem.description;
 
               return (
                 <div
@@ -156,7 +165,7 @@ export const InventoryPanel: React.FC = () => {
                           style={{ backgroundColor: skuItem.color }}
                         />
                         <h4 style={{ fontWeight: 700, color: '#f1f5f9', fontSize: '0.85rem' }}>
-                          {skuItem.name}
+                          {skuName}
                         </h4>
                       </div>
                       <p style={{ fontFamily: 'Fira Code, monospace', color: '#94a3b8', fontSize: '0.72rem', marginTop: '2px' }}>
@@ -176,7 +185,7 @@ export const InventoryPanel: React.FC = () => {
                     </div>
                   </div>
                   <p style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '6px', lineHeight: '1.3' }}>
-                    {skuItem.description}
+                    {skuDesc}
                   </p>
                 </div>
               );
@@ -215,7 +224,7 @@ export const InventoryPanel: React.FC = () => {
       {activeTab === 'robots' && (
         <div className="panel-content" style={{ padding: '1rem' }}>
           <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
-            Filodaki Robot Telemetrisi
+            {language === 'tr' ? 'Filodaki Robot Telemetrisi' : 'Fleet Robotics Telemetry'}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: isMaximized ? 'repeat(3, 1fr)' : '1fr', gap: '0.75rem' }}>
@@ -245,16 +254,16 @@ export const InventoryPanel: React.FC = () => {
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '6px' }}>
-                    <span>Konum: ({robot.x}, {robot.y})</span>
-                    <span>Kargo: {robot.cargoAmount}/{robot.maxCargo} kg</span>
-                    <span>Kazı Hızı: x{robot.miningSpeed.toFixed(2)}</span>
+                    <span>{language === 'tr' ? 'Konum:' : 'Pos:'} ({robot.x}, {robot.y})</span>
+                    <span>{language === 'tr' ? 'Kargo:' : 'Cargo:'} {robot.cargoAmount}/{robot.maxCargo} kg</span>
+                    <span>{language === 'tr' ? 'Kazı Hızı:' : 'Mining Speed:'} x{robot.miningSpeed.toFixed(2)}</span>
                   </div>
 
                   {/* Energy & Cargo Bars */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: '#94a3b8', marginBottom: '2px' }}>
-                        <span>Batarya</span>
+                        <span>{language === 'tr' ? 'Batarya' : 'Battery'}</span>
                         <span>%{energyPct}</span>
                       </div>
                       <div style={{ background: '#090e17', borderRadius: '4px', height: '5px', overflow: 'hidden' }}>
@@ -271,7 +280,7 @@ export const InventoryPanel: React.FC = () => {
 
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: '#94a3b8', marginBottom: '2px' }}>
-                        <span>Kargo Yükü</span>
+                        <span>{language === 'tr' ? 'Kargo Yükü' : 'Cargo Load'}</span>
                         <span>{robot.cargoAmount}/{robot.maxCargo} kg</span>
                       </div>
                       <div style={{ background: '#090e17', borderRadius: '4px', height: '5px', overflow: 'hidden' }}>
@@ -298,7 +307,7 @@ export const InventoryPanel: React.FC = () => {
         <div className="panel-content" style={{ padding: '1rem', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
             <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>
-              Roslyn & Simülasyon Konsol Günlükleri
+              {t('console_logs_title')}
             </span>
             <button
               onClick={clearLogs}
@@ -306,14 +315,14 @@ export const InventoryPanel: React.FC = () => {
               style={{ padding: '0.2rem 0.5rem', fontSize: '0.7rem' }}
             >
               <Trash2 className="w-3 h-3" />
-              <span>Temizle</span>
+              <span>{t('clear_logs')}</span>
             </button>
           </div>
 
           <div className="console-log-box">
             {logs.length === 0 ? (
               <div style={{ color: '#64748b', fontSize: '0.75rem', textAlign: 'center', padding: '1rem' }}>
-                Konsol günlüğü temiz.
+                {language === 'tr' ? 'Konsol günlüğü temiz.' : 'Console log is empty.'}
               </div>
             ) : (
               logs.map((log) => (

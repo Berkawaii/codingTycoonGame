@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { Terminal, Pickaxe, Navigation, Eye, BatteryCharging, Compass, X, Check, Code, Radio } from 'lucide-react';
+import { useGameStore } from '../store/useGameStore';
 
 interface ApiMethod {
   name: string;
   signature: string;
-  description: string;
+  descriptionTr: string;
+  descriptionEn: string;
   icon: React.ReactNode;
   snippet: string;
   category: 'action' | 'query' | 'telemetry';
@@ -15,7 +17,8 @@ const ROBOT_API_METHODS: ApiMethod[] = [
   {
     name: 'robot.GetCargo()',
     signature: 'int GetCargo()',
-    description: 'Robotun mevcut kargosundaki toplam maden miktarını (kg) döndürür. Kapasite dolunca depoya gidilmesi gerekir.',
+    descriptionTr: 'Robotun mevcut kargosundaki toplam maden miktarını (kg) döndürür. Kapasite dolunca depoya gidilmesi gerekir.',
+    descriptionEn: 'Returns total mined ore weight (kg) inside robot cargo hold. Go to depot when capacity is full.',
     icon: <Radio className="w-4 h-4 text-cyan-400" />,
     snippet: 'int currentCargo = robot.GetCargo();',
     category: 'telemetry',
@@ -23,7 +26,8 @@ const ROBOT_API_METHODS: ApiMethod[] = [
   {
     name: 'robot.GetMaxCargo()',
     signature: 'int GetMaxCargo()',
-    description: 'Robotun maksimum taşıyabileceği kargo kapasitesini (kg) döndürür (Varsayılan 50 kg).',
+    descriptionTr: 'Robotun maksimum taşıyabileceği kargo kapasitesini (kg) döndürür (Varsayılan 50 kg).',
+    descriptionEn: 'Returns maximum cargo weight capacity (kg) of the robot (Default 50 kg).',
     icon: <Radio className="w-4 h-4 text-emerald-400" />,
     snippet: 'int maxCargo = robot.GetMaxCargo();',
     category: 'telemetry',
@@ -31,7 +35,8 @@ const ROBOT_API_METHODS: ApiMethod[] = [
   {
     name: 'robot.GetNearestBuilding(string type = "DEPOT")',
     signature: 'BuildingInfo GetNearestBuilding(string type = "CHARGING_PAD" | "DEPOT")',
-    description: 'En yakın Bina (Şarj İstasyonu veya Depo) nesnesini ve (X, Y) koordinatını döndürür. robot.GoTo(b.X, b.Y) ile gitmek için kullanılır.',
+    descriptionTr: 'En yakın Bina (Şarj İstasyonu veya Depo) nesnesini ve (X, Y) koordinatını döndürür.',
+    descriptionEn: 'Returns nearest building (Charging Pad or Depot) object with (X, Y) coordinates.',
     icon: <Radio className="w-4 h-4 text-amber-400" />,
     snippet: 'BuildingInfo depot = robot.GetNearestBuilding("DEPOT");\nrobot.GoTo(depot.X, depot.Y);',
     category: 'query',
@@ -39,7 +44,8 @@ const ROBOT_API_METHODS: ApiMethod[] = [
   {
     name: 'robot.SendRadioMessage(string msgType, int x, int y, string payload = "")',
     signature: 'void SendRadioMessage(string msgType, int x, int y, string payload)',
-    description: 'Sürü radyo şebekesine mesaj yayınlar. Örneğin madenci robot kargosu dolduğunda "CARGO_FULL" radyo sinyali atar.',
+    descriptionTr: 'Sürü radyo şebekesine mesaj yayınlar. Örneğin madenci robot kargosu dolduğunda "CARGO_FULL" radyo sinyali atar.',
+    descriptionEn: 'Broadcasts radio message across swarm network. e.g. miner broadcasts "CARGO_FULL" when inventory is full.',
     icon: <Radio className="w-4 h-4 text-purple-400" />,
     snippet: 'robot.SendRadioMessage("CARGO_FULL", robot.GetX(), robot.GetY(), robot.GetId());',
     category: 'action',
@@ -47,7 +53,8 @@ const ROBOT_API_METHODS: ApiMethod[] = [
   {
     name: 'robot.ReadRadioMessages()',
     signature: 'List<RadioMessage> ReadRadioMessages()',
-    description: 'Haritadaki aktif radyo şebekesini tarar ve gönderilen radyo mesajlarının listesini döndürür.',
+    descriptionTr: 'Haritadaki aktif radyo şebekesini tarar ve gönderilen radyo mesajlarının listesini döndürür.',
+    descriptionEn: 'Scans active radio network and returns list of received radio messages.',
     icon: <Radio className="w-4 h-4 text-cyan-400" />,
     snippet: 'List<RadioMessage> msgs = robot.ReadRadioMessages();',
     category: 'query',
@@ -55,7 +62,8 @@ const ROBOT_API_METHODS: ApiMethod[] = [
   {
     name: 'robot.SendRadioMessage("BANDIT_SPOTTED", x, y, id)',
     signature: 'void SendRadioMessage("BANDIT_SPOTTED", int x, int y, string id)',
-    description: 'Haritada hırsız Korsan Robot tespit edildiğinde Lazer Savunma Kulelerini ve koruma birliklerini otonom göreve çağırmak için radyo alarmı yayınlar.',
+    descriptionTr: 'Haritada hırsız Korsan Robot tespit edildiğinde Lazer Savunma Kulelerini ve koruma birliklerini otonom göreve çağırmak için radyo alarmı yayınlar.',
+    descriptionEn: 'Broadcasts radio alarm when bandit thief robot is spotted to alert Laser Defense Turrets.',
     icon: <Radio className="w-4 h-4 text-rose-400" />,
     snippet: 'robot.SendRadioMessage("BANDIT_SPOTTED", robot.GetX(), robot.GetY(), robot.GetId());',
     category: 'action',
@@ -63,7 +71,8 @@ const ROBOT_API_METHODS: ApiMethod[] = [
   {
     name: 'robot.GetDamagedRobots()',
     signature: 'List<RobotInfo> GetDamagedRobots()',
-    description: 'Kum fırtınası veya korsan saldırısı sonucu canı %100 altına düşmüş hasarlı robotların listesini döndürür.',
+    descriptionTr: 'Kum fırtınası veya korsan saldırısı sonucu canı %100 altına düşmüş hasarlı robotların listesini döndürür.',
+    descriptionEn: 'Returns list of damaged robots (HP < 100%) affected by storms or bandit attacks.',
     icon: <Radio className="w-4 h-4 text-emerald-400" />,
     snippet: 'List<RobotInfo> damaged = robot.GetDamagedRobots();',
     category: 'query',
@@ -71,7 +80,8 @@ const ROBOT_API_METHODS: ApiMethod[] = [
   {
     name: 'robot.RepairRobot(string targetId)',
     signature: 'bool RepairRobot(string targetId)',
-    description: 'Tamir Drone robotu yeşil lazer tamir ışınını aktifleştirerek hedef robotun canını (+25 HP/tick) onarır.',
+    descriptionTr: 'Tamir Drone robotu yeşil lazer tamir ışınını aktifleştirerek hedef robotun canını (+25 HP/tick) onarır.',
+    descriptionEn: 'Activates green laser repair beam to heal target robot (+25 HP/tick).',
     icon: <Radio className="w-4 h-4 text-emerald-400" />,
     snippet: 'robot.RepairRobot(target.Id);',
     category: 'action',
@@ -79,7 +89,8 @@ const ROBOT_API_METHODS: ApiMethod[] = [
   {
     name: 'robot.CollectCargoFromRobot(string targetRobotId)',
     signature: 'bool CollectCargoFromRobot(string targetRobotId)',
-    description: 'Lojistik Transporter robotu yanındaki madenci robottan kargoyu kendi dev 200kg haznesine devralır.',
+    descriptionTr: 'Lojistik Transporter robotu yanındaki madenci robottan kargoyu kendi dev 200kg haznesine devralır.',
+    descriptionEn: 'Transporter robot collects cargo hold from adjacent miner into its 200kg container.',
     icon: <Radio className="w-4 h-4 text-amber-400" />,
     snippet: 'robot.CollectCargoFromRobot(msg.SenderId);',
     category: 'action',
@@ -87,7 +98,8 @@ const ROBOT_API_METHODS: ApiMethod[] = [
   {
     name: 'robot.GoTo(int targetX, int targetY)',
     signature: 'void GoTo(int targetX, int targetY)',
-    description: 'Robotu hedef (X, Y) koordinatına (örneğin Şarj İstasyonu (0,0) veya Depoya) doğru 1 kare otonom olarak ilerletir.',
+    descriptionTr: 'Robotu hedef (X, Y) koordinatına doğru 1 kare otonom olarak ilerletir.',
+    descriptionEn: 'Navigates robot 1 step autonomously towards target (X, Y) coordinates.',
     icon: <Navigation className="w-4 h-4 text-cyan-400" />,
     snippet: 'robot.GoTo(0, 0);',
     category: 'action',
@@ -95,7 +107,8 @@ const ROBOT_API_METHODS: ApiMethod[] = [
   {
     name: 'robot.GetEnergyToNearestStation()',
     signature: 'int GetEnergyToNearestStation()',
-    description: 'Robotun en yakın Şarj İstasyonuna ulaşabilmesi için harcaması gereken minimum batarya miktarını döndürür.',
+    descriptionTr: 'Robotun en yakın Şarj İstasyonuna ulaşabilmesi için harcaması gereken minimum batarya miktarını döndürür.',
+    descriptionEn: 'Returns minimum battery energy required to reach nearest Charging Station.',
     icon: <BatteryCharging className="w-4 h-4 text-emerald-400" />,
     snippet: 'int neededEnergy = robot.GetEnergyToNearestStation();',
     category: 'telemetry',
@@ -103,7 +116,8 @@ const ROBOT_API_METHODS: ApiMethod[] = [
   {
     name: 'robot.GetRadarInfo()',
     signature: 'List<RadarTileInfo> GetRadarInfo()',
-    description: 'Robotun donanım menzilindeki (Varsayılan 5 kare, yükseltmelerle +1 kare/Lvl) tüm objeleri tara: (X, Y, Distance, TileType, Name, SKU, Amount, Rarity).',
+    descriptionTr: 'Robotun donanım menzilindeki tüm objeleri tara: (X, Y, Distance, TileType, Name, SKU, Amount, Rarity).',
+    descriptionEn: 'Scans all objects within hardware radar range: (X, Y, Distance, TileType, Name, SKU, Amount, Rarity).',
     icon: <Radio className="w-4 h-4 text-purple-400" />,
     snippet: 'List<RadarTileInfo> radarData = robot.GetRadarInfo();',
     category: 'query',
@@ -111,7 +125,8 @@ const ROBOT_API_METHODS: ApiMethod[] = [
   {
     name: 'robot.Mine()',
     signature: 'bool Mine()',
-    description: 'Önündeki veya bulunduğu karedeki madenden kazı yapar. Kazılan maden birimi otomatik envantere eklenir.',
+    descriptionTr: 'Önündeki veya bulunduğu karedeki madenden kazı yapar. Kazılan maden birimi otomatik envantere eklenir.',
+    descriptionEn: 'Mines ore on current or front tile. Mined resource is stored into cargo hold.',
     icon: <Pickaxe className="w-4 h-4 text-cyan-400" />,
     snippet: 'robot.Mine();',
     category: 'action',
@@ -119,7 +134,8 @@ const ROBOT_API_METHODS: ApiMethod[] = [
   {
     name: 'robot.Move(Direction dir)',
     signature: 'void Move(Direction direction)',
-    description: 'Robotu belirtilen pusula veya nispi yöne (Direction.Forward / North / East / South / West) 1 kare ilerletir.',
+    descriptionTr: 'Robotu belirtilen nispi veya pusula yönüne 1 kare ilerletir.',
+    descriptionEn: 'Moves robot 1 tile in specified compass or relative direction.',
     icon: <Navigation className="w-4 h-4 text-emerald-400" />,
     snippet: 'robot.Move(Direction.Forward);',
     category: 'action',
@@ -127,7 +143,8 @@ const ROBOT_API_METHODS: ApiMethod[] = [
   {
     name: 'robot.GetTileInfo(Direction dir)',
     signature: 'Tile GetTileInfo(Direction direction)',
-    description: 'İstenen yöndeki kare nesnesini döndürür. (Properties: HasResource, Amount, ResourceType, X, Y).',
+    descriptionTr: 'İstenen yöndeki kare nesnesini döndürür. (HasResource, Amount, ResourceType, X, Y).',
+    descriptionEn: 'Returns tile object info in given direction (HasResource, Amount, ResourceType, X, Y).',
     icon: <Eye className="w-4 h-4 text-amber-400" />,
     snippet: 'Tile frontTile = robot.GetTileInfo(Direction.Forward);',
     category: 'query',
@@ -135,7 +152,8 @@ const ROBOT_API_METHODS: ApiMethod[] = [
   {
     name: 'robot.Rotate(Direction dir)',
     signature: 'void Rotate(Direction direction)',
-    description: 'Robotun yüzünü hareket ettirmeden hedef pusula yönüne çevirir.',
+    descriptionTr: 'Robotun yüzünü hareket ettirmeden hedef pusula yönüne çevirir.',
+    descriptionEn: 'Rotates robot facing orientation to target compass direction without moving.',
     icon: <Compass className="w-4 h-4 text-purple-400" />,
     snippet: 'robot.Rotate(Direction.East);',
     category: 'action',
@@ -143,7 +161,8 @@ const ROBOT_API_METHODS: ApiMethod[] = [
   {
     name: 'robot.GetEnergy()',
     signature: 'int GetEnergy()',
-    description: 'Robotun mevcut batarya seviyesini (0 - 100) döndürür.',
+    descriptionTr: 'Robotun mevcut batarya seviyesini (0 - 100) döndürür.',
+    descriptionEn: 'Returns current battery charge percentage level (0 - 100).',
     icon: <BatteryCharging className="w-4 h-4 text-yellow-400" />,
     snippet: 'int energy = robot.GetEnergy();',
     category: 'telemetry',
@@ -151,7 +170,8 @@ const ROBOT_API_METHODS: ApiMethod[] = [
   {
     name: 'plant.BurnFuel(string fuelSku)',
     signature: 'void BurnFuel(string fuelSku)',
-    description: 'Deponuzdaki cevheri santral yakıt tankına çeker. Yakıtlar: "COAL_ORE" (+50 kWh), "FE_ORE" (+30 kWh), "RUBY_GEM" (+200 kWh), "PLASMA_CORE" (+1,500 kWh).',
+    descriptionTr: 'Deponuzdaki cevheri santral yakıt tankına çeker.',
+    descriptionEn: 'Pulls fuel ore from depot into power plant combustion chamber.',
     icon: <BatteryCharging className="w-4 h-4 text-emerald-400" />,
     snippet: 'plant.BurnFuel("COAL_ORE");',
     category: 'action',
@@ -159,7 +179,8 @@ const ROBOT_API_METHODS: ApiMethod[] = [
   {
     name: 'plant.SetOverclockRate(double rate)',
     signature: 'void SetOverclockRate(double rate)',
-    description: 'Santralin verimlilik / hız oranını (0.5x - 2.0x) ayarlar. 1.0x üzeri hızlar sıcaklığı artırır; 100°C seviyesinde TERMAL KİLİTLENME (Shutdown) oluşur.',
+    descriptionTr: 'Santralin verimlilik / hız oranını (0.5x - 2.0x) ayarlar. High rate increases thermal heat.',
+    descriptionEn: 'Sets power plant overclock rate (0.5x - 2.0x). Higher speeds generate thermal heat.',
     icon: <Radio className="w-4 h-4 text-orange-400" />,
     snippet: 'plant.SetOverclockRate(1.6);',
     category: 'action',
@@ -167,7 +188,8 @@ const ROBOT_API_METHODS: ApiMethod[] = [
   {
     name: 'plant.GetTemperature()',
     signature: 'double GetTemperature()',
-    description: 'Santralin anlık termal sıcaklığını (°C) döndürür (20°C - 100°C). 85°C üzerinde Soğutma Modu (0.5x) çağrılması tavsiye edilir.',
+    descriptionTr: 'Santralin anlık termal sıcaklığını (°C) döndürür (20°C - 100°C).',
+    descriptionEn: 'Returns current power plant core temperature (°C).',
     icon: <Radio className="w-4 h-4 text-red-400" />,
     snippet: 'double temp = plant.GetTemperature();',
     category: 'telemetry',
@@ -175,7 +197,8 @@ const ROBOT_API_METHODS: ApiMethod[] = [
   {
     name: 'plant.GetGridEnergyRatio()',
     signature: 'double GetGridEnergyRatio()',
-    description: 'Şebeke enerji deposunun doluluk oranını (0.0 - 1.0) döndürür (%0 = Boş, %1.0 = Dolu).',
+    descriptionTr: 'Şebeke enerji deposunun doluluk oranını (0.0 - 1.0) döndürür.',
+    descriptionEn: 'Returns grid battery storage energy ratio (0.0 - 1.0).',
     icon: <Radio className="w-4 h-4 text-cyan-400" />,
     snippet: 'double gridRatio = plant.GetGridEnergyRatio();',
     category: 'telemetry',
@@ -195,6 +218,7 @@ export const ApiReferencePanel: React.FC<ApiReferenceModalProps> = ({
   onClose,
   onInsertSnippet,
 }) => {
+  const { t, language } = useGameStore();
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [activeCategory, setActiveCategory] = useState<'all' | 'action' | 'query' | 'telemetry'>('all');
 
@@ -232,7 +256,7 @@ export const ApiReferencePanel: React.FC<ApiReferenceModalProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Terminal className="w-5 h-5 text-cyan-400" />
             <h3 style={{ fontWeight: 800, color: '#f1f5f9', fontSize: '1rem', fontFamily: 'Outfit, sans-serif', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              SYNTAX FACTORY - C# API REHBERİ
+              SYNTAX FACTORY - C# API {t('api_ref').toUpperCase()}
             </h3>
           </div>
           <button
@@ -252,21 +276,21 @@ export const ApiReferencePanel: React.FC<ApiReferenceModalProps> = ({
           className={`ui-btn ${activeCategory === 'all' ? 'ui-btn-cyan' : 'ui-btn-secondary'}`}
           style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', borderRadius: '6px 6px 0 0' }}
         >
-          Tüm Metodlar
+          {t('all_methods')}
         </button>
         <button
           onClick={() => setActiveCategory('action')}
           className={`ui-btn ${activeCategory === 'action' ? 'ui-btn-cyan' : 'ui-btn-secondary'}`}
           style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', borderRadius: '6px 6px 0 0' }}
         >
-          Aksiyonlar (Mine, Move)
+          {t('action_methods')}
         </button>
         <button
           onClick={() => setActiveCategory('query')}
           className={`ui-btn ${activeCategory === 'query' ? 'ui-btn-cyan' : 'ui-btn-secondary'}`}
           style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', borderRadius: '6px 6px 0 0' }}
         >
-          Sorgular (GetRadarInfo, GetTileInfo)
+          {t('query_methods')}
         </button>
       </div>
 
@@ -289,7 +313,9 @@ export const ApiReferencePanel: React.FC<ApiReferenceModalProps> = ({
                     {method.category}
                   </span>
                 </div>
-                <p style={{ fontSize: '0.75rem', color: '#cbd5e1', marginTop: '2px', lineHeight: '1.4' }}>{method.description}</p>
+                <p style={{ fontSize: '0.75rem', color: '#cbd5e1', marginTop: '2px', lineHeight: '1.4' }}>
+                  {language === 'en' ? method.descriptionEn || method.descriptionTr : method.descriptionTr}
+                </p>
               </div>
 
               <button
@@ -300,12 +326,12 @@ export const ApiReferencePanel: React.FC<ApiReferenceModalProps> = ({
                 {copiedIndex === idx ? (
                   <>
                     <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    <span style={{ color: '#34d399' }}>Eklendi!</span>
+                    <span style={{ color: '#34d399' }}>{t('inserted')}</span>
                   </>
                 ) : (
                   <>
                     <Code className="w-3.5 h-3.5" />
-                    <span>Koda Ekle</span>
+                    <span>{t('insert_code')}</span>
                   </>
                 )}
               </button>
