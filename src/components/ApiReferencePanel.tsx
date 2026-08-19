@@ -232,7 +232,7 @@ export const ApiReferencePanel: React.FC<ApiReferenceModalProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Terminal className="w-5 h-5 text-cyan-400" />
             <h3 style={{ fontWeight: 800, color: '#f1f5f9', fontSize: '1rem', fontFamily: 'Outfit, sans-serif', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              C# ROBOT API & AKSİYON LİSTESİ
+              SYNTAX FACTORY - C# API REHBERİ
             </h3>
           </div>
           <button

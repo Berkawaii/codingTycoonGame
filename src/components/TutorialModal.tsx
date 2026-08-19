@@ -80,7 +80,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose })
             </div>
             <div>
               <h3 style={{ fontWeight: 800, color: '#f1f5f9', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>C# OTOMASYON AKADEMİSİ</span>
+                <span>SYNTAX FACTORY - C# AKADEMİSİ</span>
                 <span style={{ fontSize: '0.7rem', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.15)', padding: '2px 8px', borderRadius: '12px', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
                   Oynanabilir Görevler
                 </span>

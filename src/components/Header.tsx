@@ -55,7 +55,7 @@ export const Header: React.FC = () => {
           </div>
           <div>
             <h1 className="brand-title">
-              C# SCRIPTING <span style={{ color: 'var(--cyan-accent)' }}>TYCOON</span>
+              SYNTAX <span style={{ color: 'var(--cyan-accent)' }}>FACTORY</span>
             </h1>
             <div className="brand-badge">
               <span className="dot dot-active"></span> OTOMASYON MOTORU AKTİF

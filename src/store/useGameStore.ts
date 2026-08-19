@@ -276,7 +276,7 @@ export const useGameStore = create<GameState>()(
       id: 'log-1',
       timestamp: new Date().toLocaleTimeString(),
       level: 'info',
-      message: 'C# Scripting Tycoon Simülasyonu & Depo Katmanı başlatıldı.',
+      message: 'Syntax Factory C# Otomasyon Motoru Başlatıldı.',
     },
     {
       id: 'log-2',
