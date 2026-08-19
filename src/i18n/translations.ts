@@ -143,6 +143,16 @@ export const translations = {
     register_btn: 'HESAP OLUŞTUR',
     reset_btn: 'SIFIRLAMA BAĞLANTISI GÖNDER',
     close: 'Kapat',
+    back_to_login: 'Giriş Ekranına Dön',
+    reset_link_sent: 'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi! Lütfen Gelen Kutunuzu ve Spam klasörünüzü kontrol edin.',
+    registration_success_verify: 'Hesabınız başarıyla oluşturuldu! E-postanıza ({email}) doğrulama bağlantısı gönderildi. Giriş yapmadan önce e-postanızı onaylayın.',
+    email_not_verified_error: 'E-posta adresiniz henüz doğrulanmadı. Lütfen gelen kutunuzu ({email}) kontrol edin ve doğrulama bağlantısına tıklayın.',
+    resend_verification: 'Tekrar Doğrulama E-postası Gönder',
+    verification_sent_info: 'Yeni doğrulama bağlantısı e-posta adresinize tekrar gönderildi.',
+    name_already_taken: 'Bu Mühendis Adı (Çağrı Kodu) zaten kullanılıyor. Lütfen farklı bir isim seçin.',
+    email_already_in_use: 'Bu e-posta adresi ile zaten kayıt olunmuş. Lütfen Giriş Yapın.',
+    invalid_credentials: 'Hatalı e-posta veya şifre girdiniz.',
+    weak_password: 'Şifreniz en az 6 karakter olmalıdır.',
   },
   en: {
     // Brand & Header
@@ -286,6 +296,16 @@ export const translations = {
     register_btn: 'CREATE ACCOUNT',
     reset_btn: 'SEND RESET LINK',
     close: 'Close',
+    back_to_login: 'Back to Sign In',
+    reset_link_sent: 'Password reset link sent to your email address! Please check your Inbox and Spam folders.',
+    registration_success_verify: 'Account successfully created! Verification link sent to your email ({email}). Please verify before signing in.',
+    email_not_verified_error: 'Your email address is not verified yet. Please check your inbox ({email}) and click the verification link.',
+    resend_verification: 'Resend Verification Email',
+    verification_sent_info: 'A new verification link has been resent to your email address.',
+    name_already_taken: 'This Engineer Callsign is already taken. Please choose another name.',
+    email_already_in_use: 'This email address is already registered. Please Sign In.',
+    invalid_credentials: 'Invalid email or password.',
+    weak_password: 'Password must be at least 6 characters long.',
   },
 } as const;
 

@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
-import { loginWithEmail, registerWithEmail, sendResetPassword } from '../services/firebaseService';
-import { Mail, Lock, User, AlertCircle, CheckCircle, X } from 'lucide-react';
+import {
+  loginWithEmail,
+  registerWithEmail,
+  sendResetPassword,
+  checkDisplayNameExists,
+  resendVerificationEmailToUser,
+} from '../services/firebaseService';
+import { Mail, Lock, User as UserIcon, AlertCircle, CheckCircle, X, Globe } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -14,10 +20,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [displayName, setDisplayName] = useState<string>('');
-  const { t } = useGameStore();
+  const { t, language, setLanguage } = useGameStore();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [unverifiedUserObj, setUnverifiedUserObj] = useState<any | null>(null);
 
   if (!isOpen) return null;
 
@@ -25,25 +32,41 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
     e.preventDefault();
     setErrorMsg(null);
     setInfoMsg(null);
+    setUnverifiedUserObj(null);
     setLoading(true);
 
     try {
       if (mode === 'register') {
         if (!displayName.trim()) {
-          setErrorMsg('Lütfen bir Mühendis Çağrı Adı belirleyin.');
+          setErrorMsg(t('display_name_label'));
           setLoading(false);
           return;
         }
-        await registerWithEmail(email, password, displayName.trim());
+
+        // Check if Engineer Callsign (displayName) is already taken
+        const nameExists = await checkDisplayNameExists(displayName.trim());
+        if (nameExists) {
+          setErrorMsg(t('name_already_taken'));
+          setLoading(false);
+          return;
+        }
+
+        const res = await registerWithEmail(email.trim(), password, displayName.trim());
         localStorage.setItem('syntax_factory_user_name', displayName.trim());
         setLoading(false);
-        setInfoMsg('Hesabınız oluşturuldu! E-postanıza aktivasyon bağlantısı gönderildi.');
-        setTimeout(() => {
-          if (onSuccess) onSuccess();
-          onClose();
-        }, 2000);
+        setInfoMsg(t('registration_success_verify', { email: email.trim() }));
+        setUnverifiedUserObj(res.user);
       } else if (mode === 'login') {
-        const res = await loginWithEmail(email, password);
+        const res = await loginWithEmail(email.trim(), password);
+
+        // Check mandatory email verification
+        if (res.user && !res.user.emailVerified) {
+          setUnverifiedUserObj(res.user);
+          setErrorMsg(t('email_not_verified_error', { email: email.trim() }));
+          setLoading(false);
+          return;
+        }
+
         if (res.user?.displayName) {
           localStorage.setItem('syntax_factory_user_name', res.user.displayName);
         }
@@ -52,25 +75,39 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
         onClose();
       } else if (mode === 'reset') {
         if (!email.trim()) {
-          setErrorMsg('Lütfen e-posta adresinizi girin.');
+          setErrorMsg(t('email_label'));
           setLoading(false);
           return;
         }
         await sendResetPassword(email.trim());
         setLoading(false);
-        setInfoMsg('Şifre sıfırlama bağlantısı e-posta adresinize gönderildi!');
+        setInfoMsg(t('reset_link_sent'));
       }
     } catch (err: any) {
       setLoading(false);
-      if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
-        setErrorMsg('Hatalı e-posta veya şifre girdiniz.');
+      if (
+        err.code === 'auth/invalid-credential' ||
+        err.code === 'auth/wrong-password' ||
+        err.code === 'auth/user-not-found'
+      ) {
+        setErrorMsg(t('invalid_credentials'));
       } else if (err.code === 'auth/email-already-in-use') {
-        setErrorMsg('Bu e-posta adresi ile zaten kayıt olunmuş. Lütfen Oturum Açın.');
+        setErrorMsg(t('email_already_in_use'));
       } else if (err.code === 'auth/weak-password') {
-        setErrorMsg('Şifreniz en az 6 karakter olmalıdır.');
+        setErrorMsg(t('weak_password'));
       } else {
-        setErrorMsg(err.message || 'Bir hata oluştu.');
+        setErrorMsg(err.message || 'Error occurred.');
       }
+    }
+  };
+
+  const handleResendEmail = async () => {
+    if (!unverifiedUserObj) return;
+    try {
+      await resendVerificationEmailToUser(unverifiedUserObj);
+      setInfoMsg(t('verification_sent_info'));
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Resend error.');
     }
   };
 
@@ -97,7 +134,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
           boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)',
           borderRadius: '16px',
           width: '100%',
-          maxWidth: '440px',
+          maxWidth: '450px',
           overflow: 'hidden',
           padding: 0,
         }}
@@ -121,9 +158,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
             </h3>
           </div>
 
-          <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}>
-            <X className="w-5 h-5 text-slate-400 hover:text-white" />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* Language Selector TR / EN Toggle */}
+            <button
+              type="button"
+              onClick={() => setLanguage(language === 'tr' ? 'en' : 'tr')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                background: 'rgba(15, 23, 42, 0.8)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                color: '#38bdf8',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                padding: '3px 8px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+              }}
+            >
+              <Globe className="w-3.5 h-3.5" />
+              <span>{language.toUpperCase()}</span>
+            </button>
+
+            <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}>
+              <X className="w-5 h-5 text-slate-400 hover:text-white" />
+            </button>
+          </div>
         </div>
 
         {/* Tab Selector */}
@@ -134,6 +195,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
               setMode('login');
               setErrorMsg(null);
               setInfoMsg(null);
+              setUnverifiedUserObj(null);
             }}
             style={{
               padding: '0.65rem',
@@ -155,6 +217,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
               setMode('register');
               setErrorMsg(null);
               setInfoMsg(null);
+              setUnverifiedUserObj(null);
             }}
             style={{
               padding: '0.65rem',
@@ -184,12 +247,34 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                 fontSize: '0.74rem',
                 color: '#f87171',
                 display: 'flex',
-                alignItems: 'center',
+                flexDirection: 'column',
                 gap: '6px',
               }}
             >
-              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-              <span>{errorMsg}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                <span>{errorMsg}</span>
+              </div>
+              {unverifiedUserObj && (
+                <button
+                  type="button"
+                  onClick={handleResendEmail}
+                  style={{
+                    alignSelf: 'flex-start',
+                    marginTop: '4px',
+                    background: 'rgba(239, 68, 68, 0.25)',
+                    border: '1px solid rgba(239, 68, 68, 0.5)',
+                    color: '#ffffff',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    padding: '3px 8px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  ✉️ {t('resend_verification')}
+                </button>
+              )}
             </div>
           )}
 
@@ -220,7 +305,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                   {t('display_name_label')}:
                 </label>
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <User className="w-4 h-4 text-slate-400 style-icon" style={{ position: 'absolute', left: '10px' }} />
+                  <UserIcon className="w-4 h-4 text-slate-400 style-icon" style={{ position: 'absolute', left: '10px' }} />
                   <input
                     type="text"
                     required
@@ -263,6 +348,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                         setMode('reset');
                         setErrorMsg(null);
                         setInfoMsg(null);
+                        setUnverifiedUserObj(null);
                       }}
                       style={{ background: 'transparent', border: 'none', color: '#06b6d4', fontSize: '0.7rem', cursor: 'pointer' }}
                     >
@@ -307,10 +393,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                   setMode('login');
                   setErrorMsg(null);
                   setInfoMsg(null);
+                  setUnverifiedUserObj(null);
                 }}
                 style={{ background: 'transparent', border: 'none', color: '#64748b', fontSize: '0.73rem', cursor: 'pointer', textAlign: 'center' }}
               >
-                Giriş Ekranına Dön
+                {t('back_to_login')}
               </button>
             )}
           </form>

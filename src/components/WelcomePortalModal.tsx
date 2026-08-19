@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, Trophy, User, X, LogIn, LogOut, ShieldCheck } from 'lucide-react';
+import { Play, Trophy, User, LogIn, LogOut, ShieldCheck, Globe } from 'lucide-react';
 import { AuthModal } from './AuthModal';
 import { useGameStore } from '../store/useGameStore';
 
@@ -16,7 +16,7 @@ export const WelcomePortalModal: React.FC<WelcomePortalModalProps> = ({
   onClose,
   onOpenLeaderboard,
 }) => {
-  const { authUser, userDisplayName, startAnonymousSession, logout, t } = useGameStore();
+  const { authUser, userDisplayName, startAnonymousSession, logout, language, setLanguage, t } = useGameStore();
 
   const [isAuthOpen, setIsAuthOpen] = useState<boolean>(false);
 
@@ -54,12 +54,28 @@ export const WelcomePortalModal: React.FC<WelcomePortalModalProps> = ({
             position: 'relative',
           }}
         >
-          {/* Close Button */}
+          {/* Top Right TR / EN Language Toggle */}
           <button
-            onClick={onClose}
-            style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', cursor: 'pointer' }}
+            onClick={() => setLanguage(language === 'tr' ? 'en' : 'tr')}
+            style={{
+              position: 'absolute',
+              top: '16px',
+              right: '16px',
+              background: 'rgba(15, 23, 42, 0.8)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              color: '#38bdf8',
+              fontSize: '0.75rem',
+              fontWeight: 800,
+              padding: '4px 10px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
           >
-            <X className="w-5 h-5 text-slate-400 hover:text-white" />
+            <Globe className="w-3.5 h-3.5" />
+            <span>{language.toUpperCase()}</span>
           </button>
 
           {/* Brand Logo Header */}
@@ -159,7 +175,6 @@ export const WelcomePortalModal: React.FC<WelcomePortalModalProps> = ({
 
               <button
                 onClick={() => {
-                  onClose();
                   onOpenLeaderboard();
                 }}
                 className="ui-btn ui-btn-secondary"

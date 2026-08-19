@@ -23,6 +23,7 @@ import {
   updateDoc,
   increment,
   deleteDoc,
+  where,
 } from 'firebase/firestore';
 
 // Default Firebase Configuration for playsyntaxfactory
@@ -139,6 +140,27 @@ export const deletePersonalScriptFromFirestore = async (userId: string, scriptId
 };
 
 // Auth Helpers
+export const checkDisplayNameExists = async (displayName: string): Promise<boolean> => {
+  if (!displayName || !displayName.trim()) return false;
+  try {
+    const q = query(
+      collection(db, 'users'),
+      where('displayName', '==', displayName.trim())
+    );
+    const snap = await getDocs(q);
+    return !snap.empty;
+  } catch (e) {
+    console.warn('Error checking display name uniqueness:', e);
+    return false;
+  }
+};
+
+export const resendVerificationEmailToUser = async (user: User): Promise<void> => {
+  if (user) {
+    await sendEmailVerification(user);
+  }
+};
+
 export const loginWithEmail = async (email: string, pass: string) => {
   const res = await signInWithEmailAndPassword(auth, email, pass);
   if (res.user) {
