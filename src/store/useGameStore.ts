@@ -2230,6 +2230,8 @@ export const useGameStore = create<GameState>()((set, get) => ({
 
     // Power Plant Thermal & C# Script Simulation
     const activeState = get();
+    let currentInventory = { ...activeState.inventory };
+
     for (const biomeKey of activeState.unlockedBiomes) {
       const mapData = getMapDataForBiome(get(), biomeKey);
       const { powerPlants = [] } = mapData;
@@ -2267,13 +2269,37 @@ export const useGameStore = create<GameState>()((set, get) => ({
         });
 
         let newOverclock = plant.overclockRate;
+        let newPowerBuffer = plant.powerBuffer;
 
         result.logs.forEach((l) => {
           if (l.action === 'SET_OVERCLOCK') {
             const parsed = parseFloat(l.payload);
             if (!isNaN(parsed)) newOverclock = Math.max(0.5, Math.min(2.0, parsed));
           } else if (l.action === 'BURN_FUEL') {
-            get().burnPowerPlantFuel(plant.id, l.payload);
+            const fuelSku = l.payload;
+            const availableQty = currentInventory[fuelSku] || 0;
+
+            if (availableQty >= 1) {
+              let caloricValue = 50;
+              if (fuelSku === 'COAL_ORE') caloricValue = 50;
+              else if (fuelSku === 'FE_ORE' || fuelSku === 'SKU-IRON-01') caloricValue = 30;
+              else if (fuelSku === 'RUBY_GEM') caloricValue = 200;
+              else if (fuelSku === 'PLASMA_CORE') caloricValue = 1500;
+
+              const efficiencyPenalty = 1.0 - (newOverclock > 1.0 ? (newOverclock - 1.0) * 0.4 : 0);
+              const energyProduced = Math.round(caloricValue * newOverclock * efficiencyPenalty);
+
+              newPowerBuffer = Math.min(plant.maxPowerBuffer, newPowerBuffer + energyProduced);
+              currentInventory = {
+                ...currentInventory,
+                [fuelSku]: availableQty - 1,
+              };
+            } else {
+              const isEn = get().language === 'en';
+              get().addLog('warn', isEn
+                ? `⚠️ [OUT OF FUEL]: '${plant.name}' has no '${fuelSku}' fuel left in depot inventory.`
+                : `⚠️ [YAKIT TÜKENDİ]: '${plant.name}' için deponuzda '${fuelSku}' kalmadı.`);
+            }
           }
         });
 
@@ -2290,6 +2316,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
 
         updatedPlants.push({
           ...plant,
+          powerBuffer: newPowerBuffer,
           overclockRate: newOverclock,
           temperature: nextTemp,
           isOverheated: overheatTriggered,
@@ -2297,7 +2324,10 @@ export const useGameStore = create<GameState>()((set, get) => ({
         });
       }
 
-      set((prev) => updateMapDataForBiome(prev, biomeKey, () => ({ powerPlants: updatedPlants })));
+      set((prev) => ({
+        ...updateMapDataForBiome(prev, biomeKey, () => ({ powerPlants: updatedPlants })),
+        inventory: currentInventory,
+      }));
     }
 
     const currentRobots = get().robots;
