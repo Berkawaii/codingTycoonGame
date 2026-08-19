@@ -7,7 +7,8 @@ import {
   checkDisplayNameExists,
   resendVerificationEmailToUser,
 } from '../services/firebaseService';
-import { Mail, Lock, User as UserIcon, AlertCircle, CheckCircle, X, Globe } from 'lucide-react';
+import { Mail, Lock, User as UserIcon, AlertCircle, CheckCircle, X, Globe, Map, ExternalLink } from 'lucide-react';
+import { RoadmapModal } from './RoadmapModal';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [unverifiedUserObj, setUnverifiedUserObj] = useState<any | null>(null);
+  const [isRoadmapOpen, setIsRoadmapOpen] = useState<boolean>(false);
 
   if (!isOpen) return null;
 
@@ -398,9 +400,40 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                 {t('back_to_login')}
               </button>
             )}
+
+            {/* Roadmap & Developer Footer */}
+            <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setIsRoadmapOpen(true)}
+                className="ui-btn ui-btn-secondary"
+                style={{ width: '100%', padding: '0.55rem', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+              >
+                <Map className="w-3.5 h-3.5 text-cyan-400" />
+                <span>{language === 'en' ? 'Development Roadmap' : 'Gelişim Yol Haritası'}</span>
+              </button>
+
+              <div style={{ fontSize: '0.72rem', color: '#64748b', textAlign: 'center' }}>
+                Developed by{' '}
+                <a
+                  href="https://github.com/Berkawaii"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: '#38bdf8', fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                >
+                  <span>Berkawaii</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            </div>
           </form>
         </div>
       </div>
+
+      <RoadmapModal
+        isOpen={isRoadmapOpen}
+        onClose={() => setIsRoadmapOpen(false)}
+      />
     </div>
   );
 };

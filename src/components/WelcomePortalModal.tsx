@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Play, Trophy, User, LogIn, LogOut, ShieldCheck, Globe } from 'lucide-react';
+import { Play, Trophy, User, LogIn, LogOut, ShieldCheck, Globe, Map, ExternalLink } from 'lucide-react';
 import { AuthModal } from './AuthModal';
+import { RoadmapModal } from './RoadmapModal';
 import { useGameStore } from '../store/useGameStore';
 
 interface WelcomePortalModalProps {
@@ -19,6 +20,7 @@ export const WelcomePortalModal: React.FC<WelcomePortalModalProps> = ({
   const { authUser, userDisplayName, startAnonymousSession, logout, language, setLanguage, t } = useGameStore();
 
   const [isAuthOpen, setIsAuthOpen] = useState<boolean>(false);
+  const [isRoadmapOpen, setIsRoadmapOpen] = useState<boolean>(false);
 
   if (!isOpen) return null;
 
@@ -184,6 +186,32 @@ export const WelcomePortalModal: React.FC<WelcomePortalModalProps> = ({
                 <span>{t('leaderboard')}</span>
               </button>
             </div>
+
+            {/* Roadmap & Developer Footer */}
+            <div style={{ marginTop: '0.5rem', paddingTop: '0.85rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setIsRoadmapOpen(true)}
+                className="ui-btn ui-btn-secondary"
+                style={{ width: '100%', padding: '0.55rem', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+              >
+                <Map className="w-3.5 h-3.5 text-cyan-400" />
+                <span>{language === 'en' ? 'Development Roadmap' : 'Gelişim Yol Haritası'}</span>
+              </button>
+
+              <div style={{ fontSize: '0.72rem', color: '#64748b', textAlign: 'center' }}>
+                Developed by{' '}
+                <a
+                  href="https://github.com/Berkawaii"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: '#38bdf8', fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                >
+                  <span>Berkawaii</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -191,6 +219,11 @@ export const WelcomePortalModal: React.FC<WelcomePortalModalProps> = ({
       <AuthModal
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
+      />
+
+      <RoadmapModal
+        isOpen={isRoadmapOpen}
+        onClose={() => setIsRoadmapOpen(false)}
       />
     </>
   );
