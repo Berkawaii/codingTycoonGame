@@ -128,7 +128,7 @@ interface GameState {
   addCredits: (amount: number) => void;
   spawnBandit: (x?: number, y?: number) => void;
   clearBandits: () => void;
-  triggerHazard: (type: 'DUST_STORM') => void;
+  triggerHazard: (type?: 'DUST_STORM' | 'VOLCANIC_ERUPTION' | 'QUANTUM_FLARE' | 'BLIZZARD') => void;
   clearHazard: () => void;
   healAllRobots: () => void;
   coolAllPowerPlants: () => void;
@@ -1896,17 +1896,22 @@ export const useGameStore = create<GameState>()(
   },
 
   triggerHazard: (type = 'DUST_STORM') => {
+    let name = 'Mars Kum Fırtınası (Admin)';
+    if (type === 'VOLCANIC_ERUPTION') name = 'Volkanik Magma & Kül Yağmuru (Admin)';
+    else if (type === 'QUANTUM_FLARE') name = 'Kuantum EMP Radyasyon Dalgası (Admin)';
+    else if (type === 'BLIZZARD') name = 'Sıfır Altı Kutup Kar Tipi (Admin)';
+
     set({
       activeHazard: {
         id: `hazard-admin-${Date.now()}`,
         type,
-        name: 'Mars Kum Fırtınası (Admin)',
+        name,
         durationTicks: 25,
         remainingTicks: 25,
         severity: 3,
       },
     });
-    get().addLog('warn', `🛠️ [ADMIN FIRTINA]: Şiddetli Mars kum fırtınası manuel olarak başlatıldı!`);
+    get().addLog('warn', `🛠️ [ADMIN FIRTINA]: '${name}' manuel olarak başlatıldı!`);
   },
 
   clearHazard: () => {
@@ -2437,19 +2442,38 @@ export const useGameStore = create<GameState>()(
       set({ turrets: updatedTurrets, activeBandits: updatedBanditsList });
     }
 
-    // 6. Dust Storm Hazard Loop (Every 70 Ticks)
-    if (nextTick % 70 === 0 && Math.random() < 0.3) {
+    // 6. Environmental Hazard Loop per Biome (Every 60 Ticks)
+    if (nextTick % 60 === 0 && Math.random() < 0.4 && !get().activeHazard) {
+      const currentBiome = get().currentBiome;
+      let hazardType: 'DUST_STORM' | 'VOLCANIC_ERUPTION' | 'QUANTUM_FLARE' | 'BLIZZARD' = 'DUST_STORM';
+      let hazardName = 'Mars Kum Fırtınası';
+      let logMessage = '🌪️ [KUM FIRTINASI BAŞLADI]: Şiddetli Mars kum fırtınası başladı! Sahadaki robotlar aşınıyor (-2 HP/tick).';
+
+      if (currentBiome === 'VOLCANIC') {
+        hazardType = 'VOLCANIC_ERUPTION';
+        hazardName = 'Volkanik Magma & Kül Yağmuru';
+        logMessage = '🌋 [VOLKANİK PATLAMA]: Volkanik vadide lav püskürmesi ve asit külleri başladı! (-3 HP, -5 Enerji/tick).';
+      } else if (currentBiome === 'QUANTUM_CAVERN') {
+        hazardType = 'QUANTUM_FLARE';
+        hazardName = 'Kuantum EMP Radyasyon Fırtınası';
+        logMessage = '⚛️ [KUANTUM EMP DALGASI]: Kuantum magmasında EMP ışınması tetiklendi! Sensörler parazitlendi (-4 Enerji/tick).';
+      } else if (currentBiome === 'GLACIER') {
+        hazardType = 'BLIZZARD';
+        hazardName = 'Sıfır Altı Kutup Kar Tipi';
+        logMessage = '❄️ [KUTUP TİPİSİ BAŞLADI]: Sıfırın altında kar fırtınası dondurucu rüzgarlarla bastırdı! Bataryalar donuyor (-3 Enerji/tick).';
+      }
+
       set({
         activeHazard: {
           id: `hazard-${Date.now()}`,
-          type: 'DUST_STORM',
-          name: 'Mars Kum Fırtınası',
-          durationTicks: 15,
-          remainingTicks: 15,
+          type: hazardType,
+          name: hazardName,
+          durationTicks: 20,
+          remainingTicks: 20,
           severity: 2,
         },
       });
-      get().addLog('warn', `🌪️ [KUM FIRTINASI BAŞLADI]: Şiddetli Mars kum fırtınası başladı! Sahadaki robotlar aşınıyor (-2 HP/tick). Tamir Drone'larını hazırlayın!`);
+      get().addLog('warn', logMessage);
     }
 
     const currentHazard = get().activeHazard;
@@ -2457,10 +2481,10 @@ export const useGameStore = create<GameState>()(
       const rem = currentHazard.remainingTicks - 1;
       if (rem <= 0) {
         set({ activeHazard: null });
-        get().addLog('info', `☀️ [FIRTINA DİNDİ]: Mars kum fırtınası sona erdi. Gökyüzü berraklaştı.`);
+        get().addLog('info', `☀️ [TEHLİKE DİNDİ]: ${currentHazard.name} sona erdi. Hava koşulları normale döndü.`);
       } else {
         set({ activeHazard: { ...currentHazard, remainingTicks: rem } });
-        // Deal Dust Storm wear damage to open field robots
+        // Apply specific hazard penalties to open field robots
         set((prev) => ({
           robots: prev.robots.map((r) => {
             const currentHp = r.health ?? 100;

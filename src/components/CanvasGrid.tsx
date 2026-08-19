@@ -942,68 +942,108 @@ export const CanvasGrid: React.FC = () => {
       ctx.fillRect(bx - barWidth / 2, by - radius - 8, barWidth * hpRatio, 3.5);
     });
 
-    // 8. Draw Mars Dust Storm FX Engine (Dynamic Sand Particles, Wind Gusts & Pulsing Banner)
+    // 8. Draw Multi-Biome Environmental Hazard FX Engine (Particles, Fog, Gusts/Lightning & HUD Banner)
     const currentHazard = biomeMaps[currentBiome]?.activeHazard || activeHazard;
-    if (currentHazard?.type === 'DUST_STORM') {
+    if (currentHazard) {
       ctx.save();
 
-      // A. Pulsing Mars Orange Fog Overlay
+      // Configure Hazard Specific Parameters
+      let fogColor = 'rgba(249, 115, 22, 0.14)';
+      let particleColors = ['#f97316', '#ea580c', '#fbbf24', '#d97706', '#fdba74'];
+      let particleGlow = '#f97316';
+      let strokeColor = 'rgba(251, 146, 60, 0.4)';
+      let hudBorder = 'rgba(249, 115, 22, 0.8)';
+      let hudText = '#f97316';
+      let hudEmoji = '🌪️';
+      let moveVX = 4;
+      let moveVY = 0.5;
+
+      if (currentHazard.type === 'VOLCANIC_ERUPTION') {
+        fogColor = 'rgba(220, 38, 38, 0.18)';
+        particleColors = ['#ef4444', '#dc2626', '#f97316', '#b91c1c', '#f59e0b'];
+        particleGlow = '#ef4444';
+        strokeColor = 'rgba(239, 68, 68, 0.5)';
+        hudBorder = 'rgba(239, 68, 68, 0.8)';
+        hudText = '#f87171';
+        hudEmoji = '🌋';
+        moveVX = 1.5;
+        moveVY = -3.5; // Embers floating upwards!
+      } else if (currentHazard.type === 'QUANTUM_FLARE') {
+        fogColor = 'rgba(6, 182, 212, 0.16)';
+        particleColors = ['#06b6d4', '#a855f7', '#38bdf8', '#c084fc', '#67e8f9'];
+        particleGlow = '#06b6d4';
+        strokeColor = 'rgba(168, 85, 247, 0.5)';
+        hudBorder = 'rgba(6, 182, 212, 0.8)';
+        hudText = '#38bdf8';
+        hudEmoji = '⚛️';
+        moveVX = 5.0;
+        moveVY = 1.0;
+      } else if (currentHazard.type === 'BLIZZARD') {
+        fogColor = 'rgba(56, 189, 248, 0.15)';
+        particleColors = ['#ffffff', '#e0f2fe', '#bae6fd', '#7dd3fc', '#ffffff'];
+        particleGlow = '#38bdf8';
+        strokeColor = 'rgba(224, 242, 254, 0.6)';
+        hudBorder = 'rgba(56, 189, 248, 0.8)';
+        hudText = '#7dd3fc';
+        hudEmoji = '❄️';
+        moveVX = 6.0;
+        moveVY = 2.0;
+      }
+
+      // A. Pulsing Biome Atmospheric Fog Overlay
       const fogAlpha = 0.14 + Math.sin(animTimeRef.current * 0.04) * 0.04;
-      ctx.fillStyle = `rgba(249, 115, 22, ${fogAlpha})`;
+      ctx.fillStyle = fogColor.replace('0.14', fogAlpha.toFixed(2));
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // B. Maintain 150 Sand & Dust Particle System
-      if (dustStormParticlesRef.current.length < 150) {
-        const needed = 150 - dustStormParticlesRef.current.length;
-        const colors = ['#f97316', '#ea580c', '#fbbf24', '#d97706', '#fdba74'];
+      // B. Maintain 160 Dynamic Hazard Particles
+      if (dustStormParticlesRef.current.length < 160) {
+        const needed = 160 - dustStormParticlesRef.current.length;
         for (let i = 0; i < needed; i++) {
           dustStormParticlesRef.current.push({
             x: Math.random() * (canvas.width + 100) - 50,
             y: Math.random() * canvas.height,
-            vx: 3.5 + Math.random() * 5.5,
-            vy: (Math.random() - 0.5) * 1.2,
-            size: 1 + Math.random() * 3,
-            alpha: 0.2 + Math.random() * 0.6,
-            color: colors[Math.floor(Math.random() * colors.length)],
+            vx: moveVX + (Math.random() - 0.5) * 2,
+            vy: moveVY + (Math.random() - 0.5) * 1.5,
+            size: 1 + Math.random() * 3.5,
+            alpha: 0.25 + Math.random() * 0.65,
+            color: particleColors[Math.floor(Math.random() * particleColors.length)],
           });
         }
       }
 
-      // C. Update & Render Swirling Dust Particles
+      // C. Update & Render Biome Hazard Particles
       dustStormParticlesRef.current.forEach((p) => {
         p.x += p.vx;
         p.y += p.vy;
 
-        if (p.x > canvas.width + 50) {
-          p.x = -30;
-          p.y = Math.random() * canvas.height;
-        }
-        if (p.y < 0) p.y = canvas.height;
-        if (p.y > canvas.height) p.y = 0;
+        if (p.x > canvas.width + 50) p.x = -30;
+        if (p.x < -30) p.x = canvas.width + 50;
+        if (p.y > canvas.height + 30) p.y = -20;
+        if (p.y < -20) p.y = canvas.height + 30;
 
         ctx.save();
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fillStyle = p.color;
-        ctx.shadowColor = '#f97316';
+        ctx.shadowColor = particleGlow;
         ctx.shadowBlur = p.size > 2 ? 6 : 0;
         ctx.globalAlpha = p.alpha;
         ctx.fill();
         ctx.restore();
       });
 
-      // D. Render Diagonal High-Speed Wind Gust Lines
+      // D. Render High Speed Wind / Ember / EMP Streaks
       const time = animTimeRef.current;
       ctx.lineWidth = 1.5;
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < 14; i++) {
         const lineX = ((time * (12 + (i % 5) * 3) + i * 130) % (canvas.width + 400)) - 200;
         const lineY = (i * 55 + Math.sin(time * 0.05 + i) * 15) % canvas.height;
         const lineLen = 80 + (i % 4) * 40;
 
         const windGrad = ctx.createLinearGradient(lineX, lineY, lineX + lineLen, lineY + 15);
-        windGrad.addColorStop(0, 'rgba(251, 146, 60, 0)');
-        windGrad.addColorStop(0.5, 'rgba(251, 146, 60, 0.4)');
-        windGrad.addColorStop(1, 'rgba(251, 146, 60, 0)');
+        windGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+        windGrad.addColorStop(0.5, strokeColor);
+        windGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
 
         ctx.strokeStyle = windGrad;
         ctx.beginPath();
@@ -1013,28 +1053,28 @@ export const CanvasGrid: React.FC = () => {
       }
 
       // E. Canvas Top Warning Badge HUD
-      const badgeWidth = 320;
+      const badgeWidth = 360;
       const badgeHeight = 28;
       const bx = (canvas.width - badgeWidth) / 2;
       const by = 12;
 
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-      ctx.strokeStyle = 'rgba(249, 115, 22, 0.8)';
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+      ctx.strokeStyle = hudBorder;
       ctx.lineWidth = 1.5;
-      ctx.shadowColor = 'rgba(249, 115, 22, 0.5)';
+      ctx.shadowColor = hudBorder;
       ctx.shadowBlur = 12;
       ctx.beginPath();
       ctx.roundRect(bx, by, badgeWidth, badgeHeight, 6);
       ctx.fill();
       ctx.stroke();
 
-      ctx.fillStyle = '#f97316';
+      ctx.fillStyle = hudText;
       ctx.font = 'bold 11px Fira Code, monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.shadowBlur = 0;
       ctx.fillText(
-        `🌪️ MARS KUM FIRTINASI AKTİF (Kalan: ${currentHazard.remainingTicks} Tick)`,
+        `${hudEmoji} ${currentHazard.name.toUpperCase()} (Kalan: ${currentHazard.remainingTicks} Tick)`,
         canvas.width / 2,
         by + badgeHeight / 2
       );

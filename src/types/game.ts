@@ -65,7 +65,7 @@ export interface TurretBuilding {
 
 export interface HazardEvent {
   id: string;
-  type: 'DUST_STORM' | 'ACID_RAIN';
+  type: 'DUST_STORM' | 'VOLCANIC_ERUPTION' | 'QUANTUM_FLARE' | 'BLIZZARD';
   name: string;
   durationTicks: number;
   remainingTicks: number;

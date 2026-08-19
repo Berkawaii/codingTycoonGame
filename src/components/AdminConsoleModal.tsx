@@ -226,34 +226,58 @@ export const AdminConsoleModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Section 3: Environmental Hazards */}
+          {/* Section 3: Environmental Hazards per Biome */}
           <div style={{ background: 'rgba(15, 23, 42, 0.7)', border: '1px solid rgba(249, 115, 22, 0.3)', borderRadius: '10px', padding: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: 800, color: '#fbbf24' }}>
                 <CloudRain className="w-4 h-4 text-amber-400" />
-                <span>3. MARS KUM FIRTINASI & TEHLİKE MANİPÜLASYONU</span>
+                <span>3. BİYOM ÇEVRE TEHLİKELERİ & HAVA OLAYLARI</span>
               </div>
               <span style={{ fontSize: '0.75rem', color: activeHazard ? '#f97316' : '#64748b', fontWeight: 700 }}>
-                {activeHazard ? `🌪️ FIRTINA AKTİF (${activeHazard.remainingTicks} tick)` : '☀️ Hava Açık'}
+                {activeHazard ? `🚨 ${activeHazard.name} (${activeHazard.remainingTicks} tick)` : '☀️ Hava Açık'}
               </span>
             </div>
 
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
               <button
                 onClick={() => triggerHazard('DUST_STORM')}
                 className="ui-btn"
-                style={{ padding: '0.4rem 0.85rem', fontSize: '0.75rem', fontWeight: 700, background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)', color: '#fff', border: 'none' }}
+                style={{ padding: '0.4rem 0.75rem', fontSize: '0.73rem', fontWeight: 700, background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)', color: '#fff', border: 'none' }}
               >
-                🌪️ Kum Fırtınası Tetikle (25 Tick)
+                🌪️ Mars Kum Fırtınası
+              </button>
+
+              <button
+                onClick={() => triggerHazard('VOLCANIC_ERUPTION')}
+                className="ui-btn"
+                style={{ padding: '0.4rem 0.75rem', fontSize: '0.73rem', fontWeight: 700, background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)', color: '#fff', border: 'none' }}
+              >
+                🌋 Volkanik Magma & Asit Yağmuru
+              </button>
+
+              <button
+                onClick={() => triggerHazard('QUANTUM_FLARE')}
+                className="ui-btn"
+                style={{ padding: '0.4rem 0.75rem', fontSize: '0.73rem', fontWeight: 700, background: 'linear-gradient(135deg, #06b6d4 0%, #a855f7 100%)', color: '#fff', border: 'none' }}
+              >
+                ⚛️ Kuantum EMP Dalgası
+              </button>
+
+              <button
+                onClick={() => triggerHazard('BLIZZARD')}
+                className="ui-btn"
+                style={{ padding: '0.4rem 0.75rem', fontSize: '0.73rem', fontWeight: 700, background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)', color: '#fff', border: 'none' }}
+              >
+                ❄️ Sıfır Altı Kutup Tipi
               </button>
 
               <button
                 onClick={clearHazard}
                 disabled={!activeHazard}
                 className="ui-btn ui-btn-secondary"
-                style={{ padding: '0.4rem 0.85rem', fontSize: '0.75rem', opacity: !activeHazard ? 0.4 : 1 }}
+                style={{ padding: '0.4rem 0.75rem', fontSize: '0.73rem', opacity: !activeHazard ? 0.4 : 1 }}
               >
-                ☀️ Fırtınayı Dindir
+                ☀️ Hava Durumunu Temizle
               </button>
             </div>
           </div>
