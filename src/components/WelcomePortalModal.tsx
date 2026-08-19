@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, Trophy, Code2, GraduationCap, User, X, LogIn, LogOut, ShieldCheck } from 'lucide-react';
+import { Play, Trophy, User, X, LogIn, LogOut, ShieldCheck } from 'lucide-react';
 import { AuthModal } from './AuthModal';
 import { useGameStore } from '../store/useGameStore';
 
@@ -7,16 +7,14 @@ interface WelcomePortalModalProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenLeaderboard: () => void;
-  onOpenMarketplace: () => void;
-  onOpenTutorial: () => void;
+  onOpenMarketplace?: () => void;
+  onOpenTutorial?: () => void;
 }
 
 export const WelcomePortalModal: React.FC<WelcomePortalModalProps> = ({
   isOpen,
   onClose,
   onOpenLeaderboard,
-  onOpenMarketplace,
-  onOpenTutorial,
 }) => {
   const { authUser, userDisplayName, startAnonymousSession, logout } = useGameStore();
 
@@ -173,32 +171,6 @@ export const WelcomePortalModal: React.FC<WelcomePortalModalProps> = ({
               >
                 <Trophy className="w-4 h-4 text-amber-400" />
                 <span>Liderlik Tablosu</span>
-              </button>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%' }}>
-              <button
-                onClick={() => {
-                  onClose();
-                  onOpenMarketplace();
-                }}
-                className="ui-btn ui-btn-secondary"
-                style={{ padding: '0.65rem', fontSize: '0.78rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-              >
-                <Code2 className="w-4 h-4 text-cyan-400" />
-                <span>Script Pazarı</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  onClose();
-                  onOpenTutorial();
-                }}
-                className="ui-btn ui-btn-cyan"
-                style={{ padding: '0.65rem', fontSize: '0.78rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-              >
-                <GraduationCap className="w-4 h-4" />
-                <span>C# Akademisi</span>
               </button>
             </div>
           </div>
