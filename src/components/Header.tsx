@@ -31,6 +31,7 @@ export const Header: React.FC = () => {
     setLeaderboardOpen,
     setMarketplaceOpen,
     setWelcomeOpen,
+    userRole,
   } = useGameStore();
 
   // Calculate total inventory value
@@ -231,23 +232,40 @@ export const Header: React.FC = () => {
             <Sparkles className="w-3.5 h-3.5 text-purple-400" />
           </button>
 
-          <button
-            onClick={() => setAdminModalOpen(true)}
-            className="ui-btn"
-            style={{
-              padding: '0.35rem 0.6rem',
-              fontSize: '0.72rem',
-              background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.25) 0%, rgba(168, 85, 247, 0.25) 100%)',
-              border: '1px solid rgba(239, 68, 68, 0.5)',
-              color: '#f87171',
-              fontWeight: 800,
-              boxShadow: '0 0 10px rgba(239, 68, 68, 0.2)',
-            }}
-            title="Geliştirici & Admin Test Konsolu"
-          >
-            <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
-            <span>ADMIN</span>
-          </button>
+          {userRole === 'admin' ? (
+            <button
+              onClick={() => setAdminModalOpen(true)}
+              className="ui-btn"
+              style={{
+                padding: '0.35rem 0.6rem',
+                fontSize: '0.72rem',
+                background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.35) 0%, rgba(168, 85, 247, 0.35) 100%)',
+                border: '1px solid rgba(239, 68, 68, 0.7)',
+                color: '#f87171',
+                fontWeight: 800,
+                boxShadow: '0 0 12px rgba(239, 68, 68, 0.4)',
+              }}
+              title="Geliştirici & Admin Test Konsolu"
+            >
+              <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+              <span>ADMIN PANEL</span>
+            </button>
+          ) : (
+            <div
+              style={{
+                fontSize: '0.68rem',
+                fontWeight: 700,
+                color: '#64748b',
+                background: 'rgba(30, 41, 59, 0.5)',
+                border: '1px solid #334155',
+                padding: '0.25rem 0.5rem',
+                borderRadius: '6px',
+              }}
+              title="Standart Mühendis Hesabı"
+            >
+              USER ROLE
+            </div>
+          )}
 
           <button
             onClick={resetGame}

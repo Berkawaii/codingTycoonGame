@@ -125,6 +125,7 @@ interface GameState {
 
   // User Auth & Anonymous Session State
   authUser: any | null;
+  userRole: 'admin' | 'user';
   isAnonymousPlayer: boolean;
   userDisplayName: string;
   startAnonymousSession: () => void;
@@ -285,6 +286,7 @@ export const useGameStore = create<GameState>()(
   tickCount: 0,
   // Auth & User Profile State
   authUser: null,
+  userRole: 'user',
   isAnonymousPlayer: !localStorage.getItem('syntax_factory_user_id'),
   userDisplayName: localStorage.getItem('syntax_factory_user_name') || 'Mühendis Oyuncu',
 
@@ -1918,7 +1920,13 @@ export const useGameStore = create<GameState>()(
   },
 
   // Admin & Simulation Testing Console Implementations
-  setAdminModalOpen: (open) => set({ isAdminModalOpen: open }),
+  setAdminModalOpen: (open) => {
+    if (open && get().userRole !== 'admin') {
+      get().addLog('warn', '[YETKİ BİLDİRİMİ]: Admin Konsoluna erişmek için "admin" yetkili bir hesapla oturum açmanız gerekir.');
+      return;
+    }
+    set({ isAdminModalOpen: open });
+  },
   setLeaderboardOpen: (open) => set({ isLeaderboardOpen: open }),
   setMarketplaceOpen: (open) => set({ isMarketplaceOpen: open }),
   setWelcomeOpen: (open) => set({ isWelcomeOpen: open }),

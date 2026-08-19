@@ -15,6 +15,7 @@ import {
   collection,
   doc,
   setDoc,
+  getDoc,
   getDocs,
   query,
   orderBy,
@@ -39,16 +40,36 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
+export type UserRole = 'admin' | 'user';
+
 // Firestore User & Leaderboard Sync
-export const syncUserToFirestore = async (user: User, customDisplayName?: string) => {
-  if (!user) return;
+export const syncUserToFirestore = async (user: User, customDisplayName?: string): Promise<UserRole> => {
+  if (!user) return 'user';
   const displayName = customDisplayName || user.displayName || user.email?.split('@')[0] || 'Mühendis Oyuncu';
+
+  let role: UserRole = 'user';
+  const userDocRef = doc(db, 'users', user.uid);
+
+  try {
+    const snap = await getDoc(userDocRef);
+    if (snap.exists() && snap.data().role) {
+      role = snap.data().role as UserRole;
+    } else {
+      // Set admin role by default for initial project admin emails or admin keyword
+      if (user.email && (user.email.includes('admin') || user.email === 'admin@syntaxfactory.com')) {
+        role = 'admin';
+      }
+    }
+  } catch (e) {
+    console.warn('Error reading existing user doc for role:', e);
+  }
 
   const userData = {
     uid: user.uid,
     displayName,
     email: user.email || '',
     emailVerified: user.emailVerified,
+    role,
     photoURL: user.photoURL || '',
     updatedAt: new Date().toISOString(),
   };
@@ -65,12 +86,14 @@ export const syncUserToFirestore = async (user: User, customDisplayName?: string
   };
 
   try {
-    await setDoc(doc(db, 'users', user.uid), userData, { merge: true });
+    await setDoc(userDocRef, userData, { merge: true });
     await setDoc(doc(db, 'leaderboards', user.uid), leaderboardData, { merge: true });
-    console.log('[FIRESTORE SINK]: User and Leaderboard documents created for', user.uid);
+    console.log('[FIRESTORE SINK]: User & Leaderboard synced. Role:', role);
   } catch (e) {
     console.error('[FIRESTORE SINK ERROR]:', e);
   }
+
+  return role;
 };
 
 // Auth Helpers

@@ -11,7 +11,7 @@ import { LeaderboardModal } from './components/LeaderboardModal';
 import { ScriptMarketplaceModal } from './components/ScriptMarketplaceModal';
 import { WelcomePortalModal } from './components/WelcomePortalModal';
 
-import { subscribeToAuth } from './services/firebaseService';
+import { subscribeToAuth, syncUserToFirestore } from './services/firebaseService';
 
 import { Code2, Maximize2 } from 'lucide-react';
 
@@ -52,18 +52,28 @@ export const App: React.FC = () => {
 
   // Firebase Auth State Listener
   useEffect(() => {
-    const unsubscribe = subscribeToAuth((user) => {
+    const unsubscribe = subscribeToAuth(async (user) => {
       if (user) {
         const name = user.displayName || user.email?.split('@')[0] || 'Mühendis';
         localStorage.setItem('syntax_factory_user_id', user.uid);
         localStorage.setItem('syntax_factory_user_name', name);
+
+        // Fetch role from Firestore
+        const role = await syncUserToFirestore(user);
+
         useGameStore.setState({
           authUser: user,
+          userRole: role,
           isAnonymousPlayer: false,
           userDisplayName: name,
           isWelcomeOpen: false,
         });
-        addLog('success', `[OTURUM HESABI]: Oturum doğrulandı: ${name}.`);
+        addLog('success', `[OTURUM HESABI]: Oturum doğrulandı (${role.toUpperCase()}): ${name}.`);
+      } else {
+        useGameStore.setState({
+          authUser: null,
+          userRole: 'user',
+        });
       }
     });
 
