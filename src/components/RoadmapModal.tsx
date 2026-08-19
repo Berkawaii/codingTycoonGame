@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, Map, ExternalLink, GitBranch, Terminal, Shield, Zap, Cpu, Bot, Factory, Crosshair, Building2, Layers, TrendingUp } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Map, ExternalLink, GitBranch, Terminal, Shield, Zap, Cpu, Bot, Factory, Crosshair, Building2, Layers, TrendingUp, ChevronDown, ChevronUp, Maximize2, Minimize2 } from 'lucide-react';
 import { useGameStore } from '../store/useGameStore';
 
 interface RoadmapModalProps {
@@ -9,6 +9,21 @@ interface RoadmapModalProps {
 
 export const RoadmapModal: React.FC<RoadmapModalProps> = ({ isOpen, onClose }) => {
   const { language, setLanguage } = useGameStore();
+
+  // Track expanded cards (by default, expand current active phase-5 and phase-6)
+  const [expandedPhases, setExpandedPhases] = useState<Record<string, boolean>>({
+    'phase-1': false,
+    'phase-2': false,
+    'phase-3': false,
+    'phase-4': false,
+    'phase-5': true,
+    'phase-6': true,
+    'phase-7': false,
+    'phase-8': false,
+    'phase-9': false,
+    'phase-10': false,
+    'phase-11': false,
+  });
 
   if (!isOpen) return null;
 
@@ -255,6 +270,23 @@ export const RoadmapModal: React.FC<RoadmapModalProps> = ({ isOpen, onClose }) =
     },
   ];
 
+  const togglePhase = (id: string) => {
+    setExpandedPhases((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
+  const setAllExpanded = (expanded: boolean) => {
+    const next: Record<string, boolean> = {};
+    phases.forEach((p) => {
+      next[p.id] = expanded;
+    });
+    setExpandedPhases(next);
+  };
+
+  const allAreExpanded = phases.every((p) => expandedPhases[p.id]);
+
   return (
     <div
       style={{
@@ -277,8 +309,8 @@ export const RoadmapModal: React.FC<RoadmapModalProps> = ({ isOpen, onClose }) =
           boxShadow: '0 0 40px rgba(0, 242, 254, 0.15)',
           borderRadius: '16px',
           width: '100%',
-          maxWidth: '840px',
-          maxHeight: '90vh',
+          maxWidth: '860px',
+          maxHeight: '85vh',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -296,8 +328,8 @@ export const RoadmapModal: React.FC<RoadmapModalProps> = ({ isOpen, onClose }) =
             background: 'rgba(15, 23, 42, 0.6)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Map className="w-6 h-6 text-cyan-400" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Map className="w-6 h-6 text-cyan-400 shrink-0" />
             <div>
               <h2
                 style={{
@@ -320,7 +352,28 @@ export const RoadmapModal: React.FC<RoadmapModalProps> = ({ isOpen, onClose }) =
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              onClick={() => setAllExpanded(!allAreExpanded)}
+              style={{
+                background: 'rgba(15, 23, 42, 0.8)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                color: '#94a3b8',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                padding: '4px 10px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+              title={allAreExpanded ? (isEn ? 'Collapse All' : 'Tümünü Daralt') : (isEn ? 'Expand All' : 'Tümünü Genişlet')}
+            >
+              {allAreExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+              <span>{allAreExpanded ? (isEn ? 'Collapse All' : 'Tümünü Daralt') : (isEn ? 'Expand All' : 'Tümünü Aç')}</span>
+            </button>
+
             <button
               onClick={() => setLanguage(isEn ? 'tr' : 'en')}
               style={{
@@ -352,35 +405,46 @@ export const RoadmapModal: React.FC<RoadmapModalProps> = ({ isOpen, onClose }) =
           </div>
         </div>
 
-        {/* Modal Scrollable Body */}
+        {/* Modal Scrollable Accordion Body */}
         <div
           style={{
-            padding: '1.5rem',
+            padding: '1.25rem 1.5rem',
             overflowY: 'auto',
-            display: 'grid',
-            gridTemplateColumns: '1fr',
-            gap: '1.25rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.85rem',
           }}
         >
           {phases.map((phase) => {
             const IconComp = phase.icon;
+            const isExpanded = !!expandedPhases[phase.id];
+
             return (
               <div
                 key={phase.id}
                 style={{
-                  background: 'rgba(15, 23, 42, 0.5)',
-                  border: `1px solid ${phase.badgeColor}40`,
+                  background: 'rgba(15, 23, 42, 0.55)',
+                  border: `1px solid ${phase.badgeColor}35`,
                   borderRadius: '12px',
-                  padding: '1.25rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.75rem',
-                  position: 'relative',
                   overflow: 'hidden',
+                  transition: 'border-color 0.2s ease-in-out',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {/* Accordion Header Bar */}
+                <div
+                  onClick={() => togglePhase(phase.id)}
+                  style={{
+                    padding: '0.85rem 1.1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    background: isExpanded ? 'rgba(15, 23, 42, 0.85)' : 'transparent',
+                    borderBottom: isExpanded ? `1px solid ${phase.badgeColor}25` : 'none',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
                     <div
                       style={{
                         background: `${phase.badgeColor}20`,
@@ -390,53 +454,80 @@ export const RoadmapModal: React.FC<RoadmapModalProps> = ({ isOpen, onClose }) =
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
+                        flexShrink: 0,
                       }}
                     >
                       <IconComp style={{ width: '18px', height: '18px', color: phase.badgeColor }} />
                     </div>
-                    <div>
-                      <span style={{ fontSize: '0.68rem', fontWeight: 800, color: phase.badgeColor, letterSpacing: '1px' }}>
-                        {phase.number} - {phase.date}
-                      </span>
-                      <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc', margin: '2px 0 0 0' }}>
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 800, color: phase.badgeColor, letterSpacing: '1px' }}>
+                          {phase.number} - {phase.date}
+                        </span>
+                      </div>
+                      <h3
+                        style={{
+                          fontSize: '0.92rem',
+                          fontWeight: 700,
+                          color: '#f8fafc',
+                          margin: 0,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
                         {phase.title}
                       </h3>
                     </div>
                   </div>
 
-                  <span
-                    style={{
-                      fontSize: '0.68rem',
-                      fontWeight: 800,
-                      color: phase.badgeColor,
-                      background: `${phase.badgeColor}15`,
-                      border: `1px solid ${phase.badgeColor}50`,
-                      padding: '4px 10px',
-                      borderRadius: '12px',
-                      letterSpacing: '0.5px',
-                    }}
-                  >
-                    {phase.status}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0, marginLeft: '12px' }}>
+                    <span
+                      style={{
+                        fontSize: '0.65rem',
+                        fontWeight: 800,
+                        color: phase.badgeColor,
+                        background: `${phase.badgeColor}15`,
+                        border: `1px solid ${phase.badgeColor}50`,
+                        padding: '3px 9px',
+                        borderRadius: '12px',
+                        letterSpacing: '0.5px',
+                      }}
+                    >
+                      {phase.status}
+                    </span>
+
+                    {isExpanded ? (
+                      <ChevronUp className="w-4 h-4 text-slate-400" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-slate-400" />
+                    )}
+                  </div>
                 </div>
 
-                <ul
-                  style={{
-                    margin: 0,
-                    paddingLeft: '1.25rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '4px',
-                    fontSize: '0.78rem',
-                    color: '#94a3b8',
-                  }}
-                >
-                  {phase.items.map((item, idx) => (
-                    <li key={idx} style={{ lineHeight: '1.4' }}>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
+                {/* Accordion Expandable Details Content */}
+                {isExpanded && (
+                  <div style={{ padding: '1rem 1.25rem 1.1rem 1.25rem', background: 'rgba(9, 13, 22, 0.4)' }}>
+                    <ul
+                      style={{
+                        margin: 0,
+                        paddingLeft: '1.25rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px',
+                        fontSize: '0.78rem',
+                        color: '#94a3b8',
+                      }}
+                    >
+                      {phase.items.map((item, idx) => (
+                        <li key={idx} style={{ lineHeight: '1.45' }}>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -445,7 +536,7 @@ export const RoadmapModal: React.FC<RoadmapModalProps> = ({ isOpen, onClose }) =
         {/* Modal Footer */}
         <div
           style={{
-            padding: '1rem 1.5rem',
+            padding: '0.85rem 1.5rem',
             borderTop: '1px solid rgba(255, 255, 255, 0.1)',
             background: 'rgba(15, 23, 42, 0.8)',
             display: 'flex',
@@ -469,7 +560,7 @@ export const RoadmapModal: React.FC<RoadmapModalProps> = ({ isOpen, onClose }) =
           <button
             onClick={onClose}
             className="ui-btn ui-btn-primary"
-            style={{ padding: '0.5rem 1.25rem', fontSize: '0.78rem', fontWeight: 800 }}
+            style={{ padding: '0.45rem 1.25rem', fontSize: '0.78rem', fontWeight: 800 }}
           >
             <span>{isEn ? 'Close' : 'Kapat'}</span>
           </button>
