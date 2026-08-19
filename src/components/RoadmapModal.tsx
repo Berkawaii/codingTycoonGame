@@ -427,6 +427,8 @@ export const RoadmapModal: React.FC<RoadmapModalProps> = ({ isOpen, onClose }) =
                   border: `1px solid ${phase.badgeColor}35`,
                   borderRadius: '12px',
                   overflow: 'hidden',
+                  flexShrink: 0,
+                  minHeight: '60px',
                   transition: 'border-color 0.2s ease-in-out',
                 }}
               >
