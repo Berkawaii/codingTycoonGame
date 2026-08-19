@@ -324,10 +324,10 @@ export const submitPlayerScore = async (
 export const CREATOR_SCRIPTS: CommunityScript[] = [
   {
     id: 'script-creator-mining-01',
-    title: 'Gelişmiş Otonom Maden & Şarj Algoritması',
+    title: 'Autonomous Mining & Charger Protocol',
     authorName: 'TheCreator',
     authorId: 'the-creator',
-    description: 'Şarjı kritik seviyeye inince en yakın şarj istasyonuna giden, kargosu dolunca depoya boşaltan ve çevredeki madenleri radarla tarayan otonom madenci betiği.',
+    description: 'Fully autonomous C# script that scans nearby ore tiles via radar, mines resources, returns to depot when cargo is full, and head to nearest charging station when battery level is low.',
     category: 'MINING',
     code: `using System;
 using System.Collections.Generic;
@@ -393,10 +393,10 @@ public class RobotScript
   },
   {
     id: 'script-creator-powerplant-01',
-    title: 'Termal Dengeleyici Santral Betiği',
+    title: 'Thermal Stabilizer Power Plant Controller',
     authorName: 'TheCreator',
     authorId: 'the-creator',
-    description: 'Santral sıcaklığı 85°C üzerine çıktığında otomatik soğutan, şebeke yüküne göre otonom kömür yakan santral yönetimi.',
+    description: 'Monitors grid power demand and reactor temperature. Cools down automatically if temperature exceeds 85°C to prevent meltdown, and burns coal according to grid load.',
     category: 'MINING',
     code: `using System;
 using System.Collections.Generic;
@@ -436,10 +436,10 @@ public class PowerPlantScript
   },
   {
     id: 'script-creator-transporter-01',
-    title: 'Lojistik Transporter Sürü Betiği',
+    title: 'Swarm Transporter Logistics Routine',
     authorName: 'TheCreator',
     authorId: 'the-creator',
-    description: 'Sürü radyo şebekesindeki CARGO_FULL sinyallerini dinleyip madencilerin yanına giden ve kargoyu depoya taşıyan lojistik betiği.',
+    description: 'Listens to CARGO_FULL radio signals broadcasted across the swarm network, navigates to miners to collect cargo mid-field, and deposits goods at the nearest depot.',
     category: 'MINING',
     code: `using System;
 using System.Collections.Generic;
@@ -485,10 +485,10 @@ public class TransporterScript
   },
   {
     id: 'script-creator-repair-01',
-    title: 'Otonom Tamir Drone Betiği',
+    title: 'Autonomous Field Repair Drone AI',
     authorName: 'TheCreator',
     authorId: 'the-creator',
-    description: 'Sahadaki hasarlı robotları otomatik tespit edip tamir ışınıyla yanlarına giderek onaran savunma ve destek betiği.',
+    description: 'Scans the sector for damaged robots, moves into range, and repairs units using thermal repair beam technology.',
     category: 'REPAIR',
     code: `using System;
 using System.Collections.Generic;
@@ -536,7 +536,7 @@ export const seedCreatorScriptsToFirestore = async (): Promise<void> => {
       const docRef = doc(db, 'community_scripts', script.id);
       await setDoc(docRef, script, { merge: true });
     }
-    console.log('[FIRESTORE SEED]: 4 Creator scripts successfully seeded to Cloud Firestore under community_scripts collection!');
+    console.log('[FIRESTORE SEED]: 4 English Creator scripts successfully seeded to Cloud Firestore under community_scripts collection!');
   } catch (e) {
     console.warn('Firebase Firestore seedCreatorScriptsToFirestore failed (check rules):', e);
   }
@@ -545,14 +545,11 @@ export const seedCreatorScriptsToFirestore = async (): Promise<void> => {
 // --- COMMUNITY SCRIPT MARKETPLACE SERVICES ---
 export const fetchCommunityScripts = async (): Promise<CommunityScript[]> => {
   try {
-    const q = query(collection(db, 'community_scripts'), orderBy('createdAt', 'desc'), limit(50));
-    let snapshot = await getDocs(q);
+    // Unconditionally seed/upsert TheCreator scripts so they are always present in Firestore
+    await seedCreatorScriptsToFirestore();
 
-    // If Firestore collection is empty, automatically seed TheCreator scripts directly into Firestore
-    if (snapshot.empty) {
-      await seedCreatorScriptsToFirestore();
-      snapshot = await getDocs(q);
-    }
+    const q = query(collection(db, 'community_scripts'), orderBy('createdAt', 'desc'), limit(50));
+    const snapshot = await getDocs(q);
 
     if (!snapshot.empty) {
       return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as CommunityScript));
