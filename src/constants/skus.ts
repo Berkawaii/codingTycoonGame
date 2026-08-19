@@ -335,10 +335,16 @@ public class RepairDroneScript
         if (damagedRobots.Count > 0)
         {
             RobotInfo target = damagedRobots[0];
-            robot.GoTo(target.X, target.Y);
-            if (Math.Abs(target.X - robot.GetX()) <= 1 && Math.Abs(target.Y - robot.GetY()) <= 1)
+            int dist = Math.Abs(target.X - robot.GetX()) + Math.Abs(target.Y - robot.GetY());
+            
+            // 1 Karo yakınındaysa dur ve Lazer Tamir Işını ile onar (Üstüne tırmanma!)
+            if (dist <= 1)
             {
                 robot.RepairRobot(target.Id);
+            }
+            else
+            {
+                robot.GoTo(target.X, target.Y);
             }
             return;
         }

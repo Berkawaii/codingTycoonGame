@@ -1583,6 +1583,15 @@ export const useGameStore = create<GameState>()(
     );
 
     if (isOccupiedByRobot && !isStationOrDepot) {
+      // If robot is already adjacent (dist <= 1) to target robot/building, stay put nicely (No infinite detour loops)
+      const distToBlocking = Math.abs(robot.x - newX) + Math.abs(robot.y - newY);
+      if (distToBlocking <= 1 && (robot.role === 'REPAIR_DRONE' || robot.role === 'TRANSPORTER')) {
+        set((prev) => ({
+          robots: prev.robots.map((r) => (r.id === robotId ? { ...r, status: 'IDLE' as const } : r)),
+        }));
+        return;
+      }
+
       // Automatic Deadlock Resolution: Try a lateral side-step detour around the blocking robot!
       let detourDirection: Direction | null = null;
       let detourX = robot.x;
@@ -1613,10 +1622,6 @@ export const useGameStore = create<GameState>()(
       }
 
       if (detourDirection) {
-        get().addLog(
-          'info',
-          `${robot.name} çakışmayı önlemek için '${detourDirection}' yönüne otonom yan adım (Detour) attı.`
-        );
         soundService.playStep();
         set((prev) => ({
           robots: prev.robots.map((r) =>
@@ -1635,7 +1640,6 @@ export const useGameStore = create<GameState>()(
         return;
       }
 
-      get().addLog('warn', `${robot.name} (${newX}, ${newY}) karesinde çakışma nedeniyle beklemede kaldı.`);
       return;
     }
 
@@ -2081,7 +2085,7 @@ export const useGameStore = create<GameState>()(
     const robot = state.robots.find((r) => r.id === state.selectedRobotId);
     if (!robot) return false;
 
-    const result = await compileAndRunCSharp(
+    const result = compileAndRunCSharp(
       robot.scriptCode || state.scriptCode || DEFAULT_C_SHARP_SCRIPT,
       {
         id: robot.id,
@@ -2124,7 +2128,7 @@ export const useGameStore = create<GameState>()(
     return true;
   },
 
-  stepTick: async () => {
+  stepTick: () => {
     const state = get();
     const nextTick = state.tickCount + 1;
     set({ tickCount: nextTick });
@@ -2191,7 +2195,7 @@ export const useGameStore = create<GameState>()(
         }
 
         const scriptToRun = plant.scriptCode || get().powerPlantScriptCode || DEFAULT_POWER_PLANT_C_SHARP_SCRIPT;
-        const result = await compileAndRunPowerPlantCSharp(scriptToRun, {
+        const result = compileAndRunPowerPlantCSharp(scriptToRun, {
           id: plant.id,
           name: plant.name,
           temperature: plant.temperature,
@@ -2302,7 +2306,7 @@ export const useGameStore = create<GameState>()(
       // 3. Run Robot's C# Script against ITS OWN biome map data
       const codeToRun = robot.scriptCode || state.scriptCode || DEFAULT_C_SHARP_SCRIPT;
 
-      const result = await compileAndRunCSharp(
+      const result = compileAndRunCSharp(
         codeToRun,
         {
           id: robot.id,

@@ -29,7 +29,7 @@ interface RobotState {
  * Intelligent C# Script Evaluator & WASM Bridge
  * Dynamic radar pathfinding, charging station auto-recharge, depot cargo unloading, smelter/refinery processing, swarm radio network navigation, and GoTo(x, y) target navigation.
  */
-export async function compileAndRunCSharp(
+export function compileAndRunCSharp(
   code: string,
   robotState: RobotState,
   resources: ResourceNode[],
@@ -39,7 +39,7 @@ export async function compileAndRunCSharp(
   _smelters: Smelter[] = [],
   _refineries: Refinery[] = [],
   radioMessages: RadioMessage[] = []
-): Promise<ScriptExecutionResult> {
+): ScriptExecutionResult {
   const diagnostics: string[] = [];
   const logs: CompilationLog[] = [];
 
@@ -372,7 +372,7 @@ export interface PowerPlantExecutionResult {
   logs: PowerPlantLog[];
 }
 
-export async function compileAndRunPowerPlantCSharp(
+export function compileAndRunPowerPlantCSharp(
   code: string,
   plant: {
     id: string;
@@ -382,7 +382,7 @@ export async function compileAndRunPowerPlantCSharp(
     maxPowerBuffer: number;
     isOverheated: boolean;
   }
-): Promise<PowerPlantExecutionResult> {
+): PowerPlantExecutionResult {
   const logs: PowerPlantLog[] = [];
 
   if (plant.isOverheated) {
