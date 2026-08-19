@@ -12,13 +12,13 @@ Syntax Factory decoupled simulation architecture runs client-side WebAssembly C#
 
 ```mermaid
 graph TD
-    Client[React 19 Frontend UI] --> Store[Zustand Central Game Store]
-    Store --> Canvas[2D HTML5 Canvas Engine]
-    Store --> WASM[C# WASM Execution Engine]
-    Store --> Firebase[Firebase Auth & Cloud Firestore]
-    WASM --> Evaluator[Dynamic Scope & Variable Evaluator]
-    Evaluator --> API[IRobot & IPowerPlant APIs]
-    Firebase --> DB[(Firestore Documents)]
+    Client["React 19 Frontend UI"] --> Store["Zustand Central Game Store"]
+    Store --> Canvas["2D HTML5 Canvas Engine"]
+    Store --> WASM["C# WASM Execution Engine"]
+    Store --> Firebase["Firebase Auth & Cloud Firestore"]
+    WASM --> Evaluator["Dynamic Scope & Variable Evaluator"]
+    Evaluator --> API["IRobot & IPowerPlant APIs"]
+    Firebase --> DB[("Firestore Documents")]
 ```
 
 ---
@@ -61,12 +61,12 @@ Syntax Factory features four distinct planetary biomes, each presenting unique r
 
 ```mermaid
 flowchart LR
-    User[User Authentication] -->|Email / Anon| Auth[Firebase Auth]
-    Auth -->|UID| Sync[Firestore Sync Engine]
-    Sync -->|Read / Write| Save[users/{userId}/game_data/save_state]
-    Sync -->|Check Callsign| Names[display_names/{name}]
-    Sync -->|Publish / Download| Market[community_scripts/{scriptId}]
-    Sync -->|Post Net-Worth| Ranks[leaderboards/{userId}]
+    User["User Authentication"] -->|Email / Anon| Auth["Firebase Auth"]
+    Auth -->|UID| Sync["Firestore Sync Engine"]
+    Sync -->|Read / Write| Save["users/userId/game_data/save_state"]
+    Sync -->|Check Callsign| Names["display_names/name"]
+    Sync -->|Publish / Download| Market["community_scripts/scriptId"]
+    Sync -->|Post Net-Worth| Ranks["leaderboards/userId"]
 ```
 
 ---
@@ -77,16 +77,16 @@ The platform follows an extended 11-phase engineering trajectory:
 
 ```mermaid
 graph LR
-    P1[Phase 01: WASM Engine] --> P2[Phase 02: Swarm Mesh]
-    P2 --> P3[Phase 03: Biomes & Power]
-    P3 --> P4[Phase 04: Cloud & Market]
-    P4 --> P5[Phase 05: Refineries]
-    P5 --> P6[Phase 06: R&D Tech Tree]
-    P6 --> P7[Phase 07: Exotic Biomes]
-    P7 --> P8[Phase 08: Market Crises]
-    P8 --> P9[Phase 09: Base Defense]
-    P9 --> P10[Phase 10: Custom Assemblies]
-    P10 --> P11[Phase 11: AI Copilot]
+    P1["Phase 01: WASM Engine"] --> P2["Phase 02: Swarm Mesh"]
+    P2 --> P3["Phase 03: Biomes & Power"]
+    P3 --> P4["Phase 04: Cloud & Market"]
+    P4 --> P5["Phase 05: Refineries"]
+    P5 --> P6["Phase 06: R&D Tech Tree"]
+    P6 --> P7["Phase 07: Exotic Biomes"]
+    P7 --> P8["Phase 08: Market Crises"]
+    P8 --> P9["Phase 09: Base Defense"]
+    P9 --> P10["Phase 10: Custom Assemblies"]
+    P10 --> P11["Phase 11: AI Copilot"]
 ```
 
 ### Phase Details

@@ -151,11 +151,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
             justifyContent: 'space-between',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <img src="/logo_only.svg" alt="Syntax Factory Logo" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
-            <h3 style={{ fontFamily: 'var(--font-hud)', fontWeight: 700, color: '#ffffff', fontSize: '1rem', letterSpacing: '0.75px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <img src="/logo_only.svg" alt="Syntax Factory Logo" style={{ width: '30px', height: '30px', objectFit: 'contain' }} />
+            <h3 style={{ fontFamily: 'var(--font-hud)', fontWeight: 700, color: '#ffffff', fontSize: '0.95rem', letterSpacing: '0.75px', margin: 0 }}>
               SYNTAX <span style={{ color: 'var(--brand-red)' }}>FACTORY</span>
             </h3>
+            <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#38bdf8', background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189, 248, 0.3)', padding: '1px 6px', borderRadius: '10px', letterSpacing: '0.5px' }}>
+              v0.0.6 Alpha
+            </span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

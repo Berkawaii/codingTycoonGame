@@ -87,9 +87,14 @@ export const WelcomePortalModal: React.FC<WelcomePortalModalProps> = ({
               alt="Syntax Factory Logo"
               style={{ width: '64px', height: '64px', objectFit: 'contain', marginBottom: '0.75rem' }}
             />
-            <h2 style={{ fontFamily: 'var(--font-hud)', fontWeight: 800, fontSize: '1.6rem', letterSpacing: '1px', color: '#ffffff', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
-              SYNTAX <span style={{ color: 'var(--brand-red)' }}>FACTORY</span>
-            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.35rem' }}>
+              <h2 style={{ fontFamily: 'var(--font-hud)', fontWeight: 800, fontSize: '1.6rem', letterSpacing: '1px', color: '#ffffff', textTransform: 'uppercase', margin: 0 }}>
+                SYNTAX <span style={{ color: 'var(--brand-red)' }}>FACTORY</span>
+              </h2>
+              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#38bdf8', background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189, 248, 0.3)', padding: '2px 8px', borderRadius: '12px', letterSpacing: '0.5px' }}>
+                v0.0.6 Alpha
+              </span>
+            </div>
             <p style={{ fontSize: '0.82rem', color: '#94a3b8', maxWidth: '420px', margin: '0 auto' }}>
               {t('welcome_desc')}
             </p>
