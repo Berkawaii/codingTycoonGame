@@ -25,6 +25,32 @@ export interface BiomeDefinition {
   exclusiveResources: BiomeResourceTemplate[];
 }
 
+export function getBiomeName(biomeId: BiomeType, lang: 'tr' | 'en' = 'tr'): string {
+  if (lang === 'en') {
+    switch (biomeId) {
+      case 'MARS_BASIN': return 'Mars Basin Desert';
+      case 'VOLCANIC': return 'Volcanic Magma Basin';
+      case 'QUANTUM_CAVERN': return 'Quantum Crystal Cavern';
+      case 'GLACIER': return 'Glacial Permafrost Wastes';
+      default: return 'Mars Basin Desert';
+    }
+  }
+  return BIOME_CATALOG[biomeId]?.name || 'Mars Çöl Havzası';
+}
+
+export function getBiomeSubtitle(biomeId: BiomeType, lang: 'tr' | 'en' = 'tr'): string {
+  if (lang === 'en') {
+    switch (biomeId) {
+      case 'MARS_BASIN': return 'Default Base Mining Grounds';
+      case 'VOLCANIC': return 'Molten Lava Rivers & Ruby Crystals';
+      case 'QUANTUM_CAVERN': return 'Nuclear Radiation & Quantum Particles';
+      case 'GLACIER': return 'Slippery Ice Layer & Diamond Crystals';
+      default: return 'Default Base Mining Grounds';
+    }
+  }
+  return BIOME_CATALOG[biomeId]?.subtitle || 'Varsayılan Temel Maden Sahası';
+}
+
 export const BIOME_CATALOG: Record<BiomeType, BiomeDefinition> = {
   MARS_BASIN: {
     id: 'MARS_BASIN',

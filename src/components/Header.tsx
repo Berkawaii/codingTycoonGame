@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { SKU_CATALOG } from '../constants/skus';
-import { BIOME_CATALOG } from '../constants/biomes';
+import { getBiomeName } from '../constants/biomes';
 import { BiomeType } from '../types/game';
 import { soundService } from '../services/soundService';
 import { TutorialModal } from './TutorialModal';
@@ -108,7 +108,7 @@ export const Header: React.FC = () => {
             >
               {unlockedBiomes.map((bKey) => (
                 <option key={bKey} value={bKey}>
-                  {BIOME_CATALOG[bKey]?.name}
+                  {getBiomeName(bKey, language)}
                 </option>
               ))}
             </select>
@@ -128,7 +128,7 @@ export const Header: React.FC = () => {
 
           <div className="telemetry-item">
             <Package className="w-4 h-4 text-cyan-400" />
-            <span className="telemetry-label">Stok:</span>
+            <span className="telemetry-label">{t('total_val')}:</span>
             <span className="telemetry-value" style={{ color: '#67e8f9' }}>${totalValue.toLocaleString()}</span>
           </div>
 

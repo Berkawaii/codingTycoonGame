@@ -2608,22 +2608,31 @@ export const useGameStore = create<GameState>()((set, get) => ({
     // 6. Environmental Hazard Loop per Biome (Every 60 Ticks)
     if (nextTick % 60 === 0 && Math.random() < 0.4 && !get().activeHazard) {
       const currentBiome = get().currentBiome;
+      const isEn = get().language === 'en';
       let hazardType: 'DUST_STORM' | 'VOLCANIC_ERUPTION' | 'QUANTUM_FLARE' | 'BLIZZARD' = 'DUST_STORM';
-      let hazardName = 'Mars Kum Fırtınası';
-      let logMessage = '[KUM FIRTINASI BAŞLADI]: Şiddetli Mars kum fırtınası başladı! Sahadaki robotlar aşınıyor (-2 HP/tick).';
+      let hazardName = isEn ? 'Mars Dust Storm' : 'Mars Kum Fırtınası';
+      let logMessage = isEn
+        ? '[DUST STORM STARTED]: Severe Mars dust storm active! Field robotics wearing down (-2 HP/tick).'
+        : '[KUM FIRTINASI BAŞLADI]: Şiddetli Mars kum fırtınası başladı! Sahadaki robotlar aşınıyor (-2 HP/tick).';
 
       if (currentBiome === 'VOLCANIC') {
         hazardType = 'VOLCANIC_ERUPTION';
-        hazardName = 'Volkanik Magma & Kül Yağmuru';
-        logMessage = '[VOLKANİK PATLAMA]: Volkanik vadide lav püskürmesi ve asit külleri başladı! (-3 HP, -5 Enerji/tick).';
+        hazardName = isEn ? 'Volcanic Magma & Ash Rain' : 'Volkanik Magma & Kül Yağmuru';
+        logMessage = isEn
+          ? '[VOLCANIC ERUPTION]: Volcanic eruption and acid ash active! (-3 HP, -5 Energy/tick).'
+          : '[VOLKANİK PATLAMA]: Volkanik vadide lav püskürmesi ve asit külleri başladı! (-3 HP, -5 Enerji/tick).';
       } else if (currentBiome === 'QUANTUM_CAVERN') {
         hazardType = 'QUANTUM_FLARE';
-        hazardName = 'Kuantum EMP Radyasyon Fırtınası';
-        logMessage = '[KUANTUM EMP DALGASI]: Kuantum magmasında EMP ışınması tetiklendi! Sensörler parazitlendi (-4 Enerji/tick).';
+        hazardName = isEn ? 'Quantum EMP Radiation Wave' : 'Kuantum EMP Radyasyon Fırtınası';
+        logMessage = isEn
+          ? '[QUANTUM EMP WAVE]: Quantum EMP radiation pulse triggered! Sensors jammed (-4 Energy/tick).'
+          : '[KUANTUM EMP DALGASI]: Kuantum magmasında EMP ışınması tetiklendi! Sensörler parazitlendi (-4 Enerji/tick).';
       } else if (currentBiome === 'GLACIER') {
         hazardType = 'BLIZZARD';
-        hazardName = 'Sıfır Altı Kutup Kar Tipi';
-        logMessage = '[KUTUP TİPİSİ BAŞLADI]: Sıfırın altında kar fırtınası dondurucu rüzgarlarla bastırdı! Bataryalar donuyor (-3 Enerji/tick).';
+        hazardName = isEn ? 'Sub-Zero Polar Blizzard' : 'Sıfır Altı Kutup Kar Tipi';
+        logMessage = isEn
+          ? '[POLAR BLIZZARD STARTED]: Sub-zero blizzard sweeping across ice wastes! Batteries freezing (-3 Energy/tick).'
+          : '[KUTUP TİPİSİ BAŞLADI]: Sıfırın altında kar fırtınası dondurucu rüzgarlarla bastırdı! Bataryalar donuyor (-3 Enerji/tick).';
       }
 
       set({
@@ -2642,9 +2651,12 @@ export const useGameStore = create<GameState>()((set, get) => ({
     const currentHazard = get().activeHazard;
     if (currentHazard) {
       const rem = currentHazard.remainingTicks - 1;
+      const isEn = get().language === 'en';
       if (rem <= 0) {
         set({ activeHazard: null });
-        get().addLog('info', `[TEHLİKE DİNDİ]: ${currentHazard.name} sona erdi. Hava koşulları normale döndü.`);
+        get().addLog('info', isEn
+          ? `[HAZARD SUBSIDED]: ${currentHazard.name} cleared. Atmospheric conditions returned to normal.`
+          : `[TEHLİKE DİNDİ]: ${currentHazard.name} sona erdi. Hava koşulları normale döndü.`);
       } else {
         set({ activeHazard: { ...currentHazard, remainingTicks: rem } });
         // Apply specific hazard penalties to open field robots

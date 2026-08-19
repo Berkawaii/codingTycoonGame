@@ -1331,7 +1331,7 @@ export const CanvasGrid: React.FC = () => {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Pickaxe className="w-3.5 h-3.5 text-orange-400" />
-              <span>Dökümhane (2x2)</span>
+              <span>{t('smelter_title')}</span>
             </div>
             <span style={{ fontFamily: 'Fira Code, monospace', fontWeight: 800, fontSize: '0.68rem', color: '#fb923c' }}>
               $5,000
@@ -1346,7 +1346,7 @@ export const CanvasGrid: React.FC = () => {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Radio className="w-3.5 h-3.5 text-purple-400" />
-              <span>Rafineri (2x2)</span>
+              <span>{t('refinery_title')}</span>
             </div>
             <span style={{ fontFamily: 'Fira Code, monospace', fontWeight: 800, fontSize: '0.68rem', color: '#c084fc' }}>
               $12,000
@@ -1361,7 +1361,7 @@ export const CanvasGrid: React.FC = () => {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <BatteryCharging className="w-3.5 h-3.5 text-emerald-300" />
-              <span>Enerji Santrali</span>
+              <span>{t('powerplant_title')}</span>
             </div>
             <span style={{ fontFamily: 'Fira Code, monospace', fontWeight: 800, fontSize: '0.68rem', color: '#a7f3d0' }}>
               $8,000

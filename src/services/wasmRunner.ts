@@ -132,17 +132,19 @@ function evaluateCSharpExecution(
     }
   }
 
-  // 5. Evaluate Mining & Movement Logic
-  const standingOnResource = activeResources.find((r) => r.x === robotState.x && r.y === robotState.y);
-  if (standingOnResource) {
-    actionToExecute = 'MINE';
-    return { targetGoTo: { x: standingOnResource.x, y: standingOnResource.y }, actionToExecute, targetMinerId };
-  }
+  // 5. Evaluate Mining & Movement Logic (Only for Miner robots that can mine!)
+  if (robotState.canMine !== false) {
+    const standingOnResource = activeResources.find((r) => r.x === robotState.x && r.y === robotState.y);
+    if (standingOnResource) {
+      actionToExecute = 'MINE';
+      return { targetGoTo: { x: standingOnResource.x, y: standingOnResource.y }, actionToExecute, targetMinerId };
+    }
 
-  if (nearestResource) {
-    const resObj = nearestResource as ResourceNode;
-    targetGoTo = { x: resObj.x, y: resObj.y };
-    return { targetGoTo, actionToExecute, targetMinerId };
+    if (nearestResource) {
+      const resObj = nearestResource as ResourceNode;
+      targetGoTo = { x: resObj.x, y: resObj.y };
+      return { targetGoTo, actionToExecute, targetMinerId };
+    }
   }
 
   actionToExecute = 'MOVE_FORWARD';
