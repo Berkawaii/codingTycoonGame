@@ -3,10 +3,8 @@ import {
   getAuth,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
-  GoogleAuthProvider,
+  sendEmailVerification,
+  sendPasswordResetEmail,
   signOut,
   onAuthStateChanged,
   User,
@@ -40,8 +38,6 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-const googleProvider = new GoogleAuthProvider();
-googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 // Firestore User & Leaderboard Sync
 export const syncUserToFirestore = async (user: User, customDisplayName?: string) => {
@@ -52,6 +48,7 @@ export const syncUserToFirestore = async (user: User, customDisplayName?: string
     uid: user.uid,
     displayName,
     email: user.email || '',
+    emailVerified: user.emailVerified,
     photoURL: user.photoURL || '',
     updatedAt: new Date().toISOString(),
   };
@@ -91,37 +88,19 @@ export const registerWithEmail = async (email: string, pass: string, displayName
     if (displayName) {
       await updateProfile(res.user, { displayName });
     }
+    // Send email verification link
+    try {
+      await sendEmailVerification(res.user);
+    } catch (e) {
+      console.warn('Email verification send error:', e);
+    }
     await syncUserToFirestore(res.user, displayName);
   }
   return res;
 };
 
-export const loginWithGoogle = async () => {
-  try {
-    const res = await signInWithPopup(auth, googleProvider);
-    if (res && res.user) {
-      await syncUserToFirestore(res.user);
-    }
-    return res;
-  } catch (err: any) {
-    if (
-      err.code === 'auth/popup-blocked' ||
-      err.code === 'auth/popup-closed-by-user' ||
-      (err.message && err.message.includes('closing'))
-    ) {
-      await signInWithRedirect(auth, googleProvider);
-      return null;
-    }
-    throw err;
-  }
-};
-
-export const checkRedirectResult = async () => {
-  const res = await getRedirectResult(auth);
-  if (res && res.user) {
-    await syncUserToFirestore(res.user);
-  }
-  return res;
+export const sendResetPassword = async (email: string) => {
+  return sendPasswordResetEmail(auth, email);
 };
 
 export const logoutUser = () => signOut(auth);
