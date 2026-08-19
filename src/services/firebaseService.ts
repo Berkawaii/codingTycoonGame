@@ -27,9 +27,9 @@ import {
 // Default Firebase Configuration (Fallback gracefully if env vars not provided)
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDummyKeyForSyntaxFactory012345",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "syntax-factory.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "syntax-factory",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "syntax-factory.appspot.com",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "playsyntaxfactory.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "playsyntaxfactory",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "playsyntaxfactory.firebasestorage.app",
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "1234567890",
   appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:1234567890:web:abcdef123456",
 };
