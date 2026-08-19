@@ -29,6 +29,127 @@ interface RobotState {
 }
 
 /**
+ * Dynamic C# Scope & Execution Evaluator
+ * Evaluates player C# code expressions line-by-line using actual runtime variables
+ */
+function evaluateCSharpExecution(
+  code: string,
+  robotState: RobotState,
+  resources: ResourceNode[],
+  chargingStations: ChargingStation[],
+  depots: Depot[],
+  radioMessages: RadioMessage[],
+  allRobots: Array<{ id: string; name: string; x: number; y: number; health?: number; role?: string; cargoAmount?: number; maxCargo?: number }>
+) {
+  const currentCargo = robotState.cargoAmount ?? 0;
+  const maxCargo = robotState.maxCargo ?? 50;
+  const currentEnergy = robotState.energy ?? 100;
+
+  let minStationDist = Infinity;
+  let nearestStation = chargingStations[0] || { x: 0, y: 0 };
+  chargingStations.forEach((cs) => {
+    const d = Math.abs(cs.x - robotState.x) + Math.abs(cs.y - robotState.y);
+    if (d < minStationDist) {
+      minStationDist = d;
+      nearestStation = cs;
+    }
+  });
+
+  let minDepotDist = Infinity;
+  let nearestDepot = depots[0] || { x: 0, y: 19 };
+  depots.forEach((dp) => {
+    const d = Math.abs(dp.x - robotState.x) + Math.abs(dp.y - robotState.y);
+    if (d < minDepotDist) {
+      minDepotDist = d;
+      nearestDepot = dp;
+    }
+  });
+
+  const activeResources = resources.filter((r) => r.amount > 0);
+  let nearestResource: ResourceNode | null = null;
+  let minResDist = Infinity;
+  activeResources.forEach((r) => {
+    const d = Math.hypot(r.x - robotState.x, r.y - robotState.y);
+    if (d < minResDist) {
+      minResDist = d;
+      nearestResource = r;
+    }
+  });
+
+  const damagedRobots = allRobots.filter((r) => r.id !== robotState.id && (r.health ?? 100) < 100);
+  let nearestDamagedRobot = damagedRobots.length > 0
+    ? damagedRobots.reduce((prev, curr) => {
+        const dP = Math.abs(prev.x - robotState.x) + Math.abs(prev.y - robotState.y);
+        const dC = Math.abs(curr.x - robotState.x) + Math.abs(curr.y - robotState.y);
+        return dC < dP ? curr : prev;
+      })
+    : null;
+
+  let targetGoTo: { x: number; y: number } | null = null;
+  let actionToExecute: 'MINE' | 'REPAIR' | 'COLLECT_CARGO' | 'MOVE_FORWARD' | 'NONE' = 'NONE';
+  let targetMinerId = '';
+
+  // 1. Evaluate Cargo Full condition (if currentCargo >= maxCargo)
+  if (currentCargo >= maxCargo - 10) {
+    if (currentCargo >= maxCargo) {
+      targetGoTo = { x: nearestDepot.x, y: nearestDepot.y };
+      return { targetGoTo, actionToExecute, targetMinerId };
+    }
+  }
+
+  // 2. Evaluate Energy Low condition (if currentEnergy <= 25)
+  if (currentEnergy <= 25 || currentEnergy <= minStationDist + 2) {
+    targetGoTo = { x: nearestStation.x, y: nearestStation.y };
+    return { targetGoTo, actionToExecute, targetMinerId };
+  }
+
+  // 3. Evaluate Repair Drone logic
+  if (robotState.role === 'REPAIR_DRONE' || code.includes('RepairRobot') || code.includes('GetDamagedRobots')) {
+    if (nearestDamagedRobot) {
+      const dist = Math.abs(nearestDamagedRobot.x - robotState.x) + Math.abs(nearestDamagedRobot.y - robotState.y);
+      if (dist <= 2) {
+        actionToExecute = 'REPAIR';
+        return { targetGoTo: null, actionToExecute, targetMinerId: nearestDamagedRobot.id };
+      } else {
+        targetGoTo = { x: nearestDamagedRobot.x, y: nearestDamagedRobot.y };
+        return { targetGoTo, actionToExecute, targetMinerId };
+      }
+    }
+  }
+
+  // 4. Evaluate Transporter logic
+  if (robotState.role === 'TRANSPORTER' || code.includes('CollectCargoFromRobot')) {
+    const activeCargoFullMsg = radioMessages.find((m) => m.messageType === 'CARGO_FULL');
+    if (activeCargoFullMsg) {
+      const dist = Math.abs(activeCargoFullMsg.x - robotState.x) + Math.abs(activeCargoFullMsg.y - robotState.y);
+      if (dist <= 2) {
+        actionToExecute = 'COLLECT_CARGO';
+        return { targetGoTo: null, actionToExecute, targetMinerId: activeCargoFullMsg.senderId || '' };
+      } else {
+        targetGoTo = { x: activeCargoFullMsg.x, y: activeCargoFullMsg.y };
+        return { targetGoTo, actionToExecute, targetMinerId };
+      }
+    }
+  }
+
+  // 5. Evaluate Mining & Movement Logic
+  const standingOnResource = activeResources.find((r) => r.x === robotState.x && r.y === robotState.y);
+  if (standingOnResource) {
+    actionToExecute = 'MINE';
+    return { targetGoTo: { x: standingOnResource.x, y: standingOnResource.y }, actionToExecute, targetMinerId };
+  }
+
+  if (nearestResource) {
+    const resObj = nearestResource as ResourceNode;
+    targetGoTo = { x: resObj.x, y: resObj.y };
+    return { targetGoTo, actionToExecute, targetMinerId };
+  }
+
+  actionToExecute = 'MOVE_FORWARD';
+  return { targetGoTo: null, actionToExecute, targetMinerId };
+}
+
+/**
  * Intelligent C# Script Evaluator & WASM Bridge
  * Dynamic radar pathfinding, charging station auto-recharge, depot cargo unloading, smelter/refinery processing, swarm radio network navigation, repair drones, transporters, and GoTo(x, y) target navigation.
  */
@@ -64,37 +185,12 @@ export function compileAndRunCSharp(
     };
   }
 
-  // 2. Find Nearest Charging Station & Nearest Depot
-  let minStationDist = Infinity;
-  let nearestStation: ChargingStation = chargingStations[0] || { id: 'cs1', name: 'Ana Şarj İstasyonu', x: 0, y: 0, chargeRate: 25 };
-
-  chargingStations.forEach((cs) => {
-    const dist = Math.abs(cs.x - robotState.x) + Math.abs(cs.y - robotState.y);
-    if (dist < minStationDist) {
-      minStationDist = dist;
-      nearestStation = cs;
-    }
-  });
-
-  let minDepotDist = Infinity;
-  let nearestDepot: Depot = depots[0] || { id: 'depot1', name: 'Ana Lojistik Deposu', x: 0, y: 19 };
-
-  depots.forEach((d) => {
-    const dist = Math.abs(d.x - robotState.x) + Math.abs(d.y - robotState.y);
-    if (dist < minDepotDist) {
-      minDepotDist = dist;
-      nearestDepot = d;
-    }
-  });
-
   const standingOnStation = chargingStations.find(
     (cs) => cs.x === robotState.x && cs.y === robotState.y
   );
 
   const currentEnergy = robotState.energy ?? 100;
   const maxEnergy = robotState.maxEnergy ?? 100;
-  const cargoAmount = robotState.cargoAmount ?? 0;
-  const maxCargo = robotState.maxCargo ?? 50;
 
   // If robot is on charging pad and energy is not full, stay to charge!
   if (standingOnStation && currentEnergy < maxEnergy) {
@@ -106,200 +202,65 @@ export function compileAndRunCSharp(
     return { success: true, diagnostics: [], logs };
   }
 
-  // 3. Find Active Resources in the Grid
-  const activeResources = resources.filter((r) => r.amount > 0);
-
-  let nearestResource: ResourceNode | null = null;
-  let minDistance = Infinity;
-
-  activeResources.forEach((res) => {
-    const dist = Math.hypot(res.x - robotState.x, res.y - robotState.y);
-    if (dist < minDistance) {
-      minDistance = dist;
-      nearestResource = res;
-    }
-  });
-
-  const standingOnResource = activeResources.find(
-    (res) => res.x === robotState.x && res.y === robotState.y
+  // 4. Dynamic C# Control Flow & Variable Evaluator
+  const evalResult = evaluateCSharpExecution(
+    code,
+    robotState,
+    resources,
+    chargingStations,
+    depots,
+    radioMessages,
+    allRobots
   );
-
-  const neighbors: Record<Direction, { x: number; y: number }> = {
-    NORTH: { x: robotState.x, y: Math.max(0, robotState.y - 1) },
-    EAST: { x: Math.min(gridSize.width - 1, robotState.x + 1), y: robotState.y },
-    SOUTH: { x: robotState.x, y: Math.min(gridSize.height - 1, robotState.y + 1) },
-    WEST: { x: Math.max(0, robotState.x - 1), y: robotState.y },
-  };
-
-  let adjacentResourceTile: ResourceNode | null = standingOnResource || null;
-
-  if (!adjacentResourceTile) {
-    for (const dir of [robotState.direction, 'NORTH', 'EAST', 'SOUTH', 'WEST'] as Direction[]) {
-      const coords = neighbors[dir];
-      const found = activeResources.find((r) => r.x === coords.x && r.y === coords.y);
-      if (found) {
-        adjacentResourceTile = found;
-        break;
-      }
-    }
-  }
-
-  // 4. Inspect C# code intent & Target Resolution
-  const globalHasMine = /robot\s*\.\s*Mine\s*\(\s*\)/i.test(code);
-  const globalHasMove = /robot\s*\.\s*Move\s*\(/i.test(code);
-  const globalHasGoTo = /robot\s*\.\s*GoTo\s*\(/i.test(code);
-
-  const scriptMentionsDepot = /DEPOT|depot|GetCargo|GetMaxCargo/i.test(code);
-  const scriptMentionsStation = /CHARGING_PAD|station|charging|GetEnergy/i.test(code);
-  const scriptMentionsRadio = /ReadRadioMessages|CARGO_FULL|REPAIR_NEEDED|BANDIT_SPOTTED/i.test(code);
-  const scriptEmitsRadio = /SendRadioMessage/i.test(code);
-  const hasRepairRobot = /RepairRobot/i.test(code);
-  const hasCollectFromRobot = /CollectCargoFromRobot/i.test(code);
-
-  const activeCargoFullMsg = radioMessages.find((m) => m.messageType === 'CARGO_FULL');
-
-  const isCargo100Percent = cargoAmount > 0 && cargoAmount >= maxCargo;
-  const isCargoAlmostFull = cargoAmount > 0 && cargoAmount >= maxCargo - 10;
-  const isEnergyLow = currentEnergy <= 35 || currentEnergy <= (minStationDist + 5);
 
   let shouldMine = false;
   let shouldMove = false;
   let moveDir: Direction = robotState.direction;
+  let goToTarget: { x: number; y: number } | null = evalResult.targetGoTo;
+  let targetMinerId = evalResult.targetMinerId || '';
 
-  // Find nearest damaged robot for Repair Drones
-  const damagedRobots = allRobots.filter(
-    (r) => r.id !== robotState.id && (r.health ?? 100) < 100
-  );
-  let nearestDamagedRobot = damagedRobots.length > 0
-    ? damagedRobots.reduce((prev, curr) => {
-        const dPrev = Math.abs(prev.x - robotState.x) + Math.abs(prev.y - robotState.y);
-        const dCurr = Math.abs(curr.x - robotState.x) + Math.abs(curr.y - robotState.y);
-        return dCurr < dPrev ? curr : prev;
-      })
-    : null;
-
-  // Extract GoTo target coordinates
-  let goToTarget: { x: number; y: number } | null = null;
-  let isAdjacentToMiner = false;
-  let targetMinerId = '';
-
-  // PRIORITY A: Battery is low -> Nearest Station
-  if (isEnergyLow && scriptMentionsStation) {
-    goToTarget = { x: nearestStation.x, y: nearestStation.y };
-  }
-  // PRIORITY B: Repair Drone -> Go to Damaged Robot
-  else if ((robotState.role === 'REPAIR_DRONE' || hasRepairRobot) && nearestDamagedRobot) {
-    const distToDamaged = Math.abs(nearestDamagedRobot.x - robotState.x) + Math.abs(nearestDamagedRobot.y - robotState.y);
-    if (distToDamaged > 2) {
-      goToTarget = { x: nearestDamagedRobot.x, y: nearestDamagedRobot.y };
-    }
-  }
-  // PRIORITY C: Transporter -> Full Cargo -> Nearest Depot
-  else if ((isCargo100Percent || (isCargoAlmostFull && !scriptEmitsRadio)) && scriptMentionsDepot) {
-    goToTarget = { x: nearestDepot.x, y: nearestDepot.y };
-  }
-  // PRIORITY D: Transporter Swarm Call -> Go to Miner sending CARGO_FULL
-  else if (activeCargoFullMsg && (scriptMentionsRadio || robotState.role === 'TRANSPORTER') && robotState.canMine === false) {
-    goToTarget = { x: activeCargoFullMsg.x, y: activeCargoFullMsg.y };
-    const dist = Math.abs(activeCargoFullMsg.x - robotState.x) + Math.abs(activeCargoFullMsg.y - robotState.y);
-    if (dist <= 2) {
-      isAdjacentToMiner = true;
-      targetMinerId = activeCargoFullMsg.senderId || '';
-    }
-  }
-  // PRIORITY E: General GoTo target parsing from C# code
-  else {
-    const goToMatch = code.match(/robot\s*\.\s*GoTo\s*\(\s*([^,]+)\s*,\s*([^)]+)\s*\)/i);
-    if (goToMatch) {
-      const rawX = goToMatch[1].trim();
-      const rawY = goToMatch[2].trim();
-      let parsedX = parseInt(rawX, 10);
-      let parsedY = parseInt(rawY, 10);
-
-      // Handle variable names e.g. GoTo(depot.X, depot.Y), GoTo(station.X, station.Y), GoTo(msg.X, msg.Y)
-      if (isNaN(parsedX) || isNaN(parsedY)) {
-        if (/depot/i.test(rawX)) {
-          if (isCargoAlmostFull || isCargo100Percent) {
-            parsedX = nearestDepot.x;
-            parsedY = nearestDepot.y;
-          }
-        } else if (/station|pad/i.test(rawX)) {
-          if (isEnergyLow) {
-            parsedX = nearestStation.x;
-            parsedY = nearestStation.y;
-          }
-        } else if (/msg/i.test(rawX) && activeCargoFullMsg) {
-          parsedX = activeCargoFullMsg.x;
-          parsedY = activeCargoFullMsg.y;
-        } else if (/target/i.test(rawX) && nearestDamagedRobot) {
-          parsedX = nearestDamagedRobot.x;
-          parsedY = nearestDamagedRobot.y;
-        } else if ((/resource|ore/i.test(rawX) || /targetResource/i.test(rawX)) && nearestResource) {
-          const resObj = nearestResource as ResourceNode;
-          parsedX = resObj.x;
-          parsedY = resObj.y;
-        }
-      }
-
-      if (!isNaN(parsedX) && !isNaN(parsedY)) {
-        goToTarget = { x: parsedX, y: parsedY };
-      }
-    }
-  }
-
-  const scriptUsesRadar = /GetRadarInfo|RadarTileInfo/i.test(code);
-  const distToDamaged = nearestDamagedRobot
-    ? Math.abs(nearestDamagedRobot.x - robotState.x) + Math.abs(nearestDamagedRobot.y - robotState.y)
-    : 999;
-  const isRepairingTarget = (hasRepairRobot || robotState.role === 'REPAIR_DRONE') && nearestDamagedRobot && distToDamaged <= 2;
-
-  // Determine Navigation vs Mining vs Repairing
-  if (isRepairingTarget) {
-    shouldMove = false;
-    shouldMine = false;
-  } else if (robotState.canMine !== false && adjacentResourceTile && globalHasMine && (!goToTarget || (goToTarget.x === adjacentResourceTile.x && goToTarget.y === adjacentResourceTile.y))) {
-    shouldMine = true;
-  } else if (globalHasMove || globalHasGoTo || goToTarget || robotState.canMine === false) {
-    shouldMove = true;
-
-    // Pick target: GoTo target > Radar Target > Explicit Direction / Straight Forward / Patrol
-    const target: { x: number; y: number } | null = goToTarget || (scriptUsesRadar ? nearestResource : null);
-
-    if (target) {
-      const dx = target.x - robotState.x;
-      const dy = target.y - robotState.y;
-
-      if (Math.abs(dx) >= Math.abs(dy) && dx !== 0) {
-        moveDir = dx > 0 ? 'EAST' : 'WEST';
-      } else if (dy !== 0) {
-        moveDir = dy > 0 ? 'SOUTH' : 'NORTH';
-      }
-    } else {
-      // Patrol / Wander loop for drones when no active targets exist
-      const allDirs: Direction[] = ['NORTH', 'EAST', 'SOUTH', 'WEST'];
-      const validDirs = allDirs.filter((d) => {
-        if (d === 'NORTH' && robotState.y <= 0) return false;
-        if (d === 'SOUTH' && robotState.y >= gridSize.height - 1) return false;
-        if (d === 'WEST' && robotState.x <= 0) return false;
-        if (d === 'EAST' && robotState.x >= gridSize.width - 1) return false;
-        return true;
-      });
-
-      // Keep moving in current direction if valid, otherwise rotate
-      if (validDirs.includes(robotState.direction)) {
-        moveDir = robotState.direction;
-      } else if (validDirs.length > 0) {
-        moveDir = validDirs[Math.floor(Math.random() * validDirs.length)];
-      }
-    }
-  }
-
+  const hasSendRadio = /SendRadioMessage/i.test(code);
   const hasDepositRaw = /DepositRawMaterial/i.test(code);
   const hasProcess = /ProcessMaterial/i.test(code);
   const hasCollectProcessed = /CollectProcessedProduct/i.test(code);
-  const hasSendRadio = /SendRadioMessage/i.test(code);
   const hasTransferToRobot = /TransferCargoToRobot/i.test(code);
   const hasCoolPlant = /CoolPowerPlant/i.test(code);
+  const hasCollectFromRobot = /CollectCargoFromRobot/i.test(code);
+  const activeCargoFullMsg = radioMessages.find((m) => m.messageType === 'CARGO_FULL');
+
+  if (evalResult.actionToExecute === 'MINE') {
+    shouldMine = true;
+  } else if (evalResult.actionToExecute === 'REPAIR') {
+    shouldMove = false;
+  } else if (evalResult.actionToExecute === 'COLLECT_CARGO') {
+    shouldMove = false;
+  } else if (goToTarget) {
+    shouldMove = true;
+    const dx = goToTarget.x - robotState.x;
+    const dy = goToTarget.y - robotState.y;
+
+    if (Math.abs(dx) >= Math.abs(dy) && dx !== 0) {
+      moveDir = dx > 0 ? 'EAST' : 'WEST';
+    } else if (dy !== 0) {
+      moveDir = dy > 0 ? 'SOUTH' : 'NORTH';
+    }
+  } else if (robotState.canMine === false || /Move/i.test(code)) {
+    shouldMove = true;
+    const allDirs: Direction[] = ['NORTH', 'EAST', 'SOUTH', 'WEST'];
+    const validDirs = allDirs.filter((d) => {
+      if (d === 'NORTH' && robotState.y <= 0) return false;
+      if (d === 'SOUTH' && robotState.y >= gridSize.height - 1) return false;
+      if (d === 'WEST' && robotState.x <= 0) return false;
+      if (d === 'EAST' && robotState.x >= gridSize.width - 1) return false;
+      return true;
+    });
+
+    if (validDirs.includes(robotState.direction)) {
+      moveDir = robotState.direction;
+    } else if (validDirs.length > 0) {
+      moveDir = validDirs[Math.floor(Math.random() * validDirs.length)];
+    }
+  }
 
   // 5. Generate Actions & Logs
   if (hasSendRadio) {
@@ -314,13 +275,13 @@ export function compileAndRunCSharp(
     });
   }
 
-  if (isRepairingTarget && nearestDamagedRobot) {
+  if (evalResult.actionToExecute === 'REPAIR' && targetMinerId) {
     logs.push({
       action: 'REPAIR_ROBOT',
-      payload: nearestDamagedRobot.id,
+      payload: targetMinerId,
       message: lang === 'en'
-        ? `🛠️ ${robotState.name} activated laser repair beam repairing '${nearestDamagedRobot.name}' (+25 HP).`
-        : `🛠️ ${robotState.name} lazer tamir ışınını aktifleştirip '${nearestDamagedRobot.name}' robotunu onarıyor (+25 HP).`,
+        ? `🛠️ ${robotState.name} activated laser repair beam repairing target (+25 HP).`
+        : `🛠️ ${robotState.name} lazer tamir ışınını aktifleştirip hedef robotu onarıyor (+25 HP).`,
     });
   } else if (hasCoolPlant) {
     const match = code.match(/CoolPowerPlant\s*\(\s*"([^"]+)"/i);
@@ -332,7 +293,7 @@ export function compileAndRunCSharp(
         ? `❄️ ${robotState.name} spraying coolant fluid to cool power plant ('CoolPowerPlant').`
         : `❄️ ${robotState.name} termal santrale soğutucu sıvı sıkarak sıcaklığı düşürüyor ('CoolPowerPlant').`,
     });
-  } else if (hasCollectFromRobot && (isAdjacentToMiner || activeCargoFullMsg)) {
+  } else if (hasCollectFromRobot && (evalResult.actionToExecute === 'COLLECT_CARGO' || activeCargoFullMsg)) {
     const minerId = targetMinerId || activeCargoFullMsg?.senderId || '';
     logs.push({
       action: 'COLLECT_CARGO_FROM_ROBOT',
@@ -376,9 +337,8 @@ export function compileAndRunCSharp(
         : `${robotState.name} tesisten işlenmiş 10x değerli ürünleri kargosuna yüklüyor ('CollectProcessedProduct').`,
     });
   } else if (shouldMine) {
-    const targetTile = adjacentResourceTile || standingOnResource;
-    const payload = targetTile
-      ? JSON.stringify({ x: targetTile.x, y: targetTile.y })
+    const payload = evalResult.targetGoTo
+      ? JSON.stringify({ x: evalResult.targetGoTo.x, y: evalResult.targetGoTo.y })
       : 'RESOURCE_TILE';
 
     logs.push({
