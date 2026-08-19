@@ -20,9 +20,11 @@ export const CodeEditor: React.FC = () => {
     setAcademyModalOpen,
     editorSizeMode,
     setEditorSizeMode,
+    language,
     t,
   } = useGameStore();
 
+  const isEn = language === 'en';
   const [activeEditorTab, setActiveEditorTab] = useState<'ROBOT' | 'POWER_PLANT'>('ROBOT');
 
   const currentCode = activeEditorTab === 'ROBOT' ? scriptCode : powerPlantScriptCode;
@@ -36,6 +38,15 @@ export const CodeEditor: React.FC = () => {
   const [isSavingCloud, setIsSavingCloud] = useState(false);
   const [scriptName, setScriptName] = useState('MineIron.cs');
   const [showScriptMenu, setShowScriptMenu] = useState(false);
+
+  // Auto-sync script name when selected robot or tab changes
+  useEffect(() => {
+    if (activeEditorTab === 'POWER_PLANT') {
+      setScriptName('PowerPlantControl.cs');
+    } else if (selectedRobot) {
+      setScriptName(selectedRobot.scriptName || `${selectedRobot.name.replace(/\s+/g, '')}.cs`);
+    }
+  }, [selectedRobotId, activeEditorTab, selectedRobot?.name, selectedRobot?.scriptName]);
 
   useEffect(() => {
     loadCloudScripts();
@@ -154,11 +165,11 @@ export const CodeEditor: React.FC = () => {
             {showScriptMenu && (
               <div style={{ position: 'absolute', right: 0, marginTop: '4px', width: '220px', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.6)', zIndex: 50, padding: '6px' }}>
                 <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#94a3b8', padding: '4px 6px', borderBottom: '1px solid #1e293b', marginBottom: '4px', textTransform: 'uppercase' }}>
-                  Script Kütüphanesi
+                  {isEn ? 'Script Library' : 'Script Kütüphanesi'}
                 </div>
                 {cloudScripts.length === 0 ? (
                   <div style={{ fontSize: '0.75rem', color: '#64748b', padding: '6px', textAlign: 'center' }}>
-                    Kayıtlı script yok.
+                    {isEn ? 'No saved scripts.' : 'Kayıtlı script yok.'}
                   </div>
                 ) : (
                   cloudScripts.map((s) => (
@@ -198,7 +209,7 @@ export const CodeEditor: React.FC = () => {
               onClick={() => setEditorSizeMode(editorSizeMode === 'expanded' ? 'normal' : 'expanded')}
               className={`ui-btn ui-btn-icon ${editorSizeMode === 'expanded' ? 'ui-btn-cyan' : ''}`}
               style={{ padding: '0.2rem', background: editorSizeMode === 'expanded' ? 'rgba(0,242,254,0.2)' : 'transparent', border: 'none' }}
-              title={editorSizeMode === 'expanded' ? 'Varsayılan Boyuta Dön' : 'Editörü Genişlet / Büyüt (Rahat Kodlama Modu)'}
+              title={editorSizeMode === 'expanded' ? (isEn ? 'Reset Default Size' : 'Varsayılan Boyuta Dön') : (isEn ? 'Expand Editor' : 'Editörü Genişlet')}
             >
               <Maximize2 className="w-3.5 h-3.5 text-cyan-400" />
             </button>
@@ -206,7 +217,7 @@ export const CodeEditor: React.FC = () => {
               onClick={() => setEditorSizeMode('hidden')}
               className="ui-btn ui-btn-icon"
               style={{ padding: '0.2rem', background: 'transparent', border: 'none' }}
-              title="Editörü Gizle / Paneli Sakla (Simülatöre Tam Ekran Ver)"
+              title={isEn ? 'Hide Editor' : 'Editörü Gizle'}
             >
               <Minimize2 className="w-3.5 h-3.5 text-slate-400" />
             </button>
@@ -245,7 +256,11 @@ export const CodeEditor: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
           <span style={{ fontFamily: 'Fira Code, monospace', fontSize: '0.72rem', color: '#94a3b8' }}>
-            {selectedRobot?.name} için script hazır
+            {activeEditorTab === 'POWER_PLANT'
+              ? (isEn ? 'Power Plant script ready' : 'Termal Santral için script hazır')
+              : selectedRobot
+              ? (isEn ? `Script ready for ${selectedRobot.name}` : `${selectedRobot.name} için script hazır`)
+              : (isEn ? 'C# Code Editor ready' : 'C# Editörü hazır')}
           </span>
         </div>
 
@@ -256,7 +271,7 @@ export const CodeEditor: React.FC = () => {
             onChange={(e) => setScriptName(e.target.value)}
             placeholder="Script.cs"
             className="ui-input"
-            style={{ width: '110px' }}
+            style={{ width: '120px' }}
           />
 
           <button
@@ -266,13 +281,17 @@ export const CodeEditor: React.FC = () => {
             style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
           >
             <CloudUpload className="w-3.5 h-3.5 text-cyan-400" />
-            <span>{isSavingCloud ? 'Kaydediliyor...' : 'Kaydet'}</span>
+            <span>{isSavingCloud ? (isEn ? 'Saving...' : 'Kaydediliyor...') : (isEn ? 'Save' : 'Kaydet')}</span>
           </button>
           
           <button
             onClick={() => {
-              compileAndRunScript();
-              if (!isRunning) toggleRunning();
+              if (isRunning) {
+                toggleRunning();
+              } else {
+                compileAndRunScript();
+                toggleRunning();
+              }
             }}
             className={`ui-btn ${isRunning ? 'ui-btn-danger' : 'ui-btn-primary'}`}
             style={{ padding: '0.35rem 0.9rem', fontSize: '0.78rem' }}
