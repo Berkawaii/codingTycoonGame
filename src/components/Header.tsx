@@ -59,7 +59,7 @@ export const Header: React.FC = () => {
           <img src="/logo_only.svg" alt="Syntax Factory Logo" style={{ width: '38px', height: '38px', objectFit: 'contain' }} />
           <div>
             <h1 className="brand-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              SYNTAX <span style={{ color: 'var(--cyan-accent)' }}>FACTORY</span>
+              SYNTAX <span style={{ color: 'var(--brand-red)' }}>FACTORY</span>
             </h1>
             <div className="brand-badge">
               <span className="dot dot-active"></span> OTOMASYON MOTORU AKTİF

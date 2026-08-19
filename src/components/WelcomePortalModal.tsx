@@ -40,10 +40,10 @@ export const WelcomePortalModal: React.FC<WelcomePortalModalProps> = ({
         <div
           className="sku-card"
           style={{
-            background: 'rgba(9, 14, 23, 0.95)',
-            border: '1px solid rgba(6, 182, 212, 0.4)',
-            boxShadow: '0 25px 60px -10px rgba(6, 182, 212, 0.3)',
-            borderRadius: '16px',
+            background: 'rgba(9, 13, 22, 0.96)',
+            border: '1px solid rgba(255, 49, 49, 0.45)',
+            boxShadow: '0 25px 60px -10px rgba(255, 49, 49, 0.35)',
+            borderRadius: '18px',
             width: '100%',
             maxWidth: '620px',
             display: 'flex',

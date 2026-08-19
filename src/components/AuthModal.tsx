@@ -91,9 +91,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
         className="sku-card"
         style={{
           background: '#090e17',
-          border: '1px solid rgba(6, 182, 212, 0.4)',
-          boxShadow: '0 20px 50px -10px rgba(6, 182, 212, 0.3)',
-          borderRadius: '14px',
+          border: '1px solid rgba(255, 49, 49, 0.45)',
+          boxShadow: '0 25px 60px -10px rgba(255, 49, 49, 0.3)',
+          borderRadius: '16px',
           width: '100%',
           maxWidth: '440px',
           overflow: 'hidden',
@@ -105,8 +105,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
         <div
           style={{
             padding: '1rem 1.25rem',
-            background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(168, 85, 247, 0.15) 100%)',
-            borderBottom: '1px solid #1e293b',
+            background: 'linear-gradient(135deg, rgba(255, 49, 49, 0.2) 0%, rgba(168, 85, 247, 0.1) 100%)',
+            borderBottom: '1px solid rgba(255, 49, 49, 0.25)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',

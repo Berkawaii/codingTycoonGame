@@ -75,9 +75,9 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ isOpen, onCl
         className="sku-card"
         style={{
           background: '#090e17',
-          border: '1px solid rgba(251, 191, 36, 0.5)',
-          boxShadow: '0 20px 50px -10px rgba(251, 191, 36, 0.2)',
-          borderRadius: '12px',
+          border: '1px solid rgba(255, 49, 49, 0.45)',
+          boxShadow: '0 25px 60px -10px rgba(255, 49, 49, 0.3)',
+          borderRadius: '16px',
           width: '100%',
           maxWidth: '680px',
           maxHeight: '85vh',
