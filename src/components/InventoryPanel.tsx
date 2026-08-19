@@ -20,6 +20,7 @@ export const InventoryPanel: React.FC = () => {
     scriptCode,
     setScriptCode,
     addLog,
+    t,
   } = useGameStore();
 
   const handleInsertSnippet = (snippet: string) => {
@@ -32,7 +33,7 @@ export const InventoryPanel: React.FC = () => {
     } else {
       setScriptCode(`${scriptCode}\n${snippet}`);
     }
-    addLog('info', `'${snippet}' kodu C# editörüne eklendi.`);
+    addLog('info', `'${snippet}' code snippet added to C# editor.`);
   };
 
   return (
@@ -58,7 +59,7 @@ export const InventoryPanel: React.FC = () => {
             className={`tab-btn ${activeTab === 'inventory' ? 'active' : ''}`}
           >
             <Package className="w-4 h-4" />
-            <span>SKU Stok</span>
+            <span>{t('inventory')}</span>
           </button>
 
           <button
@@ -66,7 +67,7 @@ export const InventoryPanel: React.FC = () => {
             className={`tab-btn ${activeTab === 'market' ? 'active' : ''}`}
           >
             <DollarSign className="w-4 h-4 text-emerald-400" />
-            <span>Pazar & Satış</span>
+            <span>{t('market')}</span>
           </button>
 
           <button
@@ -74,7 +75,7 @@ export const InventoryPanel: React.FC = () => {
             className={`tab-btn ${activeTab === 'shop' ? 'active' : ''}`}
           >
             <Store className="w-4 h-4 text-cyan-400" />
-            <span>Mağaza</span>
+            <span>{t('shop')}</span>
           </button>
 
           <button
@@ -82,7 +83,7 @@ export const InventoryPanel: React.FC = () => {
             className={`tab-btn ${activeTab === 'api' ? 'active' : ''}`}
           >
             <BookOpen className="w-4 h-4 text-amber-400" />
-            <span>C# API Rehberi</span>
+            <span>{t('api_ref')}</span>
           </button>
 
           <button
@@ -90,7 +91,7 @@ export const InventoryPanel: React.FC = () => {
             className={`tab-btn ${activeTab === 'robots' ? 'active' : ''}`}
           >
             <Bot className="w-4 h-4" />
-            <span>Robotlar ({robots.length})</span>
+            <span>{t('robots')} ({robots.length})</span>
           </button>
 
           <button
@@ -98,7 +99,7 @@ export const InventoryPanel: React.FC = () => {
             className={`tab-btn ${activeTab === 'logs' ? 'active' : ''}`}
           >
             <Terminal className="w-4 h-4" />
-            <span>Konsol ({logs.length})</span>
+            <span>{t('logs')} ({logs.length})</span>
           </button>
         </div>
 

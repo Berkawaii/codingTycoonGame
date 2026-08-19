@@ -20,6 +20,7 @@ export const CodeEditor: React.FC = () => {
     setAcademyModalOpen,
     editorSizeMode,
     setEditorSizeMode,
+    t,
   } = useGameStore();
 
   const [activeEditorTab, setActiveEditorTab] = useState<'ROBOT' | 'POWER_PLANT'>('ROBOT');
@@ -89,7 +90,7 @@ export const CodeEditor: React.FC = () => {
             <button
               onClick={() => setActiveEditorTab('ROBOT')}
               style={{
-                background: activeEditorTab === 'ROBOT' ? '#0284c7' : 'transparent',
+                background: activeEditorTab === 'ROBOT' ? '#06b6d4' : 'transparent',
                 color: activeEditorTab === 'ROBOT' ? '#fff' : '#94a3b8',
                 border: 'none',
                 padding: '3px 10px',
@@ -100,7 +101,7 @@ export const CodeEditor: React.FC = () => {
                 cursor: 'pointer',
               }}
             >
-              ROBOT KODU
+              {t('robot_code')}
             </button>
             <button
               onClick={() => setActiveEditorTab('POWER_PLANT')}
@@ -116,7 +117,7 @@ export const CodeEditor: React.FC = () => {
                 cursor: 'pointer',
               }}
             >
-              SANTRAL KODU
+              {t('power_plant_code')}
             </button>
           </div>
           <span style={{ background: 'rgba(168, 85, 247, 0.2)', color: '#c084fc', fontSize: '0.68rem', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(168, 85, 247, 0.4)', fontFamily: 'Fira Code, monospace' }}>
@@ -130,10 +131,10 @@ export const CodeEditor: React.FC = () => {
             onClick={() => setAcademyModalOpen(true)}
             className="ui-btn ui-btn-secondary"
             style={{ padding: '0.25rem 0.55rem', fontSize: '0.7rem' }}
-            title="C# Otomasyon Akademisi ve Görev Rehberi"
+            title="C# Automation Academy"
           >
             <GraduationCap className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Akademi</span>
+            <span>{t('academy')}</span>
           </button>
 
           {/* Cloud Scripts Picker */}
@@ -147,7 +148,7 @@ export const CodeEditor: React.FC = () => {
               style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem' }}
             >
               <FolderOpen className="w-3.5 h-3.5 text-amber-400" />
-              <span>Scriptlerim ({cloudScripts.length})</span>
+              <span>{t('my_scripts')} ({cloudScripts.length})</span>
             </button>
 
             {showScriptMenu && (
@@ -279,12 +280,12 @@ export const CodeEditor: React.FC = () => {
             {isRunning ? (
               <>
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                <span>Durdur</span>
+                <span>{t('pause')}</span>
               </>
             ) : (
               <>
                 <Play className="w-3.5 h-3.5" />
-                <span>C# Kodunu Çalıştır</span>
+                <span>{t('run_code')}</span>
               </>
             )}
           </button>

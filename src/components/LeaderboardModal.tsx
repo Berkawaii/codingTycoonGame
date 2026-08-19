@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { fetchGlobalLeaderboard, submitPlayerScore, LeaderboardEntry } from '../services/firebaseService';
-import { Trophy, RefreshCw, X, Cpu, Zap, DollarSign } from 'lucide-react';
+import { Trophy, RefreshCw, X, Bot, Zap, DollarSign } from 'lucide-react';
 
 interface LeaderboardModalProps {
   isOpen: boolean;
@@ -9,7 +9,7 @@ interface LeaderboardModalProps {
 }
 
 export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ isOpen, onClose }) => {
-  const { credits, robots, powerPlants, unlockedBiomes } = useGameStore();
+  const { credits, robots, powerPlants, unlockedBiomes, t } = useGameStore();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'netWorth' | 'robots' | 'energy'>('netWorth');
@@ -103,10 +103,10 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ isOpen, onCl
             <img src="/logo_only.svg" alt="Syntax Factory Logo" style={{ width: '32px', height: '32px' }} />
             <div>
               <h3 style={{ fontWeight: 800, color: '#fbbf24', fontSize: '1rem', letterSpacing: '0.5px' }}>
-                SYNTAX FACTORY - GLOBAL LİDERLİK TABLOSU
+                SYNTAX FACTORY - {t('leaderboard_title')}
               </h3>
               <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                Dünya genelindeki en başarılı C# otomasyon mühendisleri
+                {t('leaderboard_subtitle')}
               </span>
             </div>
           </div>
@@ -125,15 +125,15 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ isOpen, onCl
               style={{ padding: '0.35rem 0.75rem', fontSize: '0.73rem', fontWeight: 700 }}
             >
               <DollarSign className="w-3.5 h-3.5" />
-              <span>Şirket Değeri ($)</span>
+              <span>{t('net_worth')}</span>
             </button>
             <button
               onClick={() => setActiveTab('robots')}
-              className={`ui-btn ${activeTab === 'robots' ? 'ui-btn-cyan' : 'ui-btn-secondary'}`}
+              className={`ui-btn ${activeTab === 'robots' ? 'ui-btn-primary' : 'ui-btn-secondary'}`}
               style={{ padding: '0.35rem 0.75rem', fontSize: '0.73rem', fontWeight: 700 }}
             >
-              <Cpu className="w-3.5 h-3.5" />
-              <span>Filo Büyüklüğü</span>
+              <Bot className="w-3.5 h-3.5" />
+              <span>{t('robot_count')}</span>
             </button>
             <button
               onClick={() => setActiveTab('energy')}
@@ -141,18 +141,18 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ isOpen, onCl
               style={{ padding: '0.35rem 0.75rem', fontSize: '0.73rem', fontWeight: 700 }}
             >
               <Zap className="w-3.5 h-3.5" />
-              <span>Şebeke Gücü</span>
+              <span>{t('energy_kwh')}</span>
             </button>
           </div>
 
           <button
             onClick={handleSyncScore}
             disabled={loading}
-            className="ui-btn ui-btn-primary"
-            style={{ padding: '0.35rem 0.85rem', fontSize: '0.73rem', fontWeight: 700 }}
+            className="ui-btn ui-btn-cyan"
+            style={{ padding: '0.35rem 0.75rem', fontSize: '0.73rem', fontWeight: 700 }}
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span>Skorumu Gönder & Yenile</span>
+            <span>{t('sync_my_score')}</span>
           </button>
         </div>
 

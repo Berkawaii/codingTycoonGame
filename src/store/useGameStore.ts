@@ -26,6 +26,7 @@ import { soundService } from '../services/soundService';
 import { logoutUser } from '../services/firebaseService';
 import { BIOME_CATALOG } from '../constants/biomes';
 import { generateBiomeMap, generateSingleRespawnResource, populateExpandedZone } from '../services/mapGenerator';
+import { translations, TranslationKey, Language } from '../i18n/translations';
 
 interface GameState {
   gridSize: GridSize;
@@ -48,6 +49,9 @@ interface GameState {
   isApiModalOpen: boolean;
   isAcademyModalOpen: boolean;
   editorSizeMode: 'normal' | 'expanded' | 'hidden';
+  language: Language;
+  setLanguage: (lang: Language) => void;
+  t: (key: TranslationKey, params?: Record<string, string | number>) => string;
 
   // Tutorial Stage System
   isTutorialModeActive: boolean;
@@ -284,6 +288,21 @@ export const useGameStore = create<GameState>()(
   isRunning: false,
   tickRate: 500,
   tickCount: 0,
+  language: (localStorage.getItem('syntax_factory_lang') as Language) || 'tr',
+  setLanguage: (lang: Language) => {
+    localStorage.setItem('syntax_factory_lang', lang);
+    set({ language: lang });
+  },
+  t: (key: TranslationKey, params?: Record<string, string | number>) => {
+    const lang = get().language || 'tr';
+    let text: string = translations[lang]?.[key] || translations['tr'][key] || key;
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        text = text.replace(`{${k}}`, String(v));
+      });
+    }
+    return text;
+  },
   // Auth & User Profile State
   authUser: null,
   userRole: 'user',

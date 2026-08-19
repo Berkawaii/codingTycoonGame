@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useGameStore } from '../store/useGameStore';
 import { loginWithEmail, registerWithEmail, sendResetPassword } from '../services/firebaseService';
 import { Mail, Lock, User, AlertCircle, CheckCircle, X } from 'lucide-react';
 
@@ -13,6 +14,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [displayName, setDisplayName] = useState<string>('');
+  const { t } = useGameStore();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
@@ -144,7 +146,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
               cursor: 'pointer',
             }}
           >
-            Oturum Aç
+            {t('login_tab')}
           </button>
 
           <button
@@ -165,7 +167,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
               cursor: 'pointer',
             }}
           >
-            Yeni Kayıt
+            {t('register_tab')}
           </button>
         </div>
 
@@ -215,14 +217,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
             {mode === 'register' && (
               <div>
                 <label style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>
-                  Mühendis Çağrı Adı:
+                  {t('display_name_label')}:
                 </label>
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                   <User className="w-4 h-4 text-slate-400 style-icon" style={{ position: 'absolute', left: '10px' }} />
                   <input
                     type="text"
                     required
-                    placeholder="örn: CyberMiner_X"
+                    placeholder="CyberMiner_X"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     className="ui-input"
@@ -234,14 +236,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
 
             <div>
               <label style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>
-                E-Posta Adresi:
+                {t('email_label')}:
               </label>
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                 <Mail className="w-4 h-4 text-slate-400 style-icon" style={{ position: 'absolute', left: '10px' }} />
                 <input
                   type="email"
                   required
-                  placeholder="muhendis@syntaxfactory.com"
+                  placeholder="engineer@syntaxfactory.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="ui-input"
@@ -253,7 +255,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
             {mode !== 'reset' && (
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                  <label style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Şifre:</label>
+                  <label style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{t('password_label')}:</label>
                   {mode === 'login' && (
                     <button
                       type="button"
@@ -264,7 +266,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                       }}
                       style={{ background: 'transparent', border: 'none', color: '#06b6d4', fontSize: '0.7rem', cursor: 'pointer' }}
                     >
-                      Şifremi Unuttum?
+                      {t('reset_tab')}?
                     </button>
                   )}
                 </div>
@@ -286,16 +288,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
             <button
               type="submit"
               disabled={loading}
-              className="ui-btn ui-btn-cyan"
-              style={{ width: '100%', padding: '0.65rem', marginTop: '0.5rem', fontSize: '0.8rem', fontWeight: 800 }}
+              className="ui-btn ui-btn-primary"
+              style={{ padding: '0.7rem', fontSize: '0.82rem', fontWeight: 800, width: '100%', marginTop: '0.5rem' }}
             >
               {loading
-                ? 'İşleniyor...'
+                ? '...'
                 : mode === 'register'
-                ? 'HESAP OLUŞTUR VE DOĞRULA'
+                ? t('register_btn')
                 : mode === 'reset'
-                ? 'ŞİFRE SIFIRLAMA BAĞLANTISI GÖNDER'
-                : 'OTURUM AÇ'}
+                ? t('reset_btn')
+                : t('login_btn')}
             </button>
 
             {mode === 'reset' && (

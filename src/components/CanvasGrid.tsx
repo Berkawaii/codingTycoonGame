@@ -69,6 +69,7 @@ export const CanvasGrid: React.FC = () => {
     turrets = [],
     activeBandits = [],
     activeHazard = null,
+    t,
   } = useGameStore();
 
   const activeGridSize = biomeMaps[currentBiome]?.gridSize || gridSize;
@@ -1278,7 +1279,7 @@ export const CanvasGrid: React.FC = () => {
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #1e293b', paddingBottom: '0.4rem' }}>
             <span style={{ fontWeight: 800, color: '#f1f5f9', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              Konum ({quickTile.x}, {quickTile.y})
+              {t('location')} ({quickTile.x}, {quickTile.y})
             </span>
             <button
               onClick={() => setQuickTile(null)}
@@ -1289,7 +1290,7 @@ export const CanvasGrid: React.FC = () => {
           </div>
 
           <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
-            Bu kareye tek tıkla tesis inşa et:
+            {t('quick_build_info')}
           </div>
 
           <button
@@ -1300,10 +1301,10 @@ export const CanvasGrid: React.FC = () => {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <BatteryCharging className="w-3.5 h-3.5 text-amber-400" />
-              <span>Şarj İstasyonu</span>
+              <span>{t('charge_station')}</span>
             </div>
             <span style={{ fontFamily: 'Fira Code, monospace', fontWeight: 800, fontSize: '0.68rem' }}>
-              {stationPrice === 0 ? 'BEDAVA' : `$${stationPrice.toLocaleString()}`}
+              {stationPrice === 0 ? t('free') : `$${stationPrice.toLocaleString()}`}
             </span>
           </button>
 
@@ -1315,10 +1316,10 @@ export const CanvasGrid: React.FC = () => {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Building2 className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Lojistik Deposu</span>
+              <span>{t('depot')}</span>
             </div>
             <span style={{ fontFamily: 'Fira Code, monospace', fontWeight: 800, fontSize: '0.68rem' }}>
-              {depotPrice === 0 ? 'BEDAVA' : `$${depotPrice.toLocaleString()}`}
+              {depotPrice === 0 ? t('free') : `$${depotPrice.toLocaleString()}`}
             </span>
           </button>
 

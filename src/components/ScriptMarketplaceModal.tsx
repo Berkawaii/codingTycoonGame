@@ -14,7 +14,7 @@ interface ScriptMarketplaceModalProps {
 }
 
 export const ScriptMarketplaceModal: React.FC<ScriptMarketplaceModalProps> = ({ isOpen, onClose }) => {
-  const { setScriptCode, addLog } = useGameStore();
+  const { setScriptCode, addLog, t } = useGameStore();
 
   const [scripts, setScripts] = useState<CommunityScript[]>([]);
   const [activeCategory, setActiveCategory] = useState<'ALL' | 'MINING' | 'REPAIR' | 'DEFENSE' | 'HAULER'>('ALL');
@@ -133,10 +133,10 @@ export const ScriptMarketplaceModal: React.FC<ScriptMarketplaceModalProps> = ({ 
             <Code2 className="w-6 h-6 text-cyan-400" />
             <div>
               <h3 style={{ fontWeight: 800, color: '#f1f5f9', fontSize: '1rem', letterSpacing: '0.5px' }}>
-                SYNTAX FACTORY - TOPLULUK C# SCRIPT PAZARI
+                SYNTAX FACTORY - {t('marketplace_title')}
               </h3>
               <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                Oyuncuların yazdığı otonom C# betiklerini keşfedin veya kendi kodunuzu toplulukla paylaşın
+                {t('marketplace_subtitle')}
               </span>
             </div>
           </div>
@@ -154,7 +154,7 @@ export const ScriptMarketplaceModal: React.FC<ScriptMarketplaceModalProps> = ({ 
               className={`ui-btn ${activeCategory === 'ALL' ? 'ui-btn-cyan' : 'ui-btn-secondary'}`}
               style={{ padding: '0.3rem 0.65rem', fontSize: '0.72rem' }}
             >
-              Tümü
+              {t('all')}
             </button>
             <button
               onClick={() => setActiveCategory('MINING')}
@@ -162,7 +162,7 @@ export const ScriptMarketplaceModal: React.FC<ScriptMarketplaceModalProps> = ({ 
               style={{ padding: '0.3rem 0.65rem', fontSize: '0.72rem' }}
             >
               <Pickaxe className="w-3 h-3 text-cyan-400" />
-              <span>Madencilik</span>
+              <span>{t('mining')}</span>
             </button>
             <button
               onClick={() => setActiveCategory('REPAIR')}
@@ -170,25 +170,25 @@ export const ScriptMarketplaceModal: React.FC<ScriptMarketplaceModalProps> = ({ 
               style={{ padding: '0.3rem 0.65rem', fontSize: '0.72rem' }}
             >
               <Wrench className="w-3 h-3 text-emerald-400" />
-              <span>Tamir</span>
+              <span>{t('repair')}</span>
             </button>
             <button
               onClick={() => setActiveCategory('DEFENSE')}
               className={`ui-btn ${activeCategory === 'DEFENSE' ? 'ui-btn-cyan' : 'ui-btn-secondary'}`}
               style={{ padding: '0.3rem 0.65rem', fontSize: '0.72rem' }}
             >
-              <Shield className="w-3 h-3 text-rose-400" />
-              <span>Savunma</span>
+              <Shield className="w-3 h-3 text-amber-400" />
+              <span>{t('defense')}</span>
             </button>
           </div>
 
           <button
-            onClick={() => setIsPublishing(true)}
+            onClick={() => setIsPublishing(!isPublishing)}
             className="ui-btn ui-btn-primary"
-            style={{ padding: '0.35rem 0.85rem', fontSize: '0.73rem', fontWeight: 700 }}
+            style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', fontWeight: 700 }}
           >
-            <PlusCircle className="w-3.5 h-3.5" />
-            <span>Kendi Betiğini Paylaş</span>
+            <PlusCircle className="w-4 h-4" />
+            <span>{t('share_script')}</span>
           </button>
         </div>
 
@@ -272,7 +272,7 @@ export const ScriptMarketplaceModal: React.FC<ScriptMarketplaceModalProps> = ({ 
                       style={{ padding: '0.3rem 0.75rem', fontSize: '0.73rem', fontWeight: 700 }}
                     >
                       {appliedId === script.id ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Download className="w-3.5 h-3.5" />}
-                      <span>{appliedId === script.id ? 'Uygulandı' : 'Seçili Robota Uygula'}</span>
+                      <span>{appliedId === script.id ? t('applied') : t('apply_to_robot')}</span>
                     </button>
                   </div>
                 </div>
