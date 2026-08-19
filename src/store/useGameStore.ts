@@ -23,7 +23,7 @@ import {
 import { DEFAULT_C_SHARP_SCRIPT, DEFAULT_POWER_PLANT_C_SHARP_SCRIPT, DEFAULT_TRANSPORTER_C_SHARP_SCRIPT, DEFAULT_REPAIR_DRONE_C_SHARP_SCRIPT, SKU_CATALOG } from '../constants/skus';
 import { compileAndRunCSharp, compileAndRunPowerPlantCSharp } from '../services/wasmRunner';
 import { soundService } from '../services/soundService';
-import { logoutUser } from '../services/firebaseService';
+import { logoutUser, saveGameStateToFirestore, fetchGameStateFromFirestore, auth } from '../services/firebaseService';
 import { BIOME_CATALOG } from '../constants/biomes';
 import { generateBiomeMap, generateSingleRespawnResource, populateExpandedZone } from '../services/mapGenerator';
 import { translations, TranslationKey, Language } from '../i18n/translations';
@@ -134,6 +134,8 @@ interface GameState {
   userDisplayName: string;
   startAnonymousSession: () => void;
   logout: () => Promise<void>;
+  loadGameStateFromCloud: (userId: string) => Promise<void>;
+  saveGameStateToCloud: () => Promise<void>;
   
   // Admin & Simulation Testing Console Actions
   isAdminModalOpen: boolean;
@@ -341,6 +343,56 @@ export const useGameStore = create<GameState>()(
       isWelcomeOpen: true,
     });
     get().addLog('info', '[OTURUM]: Oturum kapatıldı.');
+  },
+
+  saveGameStateToCloud: async () => {
+    const user = auth.currentUser;
+    const userId = user?.uid || localStorage.getItem('syntax_factory_user_id');
+    if (!userId) return;
+
+    const state = get();
+    const stateToSave = {
+      credits: state.credits,
+      robots: state.robots,
+      resources: state.resources,
+      chargingStations: state.chargingStations,
+      depots: state.depots,
+      smelters: state.smelters,
+      refineries: state.refineries,
+      powerPlants: state.powerPlants,
+      inventory: state.inventory,
+      unlockedBiomes: state.unlockedBiomes,
+      currentBiome: state.currentBiome,
+      biomeMaps: state.biomeMaps,
+      scriptCode: state.scriptCode,
+      powerPlantScriptCode: state.powerPlantScriptCode,
+    };
+
+    await saveGameStateToFirestore(userId, stateToSave);
+  },
+
+  loadGameStateFromCloud: async (userId: string) => {
+    if (!userId) return;
+    const cloudData = await fetchGameStateFromFirestore(userId);
+    if (cloudData) {
+      set((state) => ({
+        credits: typeof cloudData.credits === 'number' ? cloudData.credits : state.credits,
+        robots: Array.isArray(cloudData.robots) ? cloudData.robots : state.robots,
+        resources: Array.isArray(cloudData.resources) ? cloudData.resources : state.resources,
+        chargingStations: Array.isArray(cloudData.chargingStations) ? cloudData.chargingStations : state.chargingStations,
+        depots: Array.isArray(cloudData.depots) ? cloudData.depots : state.depots,
+        smelters: Array.isArray(cloudData.smelters) ? cloudData.smelters : state.smelters,
+        refineries: Array.isArray(cloudData.refineries) ? cloudData.refineries : state.refineries,
+        powerPlants: Array.isArray(cloudData.powerPlants) ? cloudData.powerPlants : state.powerPlants,
+        inventory: cloudData.inventory || state.inventory,
+        unlockedBiomes: Array.isArray(cloudData.unlockedBiomes) ? cloudData.unlockedBiomes : state.unlockedBiomes,
+        currentBiome: cloudData.currentBiome || state.currentBiome,
+        biomeMaps: cloudData.biomeMaps || state.biomeMaps,
+        scriptCode: cloudData.scriptCode || state.scriptCode,
+        powerPlantScriptCode: cloudData.powerPlantScriptCode || state.powerPlantScriptCode,
+      }));
+      get().addLog('success', '☁️ [CLOUD SYNCRONIZED]: Oyun durumu ve robot C# betikleri Cloud Firestore sunucusundan senkronize edildi.');
+    }
   },
 
   isApiModalOpen: false,
@@ -2108,6 +2160,11 @@ export const useGameStore = create<GameState>()(
     const state = get();
     const nextTick = state.tickCount + 1;
     set({ tickCount: nextTick });
+
+    // Periodic Cloud Save Auto-Sync (Every 20 Ticks / ~10 seconds)
+    if (nextTick % 20 === 0) {
+      get().saveGameStateToCloud();
+    }
 
     // Periodic Resource Respawning across ALL unlocked biomes (Every 12 Ticks)
     if (nextTick % 12 === 0) {

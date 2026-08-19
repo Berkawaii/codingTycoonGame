@@ -41,64 +41,53 @@ export function initFirebase() {
 export async function saveScriptToFirebase(name: string, code: string, robotId?: string): Promise<FirebaseScriptDoc> {
   initFirebase();
 
-  if (db && auth?.currentUser) {
-    const userId = auth.currentUser.uid;
-    const docRef = doc(db, 'users', userId, 'scripts', name);
-
-    const docData: FirebaseScriptDoc = {
-      id: name,
-      name,
-      code,
-      robot_id: robotId || 'robot-1',
-      updated_at: new Date().toISOString(),
-    };
-
-    await setDoc(docRef, docData, { merge: true });
-    return docData;
+  if (!auth?.currentUser && auth) {
+    try {
+      await signInAnonymously(auth);
+    } catch (e) {
+      console.warn('Anonymous sign-in warning:', e);
+    }
   }
 
-  // LocalStorage fallback
-  const local = getLocalScripts();
-  const existingIdx = local.findIndex((s) => s.name === name);
-  const scriptItem: FirebaseScriptDoc = {
-    id: existingIdx >= 0 ? local[existingIdx].id : `local-${Date.now()}`,
+  const userId = auth?.currentUser?.uid || 'guest-user';
+  const cleanId = name.replace(/[^a-zA-Z0-9_-]/g, '_');
+  const docRef = doc(db!, 'users', userId, 'personal_scripts', cleanId);
+
+  const docData: FirebaseScriptDoc = {
+    id: cleanId,
     name,
     code,
-    robot_id: robotId,
+    robot_id: robotId || 'robot-1',
     updated_at: new Date().toISOString(),
   };
 
-  if (existingIdx >= 0) local[existingIdx] = scriptItem;
-  else local.push(scriptItem);
-
-  localStorage.setItem('tycoon_local_scripts', JSON.stringify(local));
-  return scriptItem;
+  await setDoc(docRef, docData, { merge: true });
+  return docData;
 }
 
 export async function fetchFirebaseScripts(): Promise<FirebaseScriptDoc[]> {
   initFirebase();
 
-  if (db && auth?.currentUser) {
+  if (!auth?.currentUser && auth) {
     try {
-      const userId = auth.currentUser.uid;
-      const q = query(collection(db, 'users', userId, 'scripts'), orderBy('updated_at', 'desc'));
-      const snapshot = await getDocs(q);
-      const docs: FirebaseScriptDoc[] = [];
-      snapshot.forEach((d) => docs.push(d.data() as FirebaseScriptDoc));
-      if (docs.length > 0) return docs;
-    } catch (err) {
-      console.warn('Firestore fetch fallback:', err);
+      await signInAnonymously(auth);
+    } catch (e) {
+      console.warn('Anonymous sign-in warning:', e);
     }
   }
 
-  return getLocalScripts();
-}
-
-function getLocalScripts(): FirebaseScriptDoc[] {
-  try {
-    const raw = localStorage.getItem('tycoon_local_scripts');
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
+  if (db && auth?.currentUser) {
+    try {
+      const userId = auth.currentUser.uid;
+      const q = query(collection(db, 'users', userId, 'personal_scripts'), orderBy('updated_at', 'desc'));
+      const snapshot = await getDocs(q);
+      const docs: FirebaseScriptDoc[] = [];
+      snapshot.forEach((d) => docs.push(d.data() as FirebaseScriptDoc));
+      return docs;
+    } catch (err) {
+      console.warn('Firestore personal scripts fetch error:', err);
+    }
   }
+
+  return [];
 }

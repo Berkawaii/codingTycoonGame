@@ -69,6 +69,9 @@ export const App: React.FC = () => {
           isWelcomeOpen: false,
         });
         addLog('success', `[OTURUM HESABI]: Oturum doğrulandı (${role.toUpperCase()}): ${name}.`);
+
+        // Load personal Cloud Save State & scripts from Firestore
+        await useGameStore.getState().loadGameStateFromCloud(user.uid);
       } else {
         useGameStore.setState({
           authUser: null,

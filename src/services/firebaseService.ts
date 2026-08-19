@@ -22,6 +22,7 @@ import {
   limit,
   updateDoc,
   increment,
+  deleteDoc,
 } from 'firebase/firestore';
 
 // Default Firebase Configuration for playsyntaxfactory
@@ -93,6 +94,48 @@ export const syncUserToFirestore = async (user: User, customDisplayName?: string
   }
 
   return role;
+};
+
+// Full Cloud Game Save State & Sync
+export const saveGameStateToFirestore = async (userId: string, stateData: any): Promise<void> => {
+  if (!userId) return;
+  try {
+    const saveDocRef = doc(db, 'users', userId, 'game_data', 'save_state');
+    await setDoc(
+      saveDocRef,
+      {
+        ...stateData,
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+  } catch (err) {
+    console.warn('[FIRESTORE SAVE ERROR]:', err);
+  }
+};
+
+export const fetchGameStateFromFirestore = async (userId: string): Promise<any | null> => {
+  if (!userId) return null;
+  try {
+    const saveDocRef = doc(db, 'users', userId, 'game_data', 'save_state');
+    const snap = await getDoc(saveDocRef);
+    if (snap.exists()) {
+      return snap.data();
+    }
+  } catch (err) {
+    console.warn('[FIRESTORE LOAD ERROR]:', err);
+  }
+  return null;
+};
+
+export const deletePersonalScriptFromFirestore = async (userId: string, scriptId: string): Promise<void> => {
+  if (!userId || !scriptId) return;
+  try {
+    const docRef = doc(db, 'users', userId, 'personal_scripts', scriptId);
+    await deleteDoc(docRef);
+  } catch (err) {
+    console.warn('[FIRESTORE SCRIPT DELETE ERROR]:', err);
+  }
 };
 
 // Auth Helpers
