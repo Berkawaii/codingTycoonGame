@@ -16,8 +16,11 @@ import {
   Refinery,
   PowerPlant,
   RadioMessage,
+  BanditRobot,
+  TurretBuilding,
+  HazardEvent,
 } from '../types/game';
-import { DEFAULT_C_SHARP_SCRIPT, DEFAULT_POWER_PLANT_C_SHARP_SCRIPT, DEFAULT_TRANSPORTER_C_SHARP_SCRIPT, SKU_CATALOG } from '../constants/skus';
+import { DEFAULT_C_SHARP_SCRIPT, DEFAULT_POWER_PLANT_C_SHARP_SCRIPT, DEFAULT_TRANSPORTER_C_SHARP_SCRIPT, DEFAULT_REPAIR_DRONE_C_SHARP_SCRIPT, SKU_CATALOG } from '../constants/skus';
 import { compileAndRunCSharp, compileAndRunPowerPlantCSharp } from '../services/wasmRunner';
 import { soundService } from '../services/soundService';
 import { BIOME_CATALOG } from '../constants/biomes';
@@ -107,6 +110,17 @@ interface GameState {
   sendRadioMessage: (robotId: string, messageType: string, x: number, y: number, payload?: string) => void;
   collectCargoFromRobot: (transporterId: string, targetMinerId?: string) => boolean;
   transferCargoToRobot: (minerId: string, targetTransporterId?: string) => boolean;
+
+  // Phase 9: Environmental Hazards & Defense System
+  activeBandits?: BanditRobot[];
+  turrets?: TurretBuilding[];
+  activeHazard?: HazardEvent | null;
+  buyRepairDrone: (name?: string, color?: string) => boolean;
+  buyTurret: (x: number, y: number) => boolean;
+  upgradeTurretRange: (turretId: string) => boolean;
+  upgradeTurretDamage: (turretId: string) => boolean;
+  repairRobot: (droneId: string, targetId: string) => void;
+  coolPowerPlant: (droneId: string, plantId: string) => void;
 
   // Game Mechanics Actions
   moveRobot: (robotId: string, direction: Direction) => void;
@@ -348,6 +362,9 @@ export const useGameStore = create<GameState>()(
   refineries: [],
   powerPlants: [],
   radioMessages: [],
+  activeBandits: [],
+  turrets: [],
+  activeHazard: null,
   inventory: INITIAL_INVENTORY,
   selectedRobotId: 'robot-1',
   scriptCode: DEFAULT_C_SHARP_SCRIPT,
@@ -1785,6 +1802,163 @@ export const useGameStore = create<GameState>()(
     get().addLog('success', `${robot.name} depoya ${amount} birim ${sku} boşalttı! Ana envantere aktarıldı.`);
   },
 
+  buyRepairDrone: (name, color = '#10b981') => {
+    const { credits, robots } = get();
+    const price = 5000;
+    if (credits < price) {
+      get().addLog('error', `Yetersiz bakiye! Tamir Drone robotu ücreti: $${price.toLocaleString()}`);
+      return false;
+    }
+
+    const newRobotId = `repair-drone-${Date.now()}`;
+    const newRobot: Robot = {
+      id: newRobotId,
+      name: name || `Repair Drone #${robots.length + 1}`,
+      x: 1,
+      y: 1,
+      direction: 'SOUTH',
+      status: 'IDLE',
+      color,
+      energy: 120,
+      maxEnergy: 120,
+      minedCount: 0,
+      miningSpeed: 1,
+      miningLevel: 1,
+      batteryLevel: 1,
+      radarRange: 7,
+      radarLevel: 1,
+      cargoAmount: 0,
+      maxCargo: 50,
+      cargoLevel: 1,
+      role: 'REPAIR_DRONE',
+      canMine: false,
+      moveSpeed: 2,
+      health: 100,
+      maxHealth: 100,
+      scriptName: 'RepairDrone.cs',
+      scriptCode: DEFAULT_REPAIR_DRONE_C_SHARP_SCRIPT,
+      biomeId: get().currentBiome,
+    };
+
+    set((state) => ({
+      credits: state.credits - price,
+      robots: [...state.robots, newRobot],
+      selectedRobotId: newRobotId,
+      scriptCode: DEFAULT_REPAIR_DRONE_C_SHARP_SCRIPT,
+    }));
+
+    soundService.playPurchase();
+    get().addLog('success', `🛠️ [TAMİR DRONE SATIN ALINDI]: ${newRobot.name} filoya eklendi! Hasarlı robotları ve aşırı ısınan santralleri otonom onarır.`);
+    return true;
+  },
+
+  buyTurret: (x, y) => {
+    const { credits, turrets = [], currentBiome } = get();
+    const price = 6000;
+    if (credits < price) {
+      get().addLog('error', `Yetersiz bakiye! Lazer Savunma Kulesi ücreti: $${price.toLocaleString()}`);
+      return false;
+    }
+
+    const newTurret: TurretBuilding = {
+      id: `turret-${Date.now()}`,
+      name: `Lazer Savunma Kulesi #${turrets.length + 1}`,
+      x,
+      y,
+      range: 4,
+      rangeLevel: 1,
+      damage: 20,
+      damageLevel: 1,
+    };
+
+    set((prev) => ({
+      credits: prev.credits - price,
+      ...updateMapDataForBiome(prev, currentBiome, (map) => ({
+        turrets: [...(map.turrets || []), newTurret],
+      })),
+      turrets: [...(prev.turrets || []), newTurret],
+    }));
+
+    soundService.playPurchase();
+    get().addLog('success', `🛡️ [KULE İNŞA EDİLDİ]: ${newTurret.name} (${x}, ${y}) konumuna kuruldu! Menzildeki Korsan Robotlara otonom lazer ateşler.`);
+    return true;
+  },
+
+  upgradeTurretRange: (turretId) => {
+    const { credits, turrets = [] } = get();
+    const turret = turrets.find((t) => t.id === turretId);
+    if (!turret) return false;
+
+    const price = 1500;
+    if (credits < price) {
+      get().addLog('error', `Yetersiz bakiye! Kule menzil yükseltme ücreti: $${price.toLocaleString()}`);
+      return false;
+    }
+
+    const updatedTurrets = turrets.map((t) =>
+      t.id === turretId ? { ...t, rangeLevel: t.rangeLevel + 1, range: t.range + 1 } : t
+    );
+
+    set({ credits: credits - price, turrets: updatedTurrets });
+    soundService.playPurchase();
+    get().addLog('success', `🛡️ ${turret.name} Menzili Seviye ${turret.rangeLevel + 1}'e yükseltildi! (Yeni Menzil: ${turret.range + 1} Karo)`);
+    return true;
+  },
+
+  upgradeTurretDamage: (turretId) => {
+    const { credits, turrets = [] } = get();
+    const turret = turrets.find((t) => t.id === turretId);
+    if (!turret) return false;
+
+    const price = 2000;
+    if (credits < price) {
+      get().addLog('error', `Yetersiz bakiye! Kule hasar yükseltme ücreti: $${price.toLocaleString()}`);
+      return false;
+    }
+
+    const updatedTurrets = turrets.map((t) =>
+      t.id === turretId ? { ...t, damageLevel: t.damageLevel + 1, damage: t.damage + 20 } : t
+    );
+
+    set({ credits: credits - price, turrets: updatedTurrets });
+    soundService.playPurchase();
+    get().addLog('success', `💥 ${turret.name} Lazer Hasarı Seviye ${turret.damageLevel + 1}'e yükseltildi! (Yeni Lazer Hasarı: ${turret.damage + 20} DPS)`);
+    return true;
+  },
+
+  repairRobot: (_droneId, targetId) => {
+    const { robots } = get();
+    const target = robots.find((r) => r.id === targetId || r.name === targetId);
+    if (!target) return;
+
+    const currentHp = target.health ?? 100;
+    const maxHp = target.maxHealth ?? 100;
+    if (currentHp >= maxHp) return;
+
+    const newHp = Math.min(maxHp, currentHp + 25);
+    set((prev) => ({
+      robots: prev.robots.map((r) =>
+        r.id === target.id ? { ...r, health: newHp, isDamaged: newHp < maxHp * 0.4 } : r
+      ),
+    }));
+  },
+
+  coolPowerPlant: (_droneId, plantId) => {
+    const { currentBiome, powerPlants = [] } = get();
+    const plant = powerPlants.find((p) => p.id === plantId || p.name === plantId);
+    if (!plant) return;
+
+    const newTemp = Math.max(25.0, plant.temperature - 15.0);
+    const updatedPlants = powerPlants.map((p) =>
+      p.id === plant.id ? { ...p, temperature: newTemp, isOverheated: newTemp >= 100.0 } : p
+    );
+
+    set((prev) => ({
+      ...updateMapDataForBiome(prev, currentBiome, () => ({ powerPlants: updatedPlants })),
+      powerPlants: updatedPlants,
+    }));
+  },
+
   rotateRobot: (robotId, direction) => {
     set((state) => ({
       robots: state.robots.map((r) =>
@@ -2069,6 +2243,10 @@ export const useGameStore = create<GameState>()(
           get().processMaterial(robot.id);
         } else if (log.action === 'COLLECT_PROCESSED') {
           get().collectProcessedProduct(robot.id);
+        } else if (log.action === 'REPAIR_ROBOT') {
+          get().repairRobot(robot.id, log.payload);
+        } else if (log.action === 'COOL_POWER_PLANT') {
+          get().coolPowerPlant(robot.id, log.payload);
         } else if (log.action === 'MINE') {
           let tx: number | undefined;
           let ty: number | undefined;
@@ -2082,11 +2260,178 @@ export const useGameStore = create<GameState>()(
           get().mineResource(robot.id, tx, ty);
         } else if (log.action === 'MOVE') {
           get().moveRobot(robot.id, log.payload as Direction);
-          if (robot.moveSpeed === 2 || robot.role === 'TRANSPORTER') {
+          if (robot.moveSpeed === 2 || robot.role === 'TRANSPORTER' || robot.role === 'REPAIR_DRONE') {
             get().moveRobot(robot.id, log.payload as Direction);
           }
         }
       });
+    }
+
+    // 4. Bandit Raiders AI & Theft Loop
+    const currentBandits = get().activeBandits || [];
+    const depots = get().depots || [];
+    const currentBiome = get().currentBiome;
+
+    // Bandit Spawn Trigger (Every 25 Ticks)
+    if (nextTick % 25 === 0 && currentBandits.length < 3) {
+      const spawnChance = currentBiome === 'MARS_BASIN' ? 0.25 : 0.65;
+      if (Math.random() < spawnChance) {
+        const spawnY = Math.floor(Math.random() * (get().gridSize.height - 2)) + 1;
+        const newBandit: BanditRobot = {
+          id: `bandit-${nextTick}-${Date.now()}`,
+          name: 'Korsan Robot',
+          x: 0,
+          y: spawnY,
+          health: 100,
+          maxHealth: 100,
+          cargoAmount: 0,
+          maxCargo: 30,
+          state: 'RAIDING',
+        };
+        set((prev) => ({ activeBandits: [...(prev.activeBandits || []), newBandit] }));
+        get().addLog('warn', `🏴‍☠️ [KORSAN BASKINI]: Harita sınırında hırsız Korsan Robot belirdi! Depolara sızıp değerli madenleri çalmaya çalışıyor!`);
+      }
+    }
+
+    // Bandit Movement & Stealing Loop
+    if (currentBandits.length > 0) {
+      const nearestDepot = depots[0] || { x: 0, y: 19 };
+      const updatedBandits: BanditRobot[] = [];
+
+      for (const bandit of currentBandits) {
+        let bx = bandit.x;
+        let by = bandit.y;
+        let bstate = bandit.state;
+        let bcargo = bandit.cargoAmount;
+
+        if (bstate === 'RAIDING') {
+          // Navigate towards nearest Depot
+          const dx = nearestDepot.x - bx;
+          const dy = nearestDepot.y - by;
+          if (Math.abs(dx) >= Math.abs(dy) && dx !== 0) bx += dx > 0 ? 1 : -1;
+          else if (dy !== 0) by += dy > 0 ? 1 : -1;
+
+          // Arrived at Depot tile -> Steal 30kg minerals!
+          if (bx === nearestDepot.x && by === nearestDepot.y) {
+            const currentInventory = get().inventory;
+            const stolenSku = Object.keys(currentInventory).find((k) => (currentInventory[k] || 0) > 0);
+            if (stolenSku && (currentInventory[stolenSku] || 0) > 0) {
+              const stealAmount = Math.min(30, currentInventory[stolenSku] || 0);
+              set((prev) => ({
+                inventory: { ...prev.inventory, [stolenSku]: (prev.inventory[stolenSku] || 0) - stealAmount },
+              }));
+              bcargo = stealAmount;
+              bstate = 'ESCAPING';
+              get().addLog('error', `🚨 [DEPO BASILDI]: Korsan Robot depodan ${stealAmount}kg ${stolenSku} çaldı ve kaçıyor!`);
+            } else {
+              bstate = 'ESCAPING';
+            }
+          }
+        } else if (bstate === 'ESCAPING') {
+          // Navigate back to map edge
+          if (bx > 0) bx -= 1;
+          else {
+            // Despawned at edge with stolen goods
+            get().addLog('warn', `🏴‍☠️ [KORSAN KAÇTI]: Korsan Robot çaldığı madenlerle harita sınırından kaçtı!`);
+            continue;
+          }
+        }
+
+        // Damage adjacent player robots in harsh biomes
+        if (currentBiome !== 'MARS_BASIN') {
+          const sameTileRobot = get().robots.find((r) => Math.abs(r.x - bx) <= 1 && Math.abs(r.y - by) <= 1);
+          if (sameTileRobot) {
+            set((prev) => ({
+              robots: prev.robots.map((r) =>
+                r.id === sameTileRobot.id ? { ...r, health: Math.max(0, (r.health ?? 100) - 8), isDamaged: true } : r
+              ),
+            }));
+          }
+        }
+
+        updatedBandits.push({ ...bandit, x: bx, y: by, state: bstate, cargoAmount: bcargo });
+      }
+
+      set({ activeBandits: updatedBandits });
+    }
+
+    // 5. Defense Turret Auto-Target & Laser Blast Loop
+    const activeTurrets = get().turrets || [];
+    const radioSpottedMsg = (get().radioMessages || []).find((m) => m.messageType === 'BANDIT_SPOTTED');
+
+    if (activeTurrets.length > 0 && (get().activeBandits || []).length > 0) {
+      const currentBanditsList = get().activeBandits || [];
+      let updatedBanditsList = [...currentBanditsList];
+
+      const updatedTurrets = activeTurrets.map((turret) => {
+        let targetBandit = currentBanditsList.find(
+          (b) => Math.hypot(b.x - turret.x, b.y - turret.y) <= turret.range
+        );
+
+        if (!targetBandit && radioSpottedMsg) {
+          targetBandit = currentBanditsList.find(
+            (b) => Math.hypot(b.x - radioSpottedMsg.x, b.y - radioSpottedMsg.y) <= turret.range + 2
+          );
+        }
+
+        if (targetBandit) {
+          const newHp = targetBandit.health - turret.damage;
+          soundService.playMining();
+          get().addLog('success', `🛡️ [LAZER ATISI]: ${turret.name} Korsan Robota lazer ateşi açtı! (-${turret.damage} HP)`);
+
+          if (newHp <= 0) {
+            updatedBanditsList = updatedBanditsList.filter((b) => b.id !== targetBandit!.id);
+            set((prev) => ({ credits: prev.credits + 300 }));
+            get().addLog('success', `💥 [KORSAN İMHA EDİLDİ]: Lazer Savunma Kulesi Korsan Robotu yok etti! +$300 Ödül Ödendi.`);
+          } else {
+            updatedBanditsList = updatedBanditsList.map((b) => (b.id === targetBandit!.id ? { ...b, health: newHp } : b));
+          }
+
+          return { ...turret, targetBanditId: targetBandit.id, lastFiredTick: nextTick };
+        }
+
+        return { ...turret, targetBanditId: null };
+      });
+
+      set({ turrets: updatedTurrets, activeBandits: updatedBanditsList });
+    }
+
+    // 6. Dust Storm Hazard Loop (Every 70 Ticks)
+    if (nextTick % 70 === 0 && Math.random() < 0.3) {
+      set({
+        activeHazard: {
+          id: `hazard-${Date.now()}`,
+          type: 'DUST_STORM',
+          name: 'Mars Kum Fırtınası',
+          durationTicks: 15,
+          remainingTicks: 15,
+          severity: 2,
+        },
+      });
+      get().addLog('warn', `🌪️ [KUM FIRTINASI BAŞLADI]: Şiddetli Mars kum fırtınası başladı! Sahadaki robotlar aşınıyor (-2 HP/tick). Tamir Drone'larını hazırlayın!`);
+    }
+
+    const currentHazard = get().activeHazard;
+    if (currentHazard) {
+      const rem = currentHazard.remainingTicks - 1;
+      if (rem <= 0) {
+        set({ activeHazard: null });
+        get().addLog('info', `☀️ [FIRTINA DİNDİ]: Mars kum fırtınası sona erdi. Gökyüzü berraklaştı.`);
+      } else {
+        set({ activeHazard: { ...currentHazard, remainingTicks: rem } });
+        // Deal Dust Storm wear damage to open field robots
+        set((prev) => ({
+          robots: prev.robots.map((r) => {
+            const currentHp = r.health ?? 100;
+            const newHp = Math.max(0, currentHp - 2);
+            return {
+              ...r,
+              health: newHp,
+              isDamaged: newHp < 40,
+            };
+          }),
+        }));
+      }
     }
   },
 

@@ -27,9 +27,49 @@ export interface Robot {
   cargoLevel: number;
   cargoSku?: string;
   biomeId?: BiomeType;
-  role?: 'MINER' | 'TRANSPORTER';
+  role?: 'MINER' | 'TRANSPORTER' | 'REPAIR_DRONE';
   canMine?: boolean;
   moveSpeed?: number; // 1 = normal, 2 = 2x speed
+  health?: number; // 0 to 100
+  maxHealth?: number; // default 100
+  isDamaged?: boolean;
+}
+
+export interface BanditRobot {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  health: number;
+  maxHealth: number;
+  cargoAmount: number;
+  maxCargo: number;
+  stolenSku?: string;
+  state: 'RAIDING' | 'ESCAPING' | 'ATTACKING';
+  targetX?: number;
+  targetY?: number;
+}
+
+export interface TurretBuilding {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  range: number;
+  rangeLevel: number;
+  damage: number;
+  damageLevel: number;
+  targetBanditId?: string | null;
+  lastFiredTick?: number;
+}
+
+export interface HazardEvent {
+  id: string;
+  type: 'DUST_STORM' | 'ACID_RAIN';
+  name: string;
+  durationTicks: number;
+  remainingTicks: number;
+  severity: number;
 }
 
 export interface RadioMessage {
@@ -124,7 +164,7 @@ export interface RadarTileInfo {
   x: number;
   y: number;
   distance: number;
-  tileType: 'RESOURCE' | 'CHARGING_PAD' | 'ROBOT' | 'EMPTY';
+  tileType: 'RESOURCE' | 'CHARGING_PAD' | 'ROBOT' | 'BANDIT' | 'EMPTY';
   name: string;
   sku?: string;
   amount?: number;
@@ -135,7 +175,7 @@ export interface BuildingInfo {
   x: number;
   y: number;
   distance: number;
-  buildingType: 'CHARGING_PAD' | 'DEPOT' | 'ANY';
+  buildingType: 'CHARGING_PAD' | 'DEPOT' | 'TURRET' | 'ANY';
   name: string;
 }
 
@@ -165,6 +205,9 @@ export interface BiomeMapState {
   refineries?: Refinery[];
   powerPlants?: PowerPlant[];
   radioMessages?: RadioMessage[];
+  activeBandits?: BanditRobot[];
+  turrets?: TurretBuilding[];
+  activeHazard?: HazardEvent | null;
 }
 
 export interface GameLog {

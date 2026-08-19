@@ -304,4 +304,45 @@ public class TransporterScript
     }
 }`,
   },
+  {
+    id: 9,
+    title: 'Bölüm 9: Korsan Baskınları, Çevre Tehlikeleri & Savunma Otomasyonu',
+    subtitle: 'Korsan robotlara, kum fırtınalarına karşı otonom savunma ve tamir ağını kurun.',
+    description: 'Mars kum fırtınalarında robotlar aşınır ve korsan robotlar depolardan maden çalmaya çalışır. BANDIT_SPOTTED radyo sinyali yayarak kuleleri ve tamir dronelarını otonom devreye sokabilirsiniz.',
+    taskText: "Robot radarda Korsan görünce 'BANDIT_SPOTTED' radyo alarmı yaysın ve Tamir Drone robotu hasarlı birimleri otonom onarsın.",
+    conceptsText: 'BANDIT_SPOTTED, robot.GetDamagedRobots(), robot.RepairRobot()',
+    targetObjectiveText: 'Canlı Hedef: Korsan robotlara karşı radyo alarmı yayınlayın veya Tamir Drone ile hasarlı bir birimi onarın.',
+    starterCode: `using System;
+using System.Collections.Generic;
+
+public class DefenseAndRepairScript
+{
+    public void Execute(IRobot robot)
+    {
+        // 1. Batarya Düşükse Şarj Ol
+        if (robot.GetEnergy() <= 25)
+        {
+            BuildingInfo station = robot.GetNearestBuilding("CHARGING_PAD");
+            robot.GoTo(station.X, station.Y);
+            return;
+        }
+
+        // 2. Hasarlı Robotları Tara ve Otonom Lazer Işını ile Onar
+        List<RobotInfo> damaged = robot.GetDamagedRobots();
+        if (damaged.Count > 0)
+        {
+            RobotInfo target = damaged[0];
+            robot.GoTo(target.X, target.Y);
+            if (Math.Abs(target.X - robot.GetX()) <= 1 && Math.Abs(target.Y - robot.GetY()) <= 1)
+            {
+                robot.RepairRobot(target.Id);
+            }
+            return;
+        }
+
+        // 3. Sahada Korsan Belirdiyse Radyo Şebekesine Alarm Yay (BANDIT_SPOTTED)
+        robot.SendRadioMessage("BANDIT_SPOTTED", robot.GetX(), robot.GetY(), robot.GetId());
+    }
+}`,
+  },
 ];

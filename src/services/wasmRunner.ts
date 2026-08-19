@@ -1,7 +1,7 @@
 import { Direction, ResourceNode, ChargingStation, Depot, Smelter, Refinery, RadioMessage } from '../types/game';
 
 export interface CompilationLog {
-  action: 'MOVE' | 'MINE' | 'ROTATE' | 'IDLE' | 'ERROR' | 'DEPOSIT_RAW_MATERIAL' | 'PROCESS_MATERIAL' | 'COLLECT_PROCESSED' | 'SEND_RADIO_MESSAGE' | 'READ_RADIO_MESSAGES' | 'COLLECT_CARGO_FROM_ROBOT' | 'TRANSFER_CARGO_TO_ROBOT';
+  action: 'MOVE' | 'MINE' | 'ROTATE' | 'IDLE' | 'ERROR' | 'DEPOSIT_RAW_MATERIAL' | 'PROCESS_MATERIAL' | 'COLLECT_PROCESSED' | 'SEND_RADIO_MESSAGE' | 'READ_RADIO_MESSAGES' | 'COLLECT_CARGO_FROM_ROBOT' | 'TRANSFER_CARGO_TO_ROBOT' | 'REPAIR_ROBOT' | 'COOL_POWER_PLANT';
   payload: string;
   message: string;
 }
@@ -254,18 +254,8 @@ export async function compileAndRunCSharp(
   const hasSendRadio = /SendRadioMessage/i.test(code);
   const hasCollectFromRobot = /CollectCargoFromRobot/i.test(code);
   const hasTransferToRobot = /TransferCargoToRobot/i.test(code);
-
-  // 5. Generate Actions & Logs
-  // Send Radio Message as side-effect action if C# script calls SendRadioMessage
-  if (hasSendRadio && (isCargoAlmostFull || activeCargoFullMsg)) {
-    const match = code.match(/SendRadioMessage\s*\(\s*"([^"]+)"/i);
-    const msgType = match ? match[1] : 'CARGO_FULL';
-    logs.push({
-      action: 'SEND_RADIO_MESSAGE',
-      payload: JSON.stringify({ messageType: msgType, x: robotState.x, y: robotState.y }),
-      message: `📡 ${robotState.name} radyo şebekesine '${msgType}' yayını yapıyor ('SendRadioMessage').`,
-    });
-  }
+  const hasRepairRobot = /RepairRobot/i.test(code);
+  const hasCoolPlant = /CoolPowerPlant/i.test(code);
 
   // Check if Transporter is close enough to collect cargo (adjacent tile <= 2 dist)
   let isAdjacentToMiner = false;
@@ -278,7 +268,35 @@ export async function compileAndRunCSharp(
     }
   }
 
-  if (isAdjacentToMiner && hasCollectFromRobot) {
+  // 5. Generate Actions & Logs
+  // Send Radio Message as side-effect action if C# script calls SendRadioMessage
+  if (hasSendRadio) {
+    const match = code.match(/SendRadioMessage\s*\(\s*"([^"]+)"/i);
+    const msgType = match ? match[1] : 'CARGO_FULL';
+    logs.push({
+      action: 'SEND_RADIO_MESSAGE',
+      payload: JSON.stringify({ messageType: msgType, x: robotState.x, y: robotState.y }),
+      message: `📡 ${robotState.name} radyo şebekesine '${msgType}' yayını yapıyor ('SendRadioMessage').`,
+    });
+  }
+
+  if (hasRepairRobot) {
+    const match = code.match(/RepairRobot\s*\(\s*"([^"]+)"/i);
+    const targetId = match ? match[1] : '';
+    logs.push({
+      action: 'REPAIR_ROBOT',
+      payload: targetId,
+      message: `🛠️ ${robotState.name} lazer tamir ışınını aktifleştirip hasarlı robotu onarıyor ('RepairRobot').`,
+    });
+  } else if (hasCoolPlant) {
+    const match = code.match(/CoolPowerPlant\s*\(\s*"([^"]+)"/i);
+    const plantId = match ? match[1] : '';
+    logs.push({
+      action: 'COOL_POWER_PLANT',
+      payload: plantId,
+      message: `❄️ ${robotState.name} termal santrale soğutucu sıvı sıkarak sıcaklığı düşürüyor ('CoolPowerPlant').`,
+    });
+  } else if (isAdjacentToMiner && hasCollectFromRobot) {
     logs.push({
       action: 'COLLECT_CARGO_FROM_ROBOT',
       payload: targetMinerId,

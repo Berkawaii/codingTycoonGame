@@ -50,6 +50,11 @@ export const ShopPanel: React.FC = () => {
     buySmelter,
     buyRefinery,
     buyPowerPlant,
+    buyRepairDrone,
+    buyTurret,
+    upgradeTurretRange,
+    upgradeTurretDamage,
+    turrets,
     upgradeRobotStat,
     buyEmergencyCharge,
     currentBiome,
@@ -216,6 +221,54 @@ export const ShopPanel: React.FC = () => {
               </button>
             </div>
           </div>
+
+          {/* Dedicated Repair Drone Robot Card */}
+          <div
+            className="sku-card"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              gap: '0.5rem',
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%)',
+              border: '1px solid rgba(16, 185, 129, 0.4)',
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                <Bot className="w-4 h-4 text-emerald-400" />
+                <h4 style={{ fontWeight: 800, color: '#10b981', fontSize: '0.8rem' }}>Tamir Drone (Repair)</h4>
+                <span style={{ fontSize: '0.62rem', background: 'rgba(16, 185, 129, 0.3)', color: '#6ee7b7', padding: '1px 5px', borderRadius: '4px', border: '1px solid rgba(16, 185, 129, 0.5)', fontWeight: 800 }}>
+                  2X HIZ / ONARIM
+                </span>
+              </div>
+              <p style={{ fontSize: '0.68rem', color: '#cbd5e1', lineHeight: '1.3' }}>
+                Hasarlı robotları ve ısınan santralleri otonom tespit edip yeşil lazer tamir ışını ile onarır (`RepairRobot`).
+              </p>
+            </div>
+
+            <div style={{ paddingTop: '0.5rem', borderTop: '1px solid rgba(16, 185, 129, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontFamily: 'Fira Code, monospace', fontWeight: 800, color: '#fbbf24', fontSize: '0.8rem' }}>
+                $5,000
+              </span>
+              <button
+                onClick={() => buyRepairDrone(`RepairDrone-${robots.length + 1}`, '#10b981')}
+                disabled={credits < 5000}
+                className="ui-btn"
+                style={{
+                  padding: '0.25rem 0.6rem',
+                  fontSize: '0.72rem',
+                  opacity: credits < 5000 ? 0.4 : 1,
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: '#fff',
+                  fontWeight: 700,
+                  border: 'none',
+                }}
+              >
+                <span>Tamir Drone Satın Al</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -361,7 +414,75 @@ export const ShopPanel: React.FC = () => {
               </button>
             </div>
           </div>
+
+          {/* Defense Turret Card */}
+          <div className="sku-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '0.5rem', background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(249, 115, 22, 0.15) 100%)', border: '1px solid rgba(239, 68, 68, 0.4)' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                <Zap className="w-4 h-4 text-rose-500" />
+                <h4 style={{ fontWeight: 800, color: '#f87171', fontSize: '0.8rem' }}>Lazer Savunma Kulesi (2x2)</h4>
+              </div>
+              <p style={{ fontSize: '0.68rem', color: '#cbd5e1', lineHeight: '1.3' }}>
+                Korsan robotlara ve `BANDIT_SPOTTED` radyo çağrılarına otonom kilitlenip kızıl lazer ateşi açar.
+              </p>
+            </div>
+            <div style={{ paddingTop: '0.5rem', borderTop: '1px solid rgba(239, 68, 68, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontFamily: 'Fira Code, monospace', fontWeight: 800, color: '#fbbf24', fontSize: '0.8rem' }}>
+                $6,000
+              </span>
+              <button
+                onClick={() => {
+                  const coordStr = prompt('Lazer Savunma Kulesi (2x2) için (X, Y) koordinatını girin:', '8, 8');
+                  if (!coordStr) return;
+                  const parts = coordStr.split(',').map((p) => parseInt(p.trim(), 10));
+                  if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                    buyTurret(parts[0], parts[1]);
+                  }
+                }}
+                disabled={credits < 6000}
+                className="ui-btn"
+                style={{ padding: '0.25rem 0.6rem', fontSize: '0.72rem', opacity: credits < 6000 ? 0.4 : 1, background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: '#fff', fontWeight: 700, border: 'none' }}
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>Kule İnşa Et</span>
+              </button>
+            </div>
+          </div>
         </div>
+
+        {/* Active Turret Upgrades Section */}
+        {turrets && turrets.length > 0 && (
+          <div style={{ marginTop: '0.75rem', padding: '0.6rem', background: 'rgba(15,23,42,0.6)', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.3)' }}>
+            <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#f87171', marginBottom: '6px', textTransform: 'uppercase' }}>
+              🛡️ Aktif Savunma Kuleleri Yükseltmeleri
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {turrets.map((t) => (
+                <div key={t.id} style={{ background: '#090e17', padding: '6px 10px', borderRadius: '6px', border: '1px solid #1e293b', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.72rem' }}>
+                  <span style={{ fontWeight: 700, color: '#f1f5f9' }}>{t.name} ({t.x}, {t.y})</span>
+                  <span style={{ color: '#94a3b8' }}>Menzil: <strong style={{ color: '#38bdf8' }}>{t.range} Karo</strong> (Lvl {t.rangeLevel})</span>
+                  <button
+                    onClick={() => upgradeTurretRange(t.id)}
+                    disabled={credits < 1500 || t.rangeLevel >= 5}
+                    className="ui-btn ui-btn-cyan"
+                    style={{ padding: '2px 6px', fontSize: '0.68rem' }}
+                  >
+                    +1 Menzil ($1,500)
+                  </button>
+                  <span style={{ color: '#94a3b8' }}>Lazer: <strong style={{ color: '#f43f5e' }}>{t.damage} DPS</strong> (Lvl {t.damageLevel})</span>
+                  <button
+                    onClick={() => upgradeTurretDamage(t.id)}
+                    disabled={credits < 2000 || t.damageLevel >= 5}
+                    className="ui-btn"
+                    style={{ padding: '2px 6px', fontSize: '0.68rem', background: '#ef4444', color: '#fff', border: 'none' }}
+                  >
+                    +20 Lazer ($2,000)
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 2.5 Biome Exploration & Map Unlock Section */}

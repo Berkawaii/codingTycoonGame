@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { SKU_CATALOG } from '../constants/skus';
 import { BIOME_CATALOG } from '../constants/biomes';
-import { Direction } from '../types/game';
+import { Direction, TurretBuilding, BanditRobot } from '../types/game';
 import { BatteryCharging, Building2, X, Pickaxe, Radio } from 'lucide-react';
 
 interface SmoothPos {
@@ -56,6 +56,9 @@ export const CanvasGrid: React.FC = () => {
     currentBiome,
     hazardTiles,
     biomeMaps,
+    turrets = [],
+    activeBandits = [],
+    activeHazard = null,
   } = useGameStore();
 
   const activeGridSize = biomeMaps[currentBiome]?.gridSize || gridSize;
@@ -829,7 +832,113 @@ export const CanvasGrid: React.FC = () => {
       ctx.fillRect(barX, cargoBarY, barWidth, barHeight);
       ctx.fillStyle = '#38bdf8';
       ctx.fillRect(barX, cargoBarY, barWidth * cargoRatio, barHeight);
+
+      // 3. Robot Health Bar (❤️ Green/Red - Rendered when damaged or in combat)
+      if (robot.health !== undefined && robot.health < 100) {
+        const hpBarY = centerY + radius + 4;
+        const hpRatio = Math.max(0, Math.min(1, robot.health / (robot.maxHealth || 100)));
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+        ctx.fillRect(barX, hpBarY, barWidth, 3);
+        ctx.fillStyle = hpRatio > 0.4 ? '#10b981' : '#f43f5e';
+        ctx.fillRect(barX, hpBarY, barWidth * hpRatio, 3);
+      }
     });
+
+    // 6. Draw Defense Turrets & Red Laser Shots
+    const currentTurrets = (biomeMaps[currentBiome]?.turrets || turrets || []) as TurretBuilding[];
+    currentTurrets.forEach((turret: TurretBuilding) => {
+      const tx = turret.x * cellWidth + cellWidth;
+      const ty = turret.y * cellHeight + cellHeight;
+
+      // Turret Chassis (2x2)
+      ctx.save();
+      ctx.fillStyle = 'rgba(239, 68, 68, 0.2)';
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.roundRect(turret.x * cellWidth + 4, turret.y * cellHeight + 4, cellWidth * 2 - 8, cellHeight * 2 - 8, 8);
+      ctx.fill();
+      ctx.stroke();
+
+      // Inner Laser Core
+      ctx.fillStyle = '#f87171';
+      ctx.beginPath();
+      ctx.arc(tx, ty, 10, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Range Indicator Ring
+      ctx.beginPath();
+      ctx.arc(tx, ty, turret.range * cellWidth, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(239, 68, 68, 0.15)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.restore();
+
+      // Laser Beam Shot towards Target Bandit
+      const currentBandits = (biomeMaps[currentBiome]?.activeBandits || activeBandits || []) as BanditRobot[];
+      if (turret.targetBanditId && currentBandits.length > 0) {
+        const targetBandit = currentBandits.find((b: BanditRobot) => b.id === turret.targetBanditId);
+        if (targetBandit) {
+          const bx = targetBandit.x * cellWidth + cellWidth / 2;
+          const by = targetBandit.y * cellHeight + cellHeight / 2;
+
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(tx, ty);
+          ctx.lineTo(bx, by);
+          ctx.strokeStyle = '#f43f5e';
+          ctx.lineWidth = 3.5;
+          ctx.shadowColor = '#ef4444';
+          ctx.shadowBlur = 15;
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+    });
+
+    // 7. Draw Bandit Raiders (Red Skull 💀)
+    const currentBandits = (biomeMaps[currentBiome]?.activeBandits || activeBandits || []) as BanditRobot[];
+    currentBandits.forEach((bandit: BanditRobot) => {
+      const bx = bandit.x * cellWidth + cellWidth / 2;
+      const by = bandit.y * cellHeight + cellHeight / 2;
+      const radius = Math.min(cellWidth, cellHeight) * 0.38;
+
+      ctx.save();
+      ctx.shadowColor = '#ef4444';
+      ctx.shadowBlur = 14;
+
+      ctx.beginPath();
+      ctx.arc(bx, by, radius, 0, Math.PI * 2);
+      ctx.fillStyle = '#991b1b';
+      ctx.fill();
+      ctx.strokeStyle = '#f87171';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 11px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('💀', bx, by);
+      ctx.restore();
+
+      // Bandit HP bar
+      const barWidth = cellWidth * 0.8;
+      const hpRatio = Math.max(0, Math.min(1, bandit.health / bandit.maxHealth));
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+      ctx.fillRect(bx - barWidth / 2, by - radius - 8, barWidth, 3.5);
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(bx - barWidth / 2, by - radius - 8, barWidth * hpRatio, 3.5);
+    });
+
+    // 8. Draw Dust Storm Fog Overlay (Mars Orange Fog)
+    const currentHazard = biomeMaps[currentBiome]?.activeHazard || activeHazard;
+    if (currentHazard?.type === 'DUST_STORM') {
+      ctx.save();
+      ctx.fillStyle = 'rgba(249, 115, 22, 0.15)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    }
 
     // 7. Update & Draw Spark / Flame Particles
     particlesRef.current = particlesRef.current.filter((p) => {

@@ -310,7 +310,40 @@ public class TransporterScript
             }
         }
 
-        // 4. Şebekede çağrı yoksa devriye gez veya bekle
+        // 4. Çağrı Yoksa Haritada Otonom Devriye Gez
+        robot.Move(Direction.Forward);
+    }
+}`;
+
+export const DEFAULT_REPAIR_DRONE_C_SHARP_SCRIPT = `using System;
+using System.Collections.Generic;
+
+public class RepairDroneScript
+{
+    public void Execute(IRobot robot)
+    {
+        // 1. Batarya Düşükse Şarj İstasyonuna Dön
+        if (robot.GetEnergy() <= 25)
+        {
+            BuildingInfo station = robot.GetNearestBuilding("CHARGING_PAD");
+            robot.GoTo(station.X, station.Y);
+            return;
+        }
+
+        // 2. Hasar Görmüş Robotları Tara ve Otonom Tamir Et (Lazer Tamir Işını)
+        List<RobotInfo> damagedRobots = robot.GetDamagedRobots();
+        if (damagedRobots.Count > 0)
+        {
+            RobotInfo target = damagedRobots[0];
+            robot.GoTo(target.X, target.Y);
+            if (Math.Abs(target.X - robot.GetX()) <= 1 && Math.Abs(target.Y - robot.GetY()) <= 1)
+            {
+                robot.RepairRobot(target.Id);
+            }
+            return;
+        }
+
+        // 3. Çağrı Yoksa Sahada Otonom Devriye Gez
         robot.Move(Direction.Forward);
     }
 }`;
