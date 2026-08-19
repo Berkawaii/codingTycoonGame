@@ -2389,11 +2389,42 @@ export const useGameStore = create<GameState>()(
     if (nextTick % 25 === 0 && currentBandits.length < 3) {
       const spawnChance = currentBiome === 'MARS_BASIN' ? 0.25 : 0.65;
       if (Math.random() < spawnChance) {
-        const spawnY = Math.floor(Math.random() * (get().gridSize.height - 2)) + 1;
+        const width = get().gridSize.width;
+        const height = get().gridSize.height;
+
+        let spawnX = 0;
+        let spawnY = 0;
+
+        for (let attempt = 0; attempt < 20; attempt++) {
+          const edge = Math.floor(Math.random() * 4);
+          if (edge === 0) {
+            spawnX = Math.floor(Math.random() * width);
+            spawnY = 0;
+          } else if (edge === 1) {
+            spawnX = width - 1;
+            spawnY = Math.floor(Math.random() * height);
+          } else if (edge === 2) {
+            spawnX = Math.floor(Math.random() * width);
+            spawnY = height - 1;
+          } else {
+            spawnX = 0;
+            spawnY = Math.floor(Math.random() * height);
+          }
+
+          const minDepotDist = depots.reduce((minD, d) => {
+            const dist = Math.hypot(d.x - spawnX, d.y - spawnY);
+            return Math.min(minD, dist);
+          }, Infinity);
+
+          if (minDepotDist >= 5 || depots.length === 0) {
+            break;
+          }
+        }
+
         const newBandit: BanditRobot = {
           id: `bandit-${nextTick}-${Date.now()}`,
           name: 'Korsan Robot',
-          x: 0,
+          x: spawnX,
           y: spawnY,
           health: 100,
           maxHealth: 100,
@@ -2402,13 +2433,15 @@ export const useGameStore = create<GameState>()(
           state: 'RAIDING',
         };
         set((prev) => ({ activeBandits: [...(prev.activeBandits || []), newBandit] }));
-        get().addLog('warn', `🏴‍☠️ [KORSAN BASKINI]: Harita sınırında hırsız Korsan Robot belirdi! Depolara sızıp değerli madenleri çalmaya çalışıyor!`);
+        get().addLog('warn', `🏴‍☠️ [KORSAN BASKINI]: (${spawnX}, ${spawnY}) sınırında hırsız Korsan Robot belirdi! Depolara sızıp değerli madenleri çalmaya çalışıyor!`);
       }
     }
 
     // Bandit Movement & Stealing Loop
     if (currentBandits.length > 0) {
       const nearestDepot = depots[0] || { x: 0, y: 19 };
+      const width = get().gridSize.width;
+      const height = get().gridSize.height;
       const updatedBandits: BanditRobot[] = [];
 
       for (const bandit of currentBandits) {
@@ -2441,13 +2474,23 @@ export const useGameStore = create<GameState>()(
             }
           }
         } else if (bstate === 'ESCAPING') {
-          // Navigate back to map edge
-          if (bx > 0) bx -= 1;
-          else {
+          // Navigate to nearest map edge
+          const distNorth = by;
+          const distSouth = height - 1 - by;
+          const distWest = bx;
+          const distEast = width - 1 - bx;
+          const minDist = Math.min(distNorth, distSouth, distWest, distEast);
+
+          if (minDist <= 0) {
             // Despawned at edge with stolen goods
             get().addLog('warn', `🏴‍☠️ [KORSAN KAÇTI]: Korsan Robot çaldığı madenlerle harita sınırından kaçtı!`);
             continue;
           }
+
+          if (minDist === distNorth) by -= 1;
+          else if (minDist === distSouth) by += 1;
+          else if (minDist === distWest) bx -= 1;
+          else if (minDist === distEast) bx += 1;
         }
 
         // Damage adjacent player robots in harsh biomes
